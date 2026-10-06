@@ -1,0 +1,49 @@
+name: Validate beta tag
+on:
+  push:
+    tags: ['0.1.*']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: |
+          test "${GITHUB_REF_NAME}" = "0.1.0.110021"
+          echo 'Tag validation only. Publication is disabled for this beta.'
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+      - run: echo "STS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: microsoft
+          java-version: '17'
+      - name: Read pinned content source
+        id: content
+        run: |
+          echo "grass=$(sed -n 's/^grass.commit=//p' gradle/content-dependencies.properties)" >> "$GITHUB_OUTPUT"
+          echo "pieces=$(sed -n 's/^pieces.commit=//p' gradle/content-dependencies.properties)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: SkyBlade1978/SkysGrassSlabs
+          ref: ${{ steps.content.outputs.grass }}
+          path: dependencies/grass
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: SkyBlade1978/SkysBuildingPieces
+          ref: ${{ steps.content.outputs.pieces }}
+          path: dependencies/pieces
+      - name: Build content development dependencies
+        run: |
+          export SGS_JAVA8_HOME="$STS_JAVA8_HOME"
+          export SBP_JAVA8_HOME="$STS_JAVA8_HOME"
+          chmod +x dependencies/grass/gradlew dependencies/pieces/gradlew
+          (cd dependencies/grass && ./gradlew jar --no-daemon)
+          (cd dependencies/pieces && ./gradlew jar --no-daemon)
+
+      - run: |
+          chmod +x ./gradlew
+          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
