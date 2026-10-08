@@ -7,12 +7,22 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 public final class ClientProbe extends ProbeProxy {
     private boolean ran;
     private boolean integrated;
-    @Override public void init(){MinecraftForge.EVENT_BUS.register(this);}
+    @Override public void init(){
+        net.minecraftforge.client.model.ModelLoader.setCustomModelResourceLocation(net.minecraft.item.Item.getItemFromBlock(RuntimeProbe.probeOre),0,
+                new net.minecraft.client.renderer.block.model.ModelResourceLocation("minecraft:stone","inventory"));
+        net.minecraftforge.client.model.ModelLoader.setCustomStateMapper(RuntimeProbe.probeOre,new net.minecraft.client.renderer.block.statemap.StateMapperBase(){
+            @Override protected net.minecraft.client.renderer.block.model.ModelResourceLocation getModelResourceLocation(net.minecraft.block.state.IBlockState state){
+                return new net.minecraft.client.renderer.block.model.ModelResourceLocation("minecraft:stone","normal");
+            }
+        });
+        MinecraftForge.EVENT_BUS.register(this);
+    }
     @SubscribeEvent public void tick(TickEvent.ClientTickEvent event) {
         Minecraft mc=Minecraft.getMinecraft();if(event.phase!=TickEvent.Phase.END)return;
         if(ran){if(integrated&&ClientStatus.complete){System.out.println("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS");mc.shutdown();integrated=false;}return;}
         if(mc.currentScreen==null)return;ran=true;
         try {
+            checkModel(mc,RuntimeProbe.probeOre.getDefaultState());
             for(net.minecraft.block.state.IBlockState state:zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.getBlockState().getValidStates())checkModel(mc,state);
             for(zone.moddev.mc.skysbuildingpieces.content.PieceBlock block:zone.moddev.mc.skysbuildingpieces.content.Pieces.BLOCKS.values())
                 for(net.minecraft.block.state.IBlockState state:block.getBlockState().getValidStates()) {

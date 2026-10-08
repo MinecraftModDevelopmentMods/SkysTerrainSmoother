@@ -18,5 +18,6 @@ classes or assets are bundled.
 The build-only integration mod exercises real Forge startup, grass lifecycle,
 every footprint, player-tracked chunk generation and a saved-world reload.
 It is absent from production artifacts and ordinary Eclipse runs. Use
-`genEclipseRuns eclipse` to regenerate those runs. Publication is disabled for
-this beta. Hosted dependency qualification awaits the authorised source push.
+`genEclipseRuns eclipse` to regenerate those runs. CI builds the pinned content
+mods first. Publication remains disabled until this mod has its own CurseForge
+project.

@@ -8,7 +8,7 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.LoaderState;
 import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
-/** Version-one initialization-only extension. User configuration always wins. */
+/** Version 1 API for registration during initialization. Player settings take priority. */
 public final class TerrainSmoothingApi {
     public static final int VERSION = 1;
     private static final MaterialCatalogue CATALOGUE = MaterialCatalogue.instance();

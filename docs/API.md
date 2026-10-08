@@ -37,9 +37,15 @@ unchanged. Mutable input arrays and sets are copied. The engine resolves
 registered neighbouring pieces to their logical full surface before comparing
 heights, and writes only within the owning chunk.
 
+Mappings apply to dry cave floors as well as outdoor terrain in new chunks.
+Underground targets require three clear blocks above their supporting floor;
+ceiling and wall shaping is not supported. Material and area restrictions
+apply at each floor's actual position. Ores remain outside the source
+catalogue, but a late ore replacement beneath a generated piece is preserved.
+
 Grass-like material mappings should provide their full dirt support state in
 `supportAfterPlacement`. Register matching content orientations through the
-Grass Slabs version-one grass-form API if their lifecycle should participate
+Grass Slabs version 1 grass API if their lifecycle should participate
 in its shared spreading rules. Content mods still own placement, drops,
 rendering and migration.
 

@@ -28,6 +28,10 @@ public final class BuiltInMaterials {
         vanilla("andesite",Blocks.STONE.getStateFromMeta(5),false,null);
         vanilla("sandstone",Blocks.SANDSTONE.getStateFromMeta(0),false,null);
         vanilla("red_sandstone",Blocks.RED_SANDSTONE.getStateFromMeta(0),false,null);
+        vanilla("hardened_clay",Blocks.HARDENED_CLAY.getDefaultState(),false,null);
+        for(int variant=0;variant<2;variant++)TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
+                new ResourceLocation("minecraft",variant==0?"sand":"red_sand"),Collections.singleton(Blocks.SAND.getStateFromMeta(variant)),
+                zone.moddev.mc.skysterrainsmoother.content.SandContent.slab.getStateFromMeta(variant*2+1),null,null,false,null));
         if (!SkysTerrainSmoother.mineralogy || !Loader.isModLoaded("mineralogy")) return;
         int count=0,missing=0;
         for(String rock:ROCKS) {

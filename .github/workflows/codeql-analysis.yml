@@ -33,7 +33,10 @@ jobs:
           java-version: '8.0.502+7'
 
       - name: Pin production Java
-        run: echo "STS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+        run: |
+          echo "SGS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java 17 for Gradle
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -44,28 +47,34 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
-      - name: Read pinned content source
+      - name: Read pinned dependency sources
         id: content
         run: |
-          echo "grass=$(sed -n 's/^grass.commit=//p' gradle/content-dependencies.properties)" >> "$GITHUB_OUTPUT"
-          echo "pieces=$(sed -n 's/^pieces.commit=//p' gradle/content-dependencies.properties)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+          set -euo pipefail
+          grass="$(sed -n 's/^grass.commit=//p' gradle/content-dependencies.properties)"
+          [[ "$grass" =~ ^[0-9a-f]{40}$ ]]
+          echo "grass=$grass" >> "$GITHUB_OUTPUT"
+          pieces="$(sed -n 's/^pieces.commit=//p' gradle/content-dependencies.properties)"
+          [[ "$pieces" =~ ^[0-9a-f]{40}$ ]]
+          echo "pieces=$pieces" >> "$GITHUB_OUTPUT"
+      - name: Check out SkysGrassSlabs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: SkyBlade1978/SkysGrassSlabs
           ref: ${{ steps.content.outputs.grass }}
           path: dependencies/grass
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check out SkysBuildingPieces
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: SkyBlade1978/SkysBuildingPieces
           ref: ${{ steps.content.outputs.pieces }}
           path: dependencies/pieces
-      - name: Build content development dependencies
+      - name: Build development dependencies
         run: |
-          export SGS_JAVA8_HOME="$STS_JAVA8_HOME"
-          export SBP_JAVA8_HOME="$STS_JAVA8_HOME"
-          chmod +x dependencies/grass/gradlew dependencies/pieces/gradlew
-          (cd dependencies/grass && ./gradlew jar --no-daemon)
-          (cd dependencies/pieces && ./gradlew jar --no-daemon)
+          set -euo pipefail
+          chmod +x dependencies/*/gradlew
+          (cd dependencies/grass && ./gradlew jar --no-daemon --stacktrace)
+          (cd dependencies/pieces && ./gradlew jar --no-daemon --stacktrace)
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
@@ -75,7 +84,7 @@ jobs:
       - name: Compile production code
         run: |
           chmod +x ./gradlew
-          ./gradlew clean classes --rerun-tasks -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
+          ./gradlew clean classes -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --rerun-tasks --no-daemon --stacktrace
 
       - name: Analyze
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4

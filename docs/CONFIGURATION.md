@@ -13,6 +13,11 @@ Levels outside 1–3 are constrained to that range. Missing finer shapes fall
 back to slabs; disabled Mineralogy slabs are skipped. This mod adds no steps or
 corners to Mineralogy.
 
+The same level applies to dry surface slopes and cave floors in new chunks.
+There is no retrogen: saved caves are unchanged. Low passages, ceilings and
+underwater floors are not smoothed. Ores are not smoothing materials, but an
+ore vein generated beneath an existing piece keeps that piece in place.
+
 `worldgen.generateGrassSlabs` in Grass Slabs remains the grass material switch.
 Turning it off does not disable stone smoothing. When Terrain Smoother is
 installed but its master switch is off, Grass Slabs does not run a separate
