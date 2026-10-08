@@ -1,0 +1,6 @@
+Sky's Terrain Smoother
+Copyright SkyBlade1978
+Licensed under LGPL-2.1-only.
+Includes adapted terrain scanning infrastructure from Sky's Grass Slabs,
+also licensed under LGPL-2.1-only. Minecraft, Forge and dependency mod
+classes and textures are not redistributed.
