@@ -6,7 +6,7 @@ slabs for beaches and desert slopes.
 
 This beta is for Minecraft 1.10.2 and Forge 12.18.3.2511. Install Terrain
 Smoother 0.1.0.110021, Grass Slabs 1.1.0.110021 and Building Pieces
-0.3.0.110021 together on the client and server. Mineralogy is optional.
+0.3.6.110021 together on the client and server. Mineralogy is optional.
 
 ## Smoothing levels
 

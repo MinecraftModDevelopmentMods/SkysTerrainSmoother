@@ -62,15 +62,24 @@ tasks.withType(JavaCompile).configureEach {
 def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs110/SkysGrassSlabs'))
 def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces110/SkysBuildingPieces'))
 def grassSlabsDevelopmentJar = new File(grassSlabsDirectory, 'build/libs-dev/SkysGrassSlabs-1.1.0.110021-deobf.jar')
-def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory, 'build/libs-dev/SkysBuildingPieces-0.3.0.110021-deobf.jar')
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
+
+def localPiecesVersion = providers.gradleProperty('buildingPiecesCoreVersion')
+if (localPiecesVersion.isPresent() &&
+        (System.getenv('CI') != null || !providers.gradleProperty('buildingPiecesDirectory').isPresent())) {
+    throw new GradleException('A local core-version override needs an explicit core directory and is not allowed in CI.')
+}
+def piecesVersion = localPiecesVersion.getOrElse(contentLock.getProperty('pieces.version'))
+def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory,
+        "build/libs-dev/SkysBuildingPieces-${piecesVersion}-deobf.jar")
 def verifyContentDependencies=tasks.register('verifyContentDependencies') {
     doLast {
         [grass:grassSlabsDirectory,pieces:buildingPiecesDirectory].each { name,directory ->
             Properties metadata=new Properties()
             new File(directory,'gradle.properties').withInputStream { metadata.load(it) }
-            if(metadata.mod_version!=contentLock.getProperty(name+'.version'))
+            String expectedVersion = name == 'pieces' ? piecesVersion : contentLock.getProperty(name + '.version')
+            if(metadata.mod_version!=expectedVersion)
                 throw new GradleException('Content dependency version does not match its lock: '+name)
             if(System.getenv('CI')!=null) {
                 Process git=new ProcessBuilder('git','-C',directory.path,'rev-parse','HEAD').start()
