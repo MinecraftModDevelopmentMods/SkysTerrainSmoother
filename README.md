@@ -4,9 +4,9 @@ Sky's Terrain Smoother softens new Overworld slopes using pieces from Sky's
 Grass Slabs and Sky's Building Pieces. It also provides ordinary and red sand
 slabs for beaches and desert slopes.
 
-This beta is for Minecraft 1.10.2 and Forge 12.18.3.2511. Install Terrain
-Smoother 0.1.0.110021, Grass Slabs 1.1.0.110021 and Building Pieces
-0.3.0.110021 together on the client and server. Mineralogy is optional.
+This beta is for Minecraft 1.12.2 and Forge 14.23.5.2859. Install Terrain
+Smoother 0.1.0.112021, Grass Slabs 1.1.0.112021 and Building Pieces
+0.3.6.112021 together on the client and server. Mineralogy is optional.
 
 ## Smoothing levels
 

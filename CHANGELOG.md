@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0.112021
+
+- Added Minecraft 1.12.2 support for surface and cave smoothing.
+- Kept all three levels, matching sand caps and existing-world protections.
+- Retained optional Mineralogy support without adding duplicate rock pieces.
+
 ## 0.1.0.110021
 
 - Added hardened clay transitions and smoothing for grass oasis patches added during decoration.
