@@ -1,23 +1,28 @@
 # Building from source
 
-Use Java 17 for Gradle and Temurin 8.0.502+7 for production. Set `STS_JAVA8_HOME`
-to the Java 8 installation. The wrapper uses Gradle 9.6.1 and ForgeGradle
-7.0.34 with stable 29-1.10.2 mappings.
+Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
+Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
+Minecraft 1.10.2 with ForgeGradle 7.0.34.
 
-Build the Grass Slabs and Building Pieces source commits recorded in
+Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `jar` tasks first.
-Then run `gradlew check build javadoc verifyReleaseArtifacts
-writeReleaseChecksums verifyEclipseProductionClasspath` here.
 
-The default layout uses sibling Grass Slabs and Building Pieces 1.10
-checkouts. Elsewhere, pass `-PgrassSlabsDirectory=<checkout>` and
-`-PbuildingPiecesDirectory=<checkout>`. Development dependencies use their
-deobfuscated jars; packaged games use the normal main jars. No dependency
-classes or assets are bundled.
+The default layout uses sibling checkouts. For another layout, pass
+`-PgrassSlabsDirectory=<checkout>` and
+`-PbuildingPiecesDirectory=<checkout>`.
+Then run:
 
-The build-only integration mod exercises real Forge startup, grass lifecycle,
-every footprint, player-tracked chunk generation and a saved-world reload.
-It is absent from production artifacts and ordinary Eclipse runs. Use
-`genEclipseRuns eclipse` to regenerate those runs. CI builds the pinned content
-mods first. Publication remains disabled until this mod has its own CurseForge
-project.
+```text
+gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums verifyEclipseProductionClasspath
+```
+
+Development dependencies use deobfuscated jars. Packaged games use the normal
+main jars; dependency classes and assets are not bundled. CI builds the exact
+pinned commits rather than moving branches.
+
+A local-only `buildingPiecesCoreVersion` override can test another core
+candidate. It requires an explicit core directory and is rejected in CI.
+
+Use `genEclipseRuns eclipse` to prepare the Java 8 IDE setup. Ordinary launches
+exclude unit tests and build-only runtime probes. Publication remains disabled
+until this mod has its own CurseForge project.
