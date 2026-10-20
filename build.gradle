@@ -59,18 +59,27 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs110/SkysGrassSlabs'))
-def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces110/SkysBuildingPieces'))
-def grassSlabsDevelopmentJar = new File(grassSlabsDirectory, 'build/libs-dev/SkysGrassSlabs-1.1.0.110021-deobf.jar')
-def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory, 'build/libs-dev/SkysBuildingPieces-0.3.0.110021-deobf.jar')
+def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs112/SkysGrassSlabs'))
+def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces112/SkysBuildingPieces'))
+def grassSlabsDevelopmentJar = new File(grassSlabsDirectory, 'build/libs-dev/SkysGrassSlabs-1.1.0.112021-deobf.jar')
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
+
+def localPiecesVersion = providers.gradleProperty('buildingPiecesCoreVersion')
+if (localPiecesVersion.isPresent() &&
+        (System.getenv('CI') != null || !providers.gradleProperty('buildingPiecesDirectory').isPresent())) {
+    throw new GradleException('A local core-version override needs an explicit core directory and is not allowed in CI.')
+}
+def piecesVersion = localPiecesVersion.getOrElse(contentLock.getProperty('pieces.version'))
+def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory,
+        "build/libs-dev/SkysBuildingPieces-${piecesVersion}-deobf.jar")
 def verifyContentDependencies=tasks.register('verifyContentDependencies') {
     doLast {
         [grass:grassSlabsDirectory,pieces:buildingPiecesDirectory].each { name,directory ->
             Properties metadata=new Properties()
             new File(directory,'gradle.properties').withInputStream { metadata.load(it) }
-            if(metadata.mod_version!=contentLock.getProperty(name+'.version'))
+            String expectedVersion = name == 'pieces' ? piecesVersion : contentLock.getProperty(name + '.version')
+            if(metadata.mod_version!=expectedVersion)
                 throw new GradleException('Content dependency version does not match its lock: '+name)
             if(System.getenv('CI')!=null) {
                 Process git=new ProcessBuilder('git','-C',directory.path,'rev-parse','HEAD').start()
@@ -146,14 +155,14 @@ minecraft {
     }
 }
 
-// Forge 1.10 discovers a development mod from one classes/resources root.
-def forge10DevelopmentOutput = layout.buildDirectory.dir('forge10-development/main')
+// Forge 1.12 discovers a development mod from one classes/resources root.
+def forge12DevelopmentOutput = layout.buildDirectory.dir('forge12-development/main')
 def syncForge10DevelopmentResources = tasks.register('syncForge10DevelopmentResources', Sync) {
     group = 'ide'
     dependsOn tasks.named('classes')
     from tasks.named('compileJava', JavaCompile).flatMap { it.destinationDirectory }
     from sourceSets.main.output.resourcesDir
-    into forge10DevelopmentOutput
+    into forge12DevelopmentOutput
 }
 tasks.configureEach {
     if (name in ['runClient', 'runServer', 'runTestClient', 'runTestServer']) {
@@ -164,7 +173,7 @@ tasks.configureEach {
                     tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
                     sourceSets.main.output.resourcesDir
             ] as Set<File>
-            classpath = files(forge10DevelopmentOutput, classpath.filter {
+            classpath = files(forge12DevelopmentOutput, classpath.filter {
                 !splitMainOutputs.contains(it)
             })
         }
@@ -205,7 +214,7 @@ def configureFromForgeRun = { JavaExec process, String runTaskName ->
                     tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
                     sourceSets.main.output.resourcesDir
             ] as Set<File>
-            run.setClasspath(files(forge10DevelopmentOutput, run.classpath.filter {
+            run.setClasspath(files(forge12DevelopmentOutput, run.classpath.filter {
                 !splitMainOutputs.contains(it)
             }))
             if (pinnedJava8.isPresent()) run.executable = javaToolchains.launcherFor(exactJava8Spec).get().executablePath.asFile.path
@@ -461,12 +470,12 @@ def releaseFiles = provider {
 tasks.register('verifyReleaseMetadata') {
     group = 'verification'
     doLast {
-        if (project.minecraft_version != '1.10.2' || project.forge_version != '12.18.3.2511' ||
-                project.mapping_channel != 'stable' || project.mapping_version != '29-1.10.2' ||
+        if (project.minecraft_version != '1.12.2' || project.forge_version != '14.23.5.2859' ||
+                project.mapping_channel != 'stable' || project.mapping_version != '39-1.12' ||
                 project.loader_name != 'forge' || project.loader_code != '1' ||
                 project.java_version != '8' || project.java_toolchain_version != '8.0.502+7' ||
                 project.mod_id != 'skysterrainsmoother') {
-            throw new GradleException('Unexpected 1.10.2 release metadata')
+            throw new GradleException('Unexpected 1.12.2 release metadata')
         }
     }
 }

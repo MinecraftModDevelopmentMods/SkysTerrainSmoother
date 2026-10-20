@@ -1,19 +1,19 @@
-name: Sky's Terrain Smoother 1.10 CI
+name: Sky's Terrain Smoother 1.12 CI
 
 on:
   push:
     branches:
-      - master-1.10.2
+      - master-1.12.2
       - 'feature/**'
   pull_request:
     branches:
-      - master-1.10.2
+      - master-1.12.2
 
 permissions:
   contents: read
 
 concurrency:
-  group: skysterrainsmoother-1.10-${{ github.workflow }}-${{ github.ref }}
+  group: skysterrainsmoother-1.12-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -92,13 +92,13 @@ jobs:
       - name: Upload audited release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: SkysTerrainSmoother-1.10.2-${{ github.sha }}
+          name: SkysTerrainSmoother-1.12.2-${{ github.sha }}
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.110021.jar
-            build/libs/SkysTerrainSmoother-0.1.0.110021-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.110021-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.0.112021.jar
+            build/libs/SkysTerrainSmoother-0.1.0.112021-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.0.112021-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 
@@ -106,7 +106,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: SkysTerrainSmoother-1.10.2-diagnostics-${{ github.sha }}
+          name: SkysTerrainSmoother-1.12.2-diagnostics-${{ github.sha }}
           if-no-files-found: ignore
           retention-days: 14
           path: |

@@ -12,12 +12,36 @@ import net.minecraft.world.biome.Biome;
 
 final class EmptyAccess implements IBlockAccess {
     static final EmptyAccess INSTANCE = new EmptyAccess();
-    public TileEntity getTileEntity(BlockPos pos) { return null; }
-    public int getCombinedLight(BlockPos pos,int light) { return 0; }
-    public IBlockState getBlockState(BlockPos pos) { return Blocks.AIR.getDefaultState(); }
-    public boolean isAirBlock(BlockPos pos) { return true; }
-    public Biome getBiome(BlockPos pos) { return Biomes.PLAINS; }
-    public int getStrongPower(BlockPos pos,EnumFacing side) { return 0; }
-    public WorldType getWorldType() { return WorldType.DEFAULT; }
-    public boolean isSideSolid(BlockPos pos,EnumFacing side,boolean fallback) { return false; }
+
+    public TileEntity getTileEntity(BlockPos pos) {
+        return null;
+    }
+
+    public int getCombinedLight(BlockPos pos, int light) {
+        return 0;
+    }
+
+    public IBlockState getBlockState(BlockPos pos) {
+        return Blocks.AIR.getDefaultState();
+    }
+
+    public boolean isAirBlock(BlockPos pos) {
+        return true;
+    }
+
+    public Biome getBiome(BlockPos pos) {
+        return Biomes.PLAINS;
+    }
+
+    public int getStrongPower(BlockPos pos, EnumFacing side) {
+        return 0;
+    }
+
+    public WorldType getWorldType() {
+        return WorldType.DEFAULT;
+    }
+
+    public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean fallback) {
+        return false;
+    }
 }
