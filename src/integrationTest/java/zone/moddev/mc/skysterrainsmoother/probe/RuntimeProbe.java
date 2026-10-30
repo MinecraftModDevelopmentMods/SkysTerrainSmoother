@@ -88,18 +88,6 @@ public final class RuntimeProbe {
                 null, null, false, null));
         TerrainSmoothingApi.addShapes(registryId, steps, corners);
 
-        // A later Mineralogy add-on can supply finer geometry without replacing its native slab.
-        if (Loader.isModLoaded("mineralogy") && SkysTerrainSmoother.mineralogy
-                && Block.REGISTRY.containsKey(new ResourceLocation("mineralogy:basalt_slab"))) {
-            for (int directionIndex = 0; directionIndex < 4; directionIndex++) {
-                steps[directionIndex] = BuildingPiecesApi.bottomPiece("minecraft:quartz_block",
-                        BuildingPiecesApi.TerrainShape.STEP, directions[directionIndex]);
-                corners[directionIndex] = BuildingPiecesApi.bottomPiece("minecraft:quartz_block",
-                        BuildingPiecesApi.TerrainShape.CORNER, directions[directionIndex]);
-            }
-
-            TerrainSmoothingApi.addShapes(new ResourceLocation("mineralogy:basalt"), steps, corners);
-        }
 
         TerrainSmoothingApi.addAreaProtection((dimension, pos, biome) -> pos.getY() == 241);
     }
@@ -135,7 +123,10 @@ public final class RuntimeProbe {
 
             require(late, "late API registration rejected");
 
-            int gameplay = persistence(world) + LateTerrainProbe.run(world) + CaveProbe.run(world)
+            int gameplay = MineralogyProbe.run() + FineGrassProbe.run(world) + OpportunityProbe.run(world)
+                    + TransitionProbe.run(world) + FoliageProbe.run(world)
+                    + persistence(world)
+                    + LateTerrainProbe.run(world) + CaveProbe.run(world)
                     + decorationChanges(world) + geometry(world) + grass(world) + sand(world) + generationOrder(world)
                     + LateTerrainProbe.generationOrder(world);
             int generation = generate(world);
@@ -600,11 +591,18 @@ public final class RuntimeProbe {
                         "fine grass snow clears");
                 world.setBlockState(position.down(), Blocks.GRASS.getDefaultState(), 2);
                 grass.getBlock().neighborChanged(grass, world, position, Blocks.GRASS, position.down());
-                require(world.getBlockState(position.down()).getBlock() == Blocks.DIRT, "piece support dirtification");
-                require(!GrassSpread.growTarget(world, position.down()), "no grass beneath grass pieces");
+                int cells = piece.mask(grass);
+                boolean coversSupport = ((cells | cells >> 4) & 15) == 15;
+                require(world.getBlockState(position.down()).getBlock() == (coversSupport ? Blocks.DIRT : Blocks.GRASS),
+                        "only full footprints dirtify the grass support");
+                world.setBlockState(position.down(), Blocks.DIRT.getDefaultState(), 2);
+                require(GrassSpread.growTarget(world, position.down()) == !coversSupport,
+                        "visible soil beneath finer pieces can regain grass");
                 world.setBlockState(position, dirt, 2);
                 world.setBlockState(position.up(), ModBlocks.GRASS_SLAB.getDefaultState(), 2);
                 require(!GrassSpread.growTarget(world, position), "covered dirt piece rejected");
+                world.setBlockState(position.up(), Pieces.state("minecraft:grass", Shape.HORIZONTAL_STEP, 4), 2);
+                require(!GrassSpread.growTarget(world, position), "covered dirt pieces still reject partial grass cover");
                 world.setBlockState(position, grass, 2);
                 world.setBlockState(position.up(), Blocks.STONE.getDefaultState(), 2);
                 world.setLightFor(EnumSkyBlock.SKY, position.up(), 0);

@@ -57,6 +57,32 @@ class FootprintTest {
     }
 
     @Test
+    void trimOnlyTheDownhillPartOfMixedTerraces() {
+        assertEquals(3, Footprint.trimDownhillEdges(7, 4), "keep the north step above a south drop");
+        assertEquals(6, Footprint.trimDownhillEdges(7, 8), "keep the east step above a west drop");
+        assertEquals(2, Footprint.trimDownhillEdges(7, 12), "keep the northeast corner above both drops");
+        assertEquals(6, Footprint.trimDownhillEdges(6, 8), "an uphill-facing step already fits");
+        assertEquals(0, Footprint.trimDownhillEdges(15, 5), "opposite drops leave no safe piece");
+        assertThrows(IllegalArgumentException.class, () -> Footprint.trimDownhillEdges(16, 0));
+        assertThrows(IllegalArgumentException.class, () -> Footprint.trimDownhillEdges(0, 16));
+    }
+
+    @Test
+    void everyTrimmedFootprintKeepsOnlyRequestedSafeQuadrants() {
+        for (int requested = 0; requested < 16; requested++) {
+            for (int lowerEdges = 0; lowerEdges < 16; lowerEdges++) {
+                int trimmed = Footprint.trimDownhillEdges(requested, lowerEdges);
+                assertEquals(0, trimmed & ~requested, "never add an unrequested quadrant");
+                for (int direction = 0; direction < 4; direction++) {
+                    if ((lowerEdges & 1 << direction) != 0) {
+                        assertEquals(0, trimmed & Footprint.EDGES[direction], "never raise a downhill edge");
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     void borderPolicyNeverReadsTheUnownedNorthOrWestBorder() {
         for (int blockX = -2; blockX <= 18; blockX++) {
             for (int blockZ = -2; blockZ <= 18; blockZ++) {

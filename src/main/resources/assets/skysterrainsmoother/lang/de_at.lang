@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=Sandstufn
 tile.skysterrainsmoother.red_sand_slab.name=Rote Sandstufn
+config.skysterrainsmoother.enabled=Geländeglättung aktivieren
+config.skysterrainsmoother.smoothingLevel=Glättungsstufe (1–3)
+config.skysterrainsmoother.enableMineralogy=Mineralogy-Stufen verwenden
+config.skysterrainsmoother.enabled.tooltip=Glättet neue trockene Hänge und Höhlenböden der Oberwelt. Ausschalten stoppt auch den separaten Grass-Slabs-Durchlauf. Bestehende Chunks bleiben unverändert. Minecraft neu starten.
+config.skysterrainsmoother.smoothingLevel.tooltip=1: Platten. 2: Platten und Viertelblöcke. 3: zusätzlich Achtelblöcke. Fehlende Formen werden nur durch sicher passende Platten ersetzt. Minecraft neu starten.
+config.skysterrainsmoother.enableMineralogy.tooltip=Nutzt verfügbare Platten natürlicher Mineralogy-Gesteine, wenn die Mod installiert ist. Deaktivierte Plattentypen werden übersprungen. Minecraft neu starten.

@@ -9,13 +9,21 @@ sandstone, sand and hardened clay.
 
 Set `worldgen.smoothingLevel` in `config/skysterrainsmoother.cfg`:
 
-1. **Slabs** — half-block transitions.
-2. **Slabs and steps** — adds pieces covering half a slab's footprint.
-3. **Slabs, steps and corners** — also uses pieces covering a quarter of a
+1. **Slabs** - half-block transitions.
+2. **Slabs and steps** - adds pieces covering half a slab's footprint.
+3. **Slabs, steps and corners** - also uses pieces covering a quarter of a
    slab's footprint.
 
 Every smoothing piece is half a block tall. If a material doesn't have steps
-or corners, it still uses its slab at higher levels.
+or corners, it uses its slab at higher levels wherever a slab fits safely.
+
+Narrow mountain ledges keep their downhill edge at its original height, rather
+than gaining a row of slabs that recreates a full-block step. Wider terraces
+still get transitions. At levels 2 and 3, the engine keeps a fitting uphill step
+or corner even when a whole slab would raise the downhill edge.
+
+A single layer of snow doesn't block an otherwise valid transition. Deeper
+snow, trees, crops and occupied blocks stay untouched.
 
 Only new, dry terrain is smoothed. Existing chunks, underwater floors and cave
 ceilings stay unchanged. Cave passages need three clear blocks above the floor,
@@ -29,9 +37,9 @@ blocks in a row make six slabs, and two slabs side by side make a full block.
 Like sand blocks, the slabs fall when unsupported. Sand uses slabs at every
 smoothing level.
 
-Mineralogy is supported without another add-on. When it's installed, available
-natural rock slabs are used by default. It doesn't get new steps or corners
-from this mod, and disabled slab types are skipped.
+Mineralogy is supported without another add-on. When it's installed, the
+smoother uses its natural rock slabs and the matching steps and corners
+included in Building Pieces. Disabled native slab types are skipped.
 
 Ores, gravel, wood and decorative stone aren't smoothing materials.
 
@@ -42,20 +50,29 @@ For BOP grass and soils, add the
 
 For **Minecraft 1.12.2**, use **Forge 14.23.5.2859** and **Java 8**, with:
 
-- Sky's Grass Slabs **1.1.0.112021**.
-- Sky's Building Pieces **0.3.6.112021**.
+- Sky's Grass Slabs **1.1.2.112021**.
+- Sky's Building Pieces **0.3.8.112021**.
 - Sky's Terrain Smoother **0.1.0.112021**.
 
 Install all three main jars on both the client and server.
 
-Smoothing starts at level 1. Stop the game or server before editing the
-configuration, then restart. You can turn smoothing off or disable Mineralogy
-support; see [configuration](docs/CONFIGURATION.md).
+New configurations start at level 3. Existing saved choices are kept.
+Select the mod in **Mods > Config** to choose a
+level, turn smoothing off or disable Mineralogy support, then restart Minecraft.
+For a dedicated server, edit its configuration file and restart the server.
+See [configuration](docs/CONFIGURATION.md).
 
 While installed, Terrain Smoother handles grass smoothing instead of Grass Slabs.
 Turning its master switch off stops both passes. Grass Slabs' own
 `worldgen.generateGrassSlabs` setting still decides whether grass is included.
 Removing Terrain Smoother restores Grass Slabs' standalone generation.
+
+## Mineralogy steps and corners
+
+Building Pieces 0.3.7 or later includes Mineralogy rock steps and corners.
+Install Mineralogy alongside the usual Sky mods; no separate Mineralogy
+add-on is needed. Level 1 uses native slabs, level 2 also uses steps and
+level 3 also uses corners. Your Mineralogy support setting still applies.
 
 ## Existing worlds
 

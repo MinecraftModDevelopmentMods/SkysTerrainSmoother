@@ -61,9 +61,19 @@ tasks.withType(JavaCompile).configureEach {
 
 def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs112/SkysGrassSlabs'))
 def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces112/SkysBuildingPieces'))
-def grassSlabsDevelopmentJar = new File(grassSlabsDirectory, 'build/libs-dev/SkysGrassSlabs-1.1.0.112021-deobf.jar')
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
+
+def localGrassVersion = providers.gradleProperty('grassSlabsVersion')
+if (localGrassVersion.isPresent() &&
+        (System.getenv('CI') != null || !providers.gradleProperty('grassSlabsDirectory').isPresent())) {
+    throw new GradleException('A local grass-version override needs an explicit directory and is not allowed in CI.')
+}
+def grassVersion = localGrassVersion.getOrElse(contentLock.getProperty('grass.version'))
+
+
+def grassSlabsDevelopmentJar = new File(grassSlabsDirectory,
+        "build/libs-dev/SkysGrassSlabs-${grassVersion}-deobf.jar")
 
 def localPiecesVersion = providers.gradleProperty('buildingPiecesCoreVersion')
 if (localPiecesVersion.isPresent() &&
@@ -78,9 +88,14 @@ def verifyContentDependencies=tasks.register('verifyContentDependencies') {
         [grass:grassSlabsDirectory,pieces:buildingPiecesDirectory].each { name,directory ->
             Properties metadata=new Properties()
             new File(directory,'gradle.properties').withInputStream { metadata.load(it) }
-            String expectedVersion = name == 'pieces' ? piecesVersion : contentLock.getProperty(name + '.version')
-            if(metadata.mod_version!=expectedVersion)
-                throw new GradleException('Content dependency version does not match its lock: '+name)
+            String expectedVersion = name == 'grass' ? grassVersion : name == 'pieces' ? piecesVersion : contentLock.getProperty(name + '.version')
+            if (metadata.mod_version != expectedVersion) {
+                String localHelp = name == 'pieces' && System.getenv('CI') == null ?
+                        ' For a local candidate, supply both -PbuildingPiecesDirectory=<checkout>' +
+                                ' and -PbuildingPiecesCoreVersion=<version>, then regenerate the Eclipse runs.' : ''
+                throw new GradleException("Content dependency version does not match its lock: ${name}" +
+                        " (expected ${expectedVersion}, found ${metadata.mod_version})." + localHelp)
+            }
             if(System.getenv('CI')!=null) {
                 Process git=new ProcessBuilder('git','-C',directory.path,'rev-parse','HEAD').start()
                 String sha=git.inputStream.getText('UTF-8').trim()
@@ -147,6 +162,7 @@ minecraft {
     runs {
         configureEach {
             workingDir.convention layout.projectDirectory.dir(developmentRunDirectory)
+            environment 'MC_VERSION', project.minecraft_version.toString()
             systemProperty 'forge.logging.console.level', 'debug'
             systemProperty 'fml.coreMods.load', 'zone.moddev.mc.skysbuildingpieces.legacy.LoaderPlugin'
         }
@@ -588,6 +604,7 @@ ext.releaseFiles = releaseFiles
 ext.releaseJar = releaseJar
 apply from: 'gradle/release.gradle'
 
+
 // Keep the old entry point disabled until publication is configured.
 tasks.register('publishRelease') {
     doLast { throw new GradleException('Publication is disabled for the local beta.') }
@@ -597,8 +614,27 @@ idea {
     module { downloadSources = true; downloadJavadoc = true }
 }
 eclipse {
-    classpath { downloadSources = true; downloadJavadoc = true }
-    synchronizationTasks 'genEclipseRuns'
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+        file.whenMerged { classpath ->
+            // Eclipse copies these files on every build. Use Gradle's expanded metadata, never the template.
+            def resources = classpath.entries.findAll {
+                it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder &&
+                        it.path in ['src/main/resources', 'build/resources/main']
+            }
+            // Keep one entry when Gradle merges an existing Eclipse classpath.
+            resources.drop(1).each { classpath.entries.remove(it) }
+            resources.take(1).each { entry ->
+                entry.path = 'build/resources/main'
+            }
+        }
+    }
+    synchronizationTasks 'processResources', 'genEclipseRuns'
+}
+
+tasks.named('eclipseClasspath') {
+    dependsOn tasks.named('processResources'), verifyContentDependencies
 }
 
 def prepareEclipseResources = tasks.register('prepareEclipseResources') {
@@ -626,6 +662,20 @@ def configureEclipseBuildship = tasks.register('configureEclipseBuildship') {
                 'gradle.user.home': gradle.gradleUserHomeDir.canonicalPath,
                 'override.workspace.settings': 'true'
         ].each { key, value -> preferences.setProperty(key, value) }
+        // Refreshes must use the same checkouts, without retaining an old candidate override.
+        List<String> arguments = preferences.getProperty('arguments', '').tokenize(' ')
+        arguments.removeAll {
+            it.startsWith('-PgrassSlabsDirectory=') || it.startsWith('-PgrassSlabsVersion=') ||
+                    it.startsWith('-PbuildingPiecesDirectory=') ||
+                    it.startsWith('-PbuildingPiecesCoreVersion=')
+        }
+        arguments.add('-PgrassSlabsDirectory=' + relativePath(grassSlabsDirectory))
+        if (localGrassVersion.isPresent()) arguments.add('-PgrassSlabsVersion=' + grassVersion)
+        arguments.add('-PbuildingPiecesDirectory=' + relativePath(buildingPiecesDirectory))
+        if (localPiecesVersion.isPresent()) {
+            arguments.add('-PbuildingPiecesCoreVersion=' + piecesVersion)
+        }
+        preferences.setProperty('arguments', arguments.join(' '))
         preferencesFile.parentFile.mkdirs()
         preferencesFile.withOutputStream { preferences.store(it, 'Generated Buildship configuration.') }
     }
@@ -639,6 +689,7 @@ tasks.register('isolateEclipseProductionRuns') {
             File launch = file(name)
             if (!launch.isFile()) throw new GradleException("ForgeGradle did not generate ${name}")
             String contents = launch.getText('UTF-8')
+            contents = contents.replace('${MC_VERSION}', project.minecraft_version.toString())
             boolean production = name in ['runClient.launch', 'runServer.launch']
             if (production && !contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
                 contents = contents.replace('</launchConfiguration>',
@@ -677,7 +728,36 @@ tasks.register('verifyEclipseProductionClasspath') {
         if (file(prefs.getProperty('connection.gradle.user.home', '')).canonicalFile != gradle.gradleUserHomeDir.canonicalFile) {
             throw new GradleException('Eclipse Buildship uses the wrong Gradle home')
         }
+        List<String> arguments = prefs.getProperty('arguments', '').tokenize(' ')
+        if (!arguments.contains('-PgrassSlabsDirectory=' + relativePath(grassSlabsDirectory)) ||
+                !arguments.contains('-PbuildingPiecesDirectory=' + relativePath(buildingPiecesDirectory))) {
+            throw new GradleException('Eclipse Buildship lost the selected content checkouts')
+        }
+        List<String> overrides = arguments.findAll { it.startsWith('-PbuildingPiecesCoreVersion=') }
+        List<String> expectedOverrides = localPiecesVersion.isPresent() ?
+                ['-PbuildingPiecesCoreVersion=' + piecesVersion] : []
+        if (overrides != expectedOverrides) {
+            throw new GradleException('Eclipse Buildship retained an incorrect Building Pieces version override')
+        }
         File metadata = file('bin/main/mcmod.info')
+        def eclipseClasspath = new groovy.xml.XmlSlurper().parse(file('.classpath'))
+        def piecesLibraries = eclipseClasspath.classpathentry.findAll {
+            it.@kind == 'lib' && it.@path.text().tokenize('/\\').last().startsWith('SkysBuildingPieces-')
+        }*.@path*.text().collect { file(it).canonicalFile }
+        if (piecesLibraries != [buildingPiecesDevelopmentJar.canonicalFile]) {
+            throw new GradleException('Eclipse must use only the selected Building Pieces development jar')
+        }
+        def grassLibraries = eclipseClasspath.classpathentry.findAll {
+            it.@kind == 'lib' && it.@path.text().tokenize('/\\').last().startsWith('SkysGrassSlabs-')
+        }*.@path*.text().collect { file(it).canonicalFile }
+        if (grassLibraries != [grassSlabsDevelopmentJar.canonicalFile]) {
+            throw new GradleException('Eclipse must use only the pinned Grass Slabs development jar')
+        }
+        def resourceFolders = eclipseClasspath.classpathentry.findAll { it.@kind == 'src' }*.@path*.text()
+        if (resourceFolders.contains('src/main/resources') ||
+                resourceFolders.count { it == 'build/resources/main' } != 1) {
+            throw new GradleException('Eclipse must copy processed resources, not overwrite them with templates')
+        }
         def parsed = new JsonSlurper().parseText(metadata.getText('UTF-8'))
         if (parsed[0].version != project.mod_version || parsed[0].mcversion != project.minecraft_version) {
             throw new GradleException('Eclipse output contains incorrect mcmod.info')
@@ -718,3 +798,10 @@ tasks.register('integrationClientReloadProcess', JavaExec) {
         if(!marker.isFile() || !marker.text.contains('reload_complete=true')) throw new GradleException('Integrated reload client did not complete')
     }
 }
+
+ext.configureMineralogyVerificationRun = configureFromForgeRun
+ext.mineralogyProfileProbeId = 'skysterrainsmoother'
+ext.mineralogyProfileAdditionalMods = files()
+apply from: 'gradle/mineralogy-runs.gradle'
+
+apply from: 'gradle/recipe-advancements.gradle'

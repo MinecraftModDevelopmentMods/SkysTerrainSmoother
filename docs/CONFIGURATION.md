@@ -1,17 +1,28 @@
 # Configuration
 
-Edit `config/skysterrainsmoother.cfg` while the game or server is stopped.
-All settings require a restart.
+Open **Mods**, select **Sky's Terrain Smoother** and choose **Config**. You can
+turn smoothing on or off, choose level 1–3 and enable or disable Mineralogy
+support. Save with **Done**, then restart Minecraft to apply your choices.
+
+You can also edit `config/skysterrainsmoother.cfg` while the game or server is
+stopped. On a dedicated server, edit the server's file and restart it; the
+client's Config screen does not change a remote server.
 
 | Setting | Default | Effect |
 |---|---|---|
 | `worldgen.enabled` | `true` | Enables combined smoothing in new Overworld chunks. |
-| `worldgen.smoothingLevel` | `1` | Slabs (1), slabs and steps (2), or slabs, steps and corners (3). |
+| `worldgen.smoothingLevel` | `3` | Slabs (1), slabs and steps (2), or slabs, steps and corners (3). |
 | `compat.enableMineralogy` | `true` | Includes available natural Mineralogy rock slabs when installed. |
 
-Levels outside 1–3 are constrained to that range. Missing finer shapes fall
-back to slabs; disabled Mineralogy slabs are skipped. This mod adds no steps or
-corners to Mineralogy.
+Levels outside 1–3 are constrained to that range.
+Existing level choices are preserved; the new default applies only when the
+setting has not been saved yet.
+
+Missing finer shapes fall back to slabs where they fit without raising a
+downhill edge. Otherwise that placement is left alone.
+Disabled Mineralogy slabs are skipped. Building Pieces includes the matching
+rock steps and corners when Mineralogy is installed, so levels 2 and 3 use
+them automatically. No separate Mineralogy add-on is needed.
 
 The same level applies to dry surface slopes and cave floors in new chunks.
 There is no retrogen: saved caves are unchanged. Low passages, ceilings and

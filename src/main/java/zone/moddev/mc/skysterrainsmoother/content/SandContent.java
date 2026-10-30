@@ -42,11 +42,11 @@ public final class SandContent {
             Ingredient half = Ingredient.fromStacks(new ItemStack(slab, 1, variant * 2));
 
             event.getRegistry()
-                    .register(new ShapedRecipes("skysterrainsmoother", 3, 1,
+                    .register(new ShapedRecipes("skysterrainsmoother/slabs", 3, 1,
                             NonNullList.from(Ingredient.EMPTY, full, full, full), new ItemStack(slab, 6, variant * 2))
                             .setRegistryName("skysterrainsmoother", name + "_slab"));
             event.getRegistry()
-                    .register(new ShapedRecipes("skysterrainsmoother", 2, 1,
+                    .register(new ShapedRecipes("skysterrainsmoother/full_blocks", 2, 1,
                             NonNullList.from(Ingredient.EMPTY, half, half), new ItemStack(Blocks.SAND, 1, variant))
                             .setRegistryName("skysterrainsmoother", name + "_from_slabs"));
         }

@@ -588,6 +588,11 @@ jobs:
         with:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           curseforge-id: ${{ needs.preflight.outputs.curseforge_project_id }}
+          # A timeout can follow an accepted upload. Check the file before retrying.
+          curseforge-retry-attempts: 1
+          curseforge-dependencies: |
+            1677588(required)
+            1754162(required)
           name: Sky's Terrain Smoother ${{ needs.preflight.outputs.release_version }} for Minecraft ${{ needs.preflight.outputs.minecraft_version }} (${{ needs.preflight.outputs.loader_display }})
           version: ${{ needs.preflight.outputs.release_version }}
           version-type: ${{ inputs.curseforge_release_level }}

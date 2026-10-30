@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=모래 반 블록
 tile.skysterrainsmoother.red_sand_slab.name=붉은 모래 반 블록
+config.skysterrainsmoother.enabled=지형 완화 활성화
+config.skysterrainsmoother.smoothingLevel=완화 단계 (1–3)
+config.skysterrainsmoother.enableMineralogy=Mineralogy 반 블록 사용
+config.skysterrainsmoother.enabled.tooltip=새로 생성되는 오버월드의 마른 경사면과 동굴 바닥을 완만하게 만듭니다. 끄면 Grass Slabs의 별도 생성도 중지됩니다. 기존 청크는 바뀌지 않습니다. 다시 시작해야 합니다.
+config.skysterrainsmoother.smoothingLevel.tooltip=1: 반 블록. 2: 반 블록과 계단 조각. 3: 반 블록, 계단 조각과 모서리 조각. 없는 모양은 안전하게 맞는 곳에서만 반 블록으로 대신합니다. 다시 시작해야 합니다.
+config.skysterrainsmoother.enableMineralogy.tooltip=Mineralogy가 설치되어 있으면 사용 가능한 자연 암석 반 블록을 사용합니다. 비활성화된 종류는 건너뜁니다. Minecraft를 다시 시작해야 합니다.

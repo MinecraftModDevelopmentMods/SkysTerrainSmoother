@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=Degrau de Areia
 tile.skysterrainsmoother.red_sand_slab.name=Degrau de Areia Vermelha
+config.skysterrainsmoother.enabled=Ativar suavização do terreno
+config.skysterrainsmoother.smoothingLevel=Nível de suavização (1–3)
+config.skysterrainsmoother.enableMineralogy=Usar lajes do Mineralogy
+config.skysterrainsmoother.enabled.tooltip=Suaviza novas encostas secas e pisos de grutas do mundo normal. Desativar também interrompe a geração separada do Grass Slabs. Os chunks existentes não mudam. Reinicie o Minecraft.
+config.skysterrainsmoother.smoothingLevel.tooltip=1: meios blocos. 2: meios blocos e quartos de bloco. 3: também oitavos de bloco. Formas em falta só usam um meio bloco onde caiba em segurança. Reinicie o Minecraft.
+config.skysterrainsmoother.enableMineralogy.tooltip=Usa os degraus disponíveis de rochas naturais do Mineralogy quando está instalado. Os tipos desativados são ignorados. Reinicie o Minecraft.

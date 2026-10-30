@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=Песчаная плита
 tile.skysterrainsmoother.red_sand_slab.name=Плита красного песка
+config.skysterrainsmoother.enabled=Включить сглаживание рельефа
+config.skysterrainsmoother.smoothingLevel=Уровень сглаживания (1–3)
+config.skysterrainsmoother.enableMineralogy=Использовать плиты Mineralogy
+config.skysterrainsmoother.enabled.tooltip=Сглаживает новые сухие склоны и полы пещер обычного мира. Выключение также останавливает отдельную генерацию Grass Slabs. Существующие чанки не меняются. Перезапустите Minecraft.
+config.skysterrainsmoother.smoothingLevel.tooltip=1: плиты. 2: плиты и четверти блока. 3: также восьмые доли блока. Недостающую форму заменяет плита только там, где она безопасно помещается. Перезапустите Minecraft.
+config.skysterrainsmoother.enableMineralogy.tooltip=Использует доступные плиты природных пород Mineralogy, если мод установлен. Отключённые виды плит пропускаются. Перезапустите Minecraft.

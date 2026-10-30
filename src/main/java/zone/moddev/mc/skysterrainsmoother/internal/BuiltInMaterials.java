@@ -60,7 +60,9 @@ public final class BuiltInMaterials {
             IBlockState slab = bottom(Block.REGISTRY.getObject(slabId).getDefaultState());
 
             TerrainSmoothingApi.registerMaterial(new TerrainMaterial(fullId,
-                    Collections.singleton(Block.REGISTRY.getObject(fullId).getDefaultState()), slab, null, null, false,
+                    Collections.singleton(Block.REGISTRY.getObject(fullId).getDefaultState()), slab,
+                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.STEP),
+                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.CORNER), false,
                     null));
             ++count;
         }
@@ -91,6 +93,19 @@ public final class BuiltInMaterials {
         TerrainSmoothingApi
                 .registerMaterial(new TerrainMaterial(new ResourceLocation(material), Collections.singleton(source),
                         slab, steps, corners, grass, grass ? Blocks.DIRT.getDefaultState() : null));
+    }
+
+    private static IBlockState[] mineralogyShapes(String material, BuildingPiecesApi.TerrainShape shape) {
+        EnumFacing[] directions = { EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST };
+        IBlockState[] pieces = new IBlockState[directions.length];
+        for (int direction = 0; direction < directions.length; direction++) {
+            pieces[direction] = BuildingPiecesApi.bottomPiece(material, shape, directions[direction]);
+            if (pieces[direction] == null) {
+                // A missing optional form still falls back to the native slab.
+                return null;
+            }
+        }
+        return pieces;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
