@@ -9,6 +9,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -35,6 +36,7 @@ public final class SmoothingEngine {
     private final Set<Long> populated = new HashSet<>(), dirtyOwners = new HashSet<>();
     private final Map<Long, List<Placement>> pending = new HashMap<>();
     private final Map<IBlockState, Boolean> oreSupports = new HashMap<>();
+    private final Map<IBlockState, Integer> pieceEdges = new HashMap<>();
     private final ThreadLocal<Decisions> decisions = ThreadLocal.withInitial(Decisions::new);
     public long passes, placed, elapsedNanos, skippedExisting;
 
@@ -54,6 +56,7 @@ public final class SmoothingEngine {
         dirtyOwners.clear();
         pending.clear();
         oreSupports.clear();
+        pieceEdges.clear();
         passes = placed = elapsedNanos = skippedExisting = 0;
         SkysTerrainSmoother.logger.info("Indexed {} saved Overworld chunks; no smoothing retrogen will run",
                 existing.size());
@@ -66,6 +69,7 @@ public final class SmoothingEngine {
         dirtyOwners.clear();
         pending.clear();
         oreSupports.clear();
+        pieceEdges.clear();
         decisions.remove();
     }
 
@@ -214,11 +218,16 @@ public final class SmoothingEngine {
             IBlockState support = owner.getBlockState(placement.pos.down());
             TerrainMaterial material = placement.material;
             boolean blocked = placement.cave && !caveHeadroom(world, owner, placement.pos.down());
+            boolean raisesLip = raisesLowerEdge(world, placement.pos.down(), placement.state);
+            boolean unsupported = !material.sources.contains(support) && !support.equals(material.supportAfterPlacement)
+                    && !oreSupport(support);
 
             // Keep ore veins hidden beneath existing caps, but never use ore as a new smoothing source.
-            if ((blocked || !material.sources.contains(support) && !support.equals(material.supportAfterPlacement)
-                    && !oreSupport(support)) && owner.getBlockState(placement.pos).equals(placement.state)) {
-                TerrainMaterial replacement = catalogue.source(support);
+            if ((blocked || raisesLip || unsupported) && owner.getBlockState(placement.pos).equals(placement.state)) {
+                boolean ourDirt = placement.dirtifiedSupport != null
+                        && support.equals(placement.dirtifiedSupport)
+                        && material.sources.contains(placement.originalSupport);
+                TerrainMaterial replacement = ourDirt ? material : catalogue.source(support);
                 IBlockState result = null;
 
                 if (!blocked && replacement != null && (!replacement.grass || GrassSlabsApi.grassGenerationAllowed())
@@ -250,8 +259,8 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    result = catalogue.result(replacement, Footprint.mask(cardinal, diagonal, placement.level),
-                            placement.level);
+                    result = transitionResult(world, placement.pos.down(), replacement,
+                            Footprint.mask(cardinal, diagonal, placement.level), placement.level);
                 }
 
                 repairs.put(placement, result == null ? Blocks.AIR.getDefaultState() : result);
@@ -269,14 +278,31 @@ public final class SmoothingEngine {
             }
 
             IBlockState state = repair.getValue();
+            IBlockState supportBefore = owner.getBlockState(placement.pos.down());
+            TerrainMaterial previousMaterial = placement.material;
+            boolean ourDirt = placement.dirtifiedSupport != null
+                    && supportBefore.equals(placement.dirtifiedSupport)
+                    && previousMaterial.sources.contains(placement.originalSupport);
 
             changed |= setGenerationState(owner, placement.pos, state);
             placement.state = state;
             placement.material = materials.get(placement);
 
-            if (placement.material != null && state.getBlock() != Blocks.AIR
-                    && placement.material.supportAfterPlacement != null) {
-                changed |= setGenerationState(owner, placement.pos.down(), placement.material.supportAfterPlacement);
+            IBlockState supportAfter = placement.material != null && state.getBlock() != Blocks.AIR
+                    ? supportAfterPlacement(placement.material, state) : null;
+            if (supportAfter != null) {
+                if (!ourDirt || previousMaterial != placement.material) {
+                    placement.originalSupport = supportBefore;
+                }
+                changed |= setGenerationState(owner, placement.pos.down(), supportAfter);
+                placement.dirtifiedSupport = placement.material.grass
+                        && !supportAfter.equals(placement.originalSupport) ? supportAfter : null;
+            } else {
+                // Shrinking our own slab exposes its old grass. Never undo a decorator's replacement terrain.
+                if (ourDirt && previousMaterial == placement.material && state.getBlock() != Blocks.AIR) {
+                    changed |= setGenerationState(owner, placement.pos.down(), placement.originalSupport);
+                }
+                placement.dirtifiedSupport = null;
             }
         }
         if (changed) {
@@ -317,7 +343,7 @@ public final class SmoothingEngine {
 
         for (int localBlockZ = 0; localBlockZ < 16; ++localBlockZ) {
             for (int localBlockX = 0; localBlockX < 16; ++localBlockX) {
-                int surfaceY = owner.getHeightValue(localBlockX, localBlockZ) - 1;
+                int surfaceY = SmoothingFoliage.surfaceHeight(owner, localBlockX, localBlockZ, startX, startZ);
 
                 // Visit upward-facing floors at every depth. Finish every decision before the first world write.
                 if (surfaceY < 0) {
@@ -334,8 +360,9 @@ public final class SmoothingEngine {
 
                     previous = lower;
 
-                    // Only floor/air boundaries need a material lookup, not solid rock or the inside of an air pocket.
-                    if (above.getMaterial() != Material.AIR || lower.getMaterial() == Material.AIR) {
+                    // Ignore thin natural cover when finding a floor, but never tunnel through occupied terrain.
+                    if (above.getMaterial() != Material.AIR && !SmoothingFoliage.isCover(above)
+                            || lower.getMaterial() == Material.AIR) {
                         continue;
                     }
 
@@ -353,7 +380,8 @@ public final class SmoothingEngine {
 
                     if (cave && !caveHeadroom(world, owner, support)
                             || !lower.isSideSolid(world, support, EnumFacing.UP)
-                            || !above.getBlock().isAir(above, world, target) || lower.getBlock().hasTileEntity(lower)
+                            || !SmoothingFoliage.canReplace(world, owner, target)
+                            || lower.getBlock().hasTileEntity(lower)
                             || owner.getTileEntity(target, Chunk.EnumCreateEntityType.CHECK) != null
                             || StructureProtection.contains(structures, target)
                             || StructureProtection.contains(structures, support)
@@ -378,10 +406,11 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    IBlockState result = catalogue.result(material, Footprint.mask(cardinal, diagonal, level), level);
+                    IBlockState result = transitionResult(world, support, material,
+                            Footprint.mask(cardinal, diagonal, level), level);
 
                     if (result != null) {
-                        buffer.add(localBlockX | localBlockZ << 4 | (floorY + 1) << 8, result, material, cave);
+                        buffer.add(localBlockX | localBlockZ << 4 | (floorY + 1) << 8, result, material, cave, above);
                     }
                 }
             }
@@ -395,16 +424,20 @@ public final class SmoothingEngine {
             BlockPos target = new BlockPos(startX + (position & 15), position >> 8, startZ + ((position >> 4) & 15));
             IBlockState above = owner.getBlockState(target);
 
-            if (!above.getBlock().isAir(above, world, target)) {
+            if (!above.equals(buffer.originalTargets[index]) || !SmoothingFoliage.canReplace(world, owner, target)) {
                 continue;
             }
+            IBlockState originalSupport = owner.getBlockState(target.down());
             if (setGenerationState(owner, target, buffer.results[index])) {
+                if (above.getBlock() == Blocks.DOUBLE_PLANT) {
+                    setGenerationState(owner, target.up(), Blocks.AIR.getDefaultState());
+                }
                 if (buffer.supports[index] != null) {
                     setGenerationState(owner, target.down(), buffer.supports[index]);
                 }
 
                 placements.add(new Placement(target, buffer.results[index], buffer.materials[index], level,
-                        buffer.caves[index]));
+                        buffer.caves[index], originalSupport));
                 ++count;
             }
         }
@@ -444,6 +477,74 @@ public final class SmoothingEngine {
         // owning chunk's light map.
         section.set(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state);
         return true;
+    }
+
+    private IBlockState transitionResult(World world, BlockPos support, TerrainMaterial material, int mask, int level) {
+        int lowerEdges = lowerEdges(world, support);
+        int safeMask = Footprint.trimDownhillEdges(mask, lowerEdges);
+        IBlockState result = catalogue.result(material, safeMask, level);
+
+        // Missing finer shapes fall back to slabs. Check the real result, not just the requested footprint.
+        return result != null && (touchingEdges(result) & lowerEdges) == 0 ? result : null;
+    }
+
+    private static IBlockState supportAfterPlacement(TerrainMaterial material, IBlockState piece) {
+        // A slab hides the whole surface. Finer grass pieces must leave the visible ground grassy.
+        return material.grass && !GrassSlabsApi.coversSupport(piece, EmptyAccess.INSTANCE, BlockPos.ORIGIN)
+                ? null : material.supportAfterPlacement;
+    }
+
+    private boolean raisesLowerEdge(World world, BlockPos support, IBlockState result) {
+        return (touchingEdges(result) & lowerEdges(world, support)) != 0;
+    }
+
+    private int touchingEdges(IBlockState result) {
+        Integer edges = pieceEdges.get(result);
+
+        if (edges == null) {
+            AxisAlignedBB bounds = result.getBoundingBox(EmptyAccess.INSTANCE, BlockPos.ORIGIN);
+            edges = (bounds.minZ == 0 ? 1 : 0) | (bounds.maxX == 1 ? 2 : 0)
+                    | (bounds.maxZ == 1 ? 4 : 0) | (bounds.minX == 0 ? 8 : 0);
+            pieceEdges.put(result, edges);
+        }
+
+        return edges;
+    }
+
+    /**
+     * Two caps on consecutive one-block rises recreate a full-block step. Leave the downhill lip alone, but
+     * allow the remaining uphill half or quarter where the chosen smoothing level has a matching piece.
+     */
+    private int lowerEdges(World world, BlockPos support) {
+        int edges = 0;
+
+        for (int direction = 0; direction < 4; direction++) {
+            BlockPos beside = support.add(DX[direction], 0, DZ[direction]);
+            Chunk neighbour = loaded(world, beside.getX() >> 4, beside.getZ() >> 4);
+
+            // This is a downhill veto, not another source of higher terrain. Read only the loaded halo.
+            if (neighbour == null) {
+                continue;
+            }
+
+            IBlockState atLip = neighbour.getBlockState(beside);
+            if (catalogue.piece(atLip) != null) {
+                edges |= 1 << direction;
+                continue;
+            }
+            if (atLip.getMaterial() == Material.AIR || SmoothingFoliage.isPlant(atLip)
+                    || atLip.getBlock() == Blocks.SNOW_LAYER) {
+                BlockPos lowerFloor = beside.down();
+                IBlockState below = neighbour.getBlockState(lowerFloor);
+
+                if (below.isFullCube() && below.isSideSolid(world, lowerFloor, EnumFacing.UP)
+                        && !below.getBlock().hasTileEntity(below)) {
+                    edges |= 1 << direction;
+                }
+            }
+        }
+
+        return edges;
     }
 
     private boolean caveHeadroom(World world, Chunk owner, BlockPos support) {
@@ -522,8 +623,7 @@ public final class SmoothingEngine {
                     || oreSupport(state);
         }
 
-        return source != null && above.getMaterial() == Material.AIR
-                && above.getBlock().isAir(above, world, floor.up());
+        return source != null && SmoothingFoliage.canReplace(world, neighbour, floor.up());
     }
 
     /** A missing neighbour is unavailable, never a reason to request or generate another chunk. */
@@ -537,6 +637,7 @@ public final class SmoothingEngine {
         int size;
         int[] positions = new int[256];
         IBlockState[] results = new IBlockState[256], supports = new IBlockState[256];
+        IBlockState[] originalTargets = new IBlockState[256];
         TerrainMaterial[] materials = new TerrainMaterial[256];
         boolean[] caves = new boolean[256];
 
@@ -544,24 +645,27 @@ public final class SmoothingEngine {
             Arrays.fill(results, 0, size, null);
             Arrays.fill(supports, 0, size, null);
             Arrays.fill(materials, 0, size, null);
+            Arrays.fill(originalTargets, 0, size, null);
             size = 0;
         }
 
-        void add(int position, IBlockState result, TerrainMaterial material, boolean cave) {
+        void add(int position, IBlockState result, TerrainMaterial material, boolean cave, IBlockState originalTarget) {
             if (size == positions.length) {
                 int capacity = positions.length * 2;
 
                 positions = Arrays.copyOf(positions, capacity);
                 results = Arrays.copyOf(results, capacity);
                 supports = Arrays.copyOf(supports, capacity);
+                originalTargets = Arrays.copyOf(originalTargets, capacity);
                 materials = Arrays.copyOf(materials, capacity);
                 caves = Arrays.copyOf(caves, capacity);
             }
 
             positions[size] = position;
             results[size] = result;
-            supports[size] = material.supportAfterPlacement;
+            supports[size] = supportAfterPlacement(material, result);
             materials[size] = material;
+            originalTargets[size] = originalTarget;
             caves[size++] = cave;
         }
     }
@@ -570,15 +674,21 @@ public final class SmoothingEngine {
         final BlockPos pos;
         IBlockState state;
         TerrainMaterial material;
+        IBlockState originalSupport;
+        IBlockState dirtifiedSupport;
         final int level;
         final boolean cave;
 
-        Placement(BlockPos pos, IBlockState state, TerrainMaterial material, int level, boolean cave) {
+        Placement(BlockPos pos, IBlockState state, TerrainMaterial material, int level, boolean cave,
+                IBlockState originalSupport) {
             this.pos = pos;
             this.state = state;
             this.material = material;
             this.level = level;
             this.cave = cave;
+            this.originalSupport = originalSupport;
+            IBlockState dirt = supportAfterPlacement(material, state);
+            this.dirtifiedSupport = material.grass && dirt != null && !dirt.equals(originalSupport) ? dirt : null;
         }
     }
 }

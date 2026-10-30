@@ -122,7 +122,7 @@ class ProjectContractTest {
                 assertTrue(content.endsWith("\n"));
                 assertFalse(content.contains("\r"));
                 assertFalse(content.contains("\uFEFF"));
-                assertEquals(2, content.split("\n").length);
+                assertEquals(8, content.split("\n").length);
             }
         }
     }

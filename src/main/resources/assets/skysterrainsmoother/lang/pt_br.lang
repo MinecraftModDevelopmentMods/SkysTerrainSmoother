@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=Laje de Areia
 tile.skysterrainsmoother.red_sand_slab.name=Laje de Areia Vermelha
+config.skysterrainsmoother.enabled=Ativar suavização do terreno
+config.skysterrainsmoother.smoothingLevel=Nível de suavização (1–3)
+config.skysterrainsmoother.enableMineralogy=Usar lajes do Mineralogy
+config.skysterrainsmoother.enabled.tooltip=Suaviza novas encostas secas e pisos de cavernas do mundo normal. Desativar também interrompe a geração separada do Grass Slabs. Os chunks existentes não mudam. Reinicie o Minecraft.
+config.skysterrainsmoother.smoothingLevel.tooltip=1: lajes. 2: lajes e peças de um quarto de bloco. 3: também peças de um oitavo de bloco. Formas ausentes só usam uma laje onde ela cabe com segurança. Reinicie o Minecraft.
+config.skysterrainsmoother.enableMineralogy.tooltip=Usa as lajes disponíveis de rochas naturais do Mineralogy quando ele está instalado. Tipos de laje desativados são ignorados. Reinicie o Minecraft.

@@ -1,0 +1,42 @@
+[
+  {
+    "recipe": "skysterrainsmoother:sand_slab",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "item": "minecraft:sand",
+        "data": 0
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:sand_from_slabs",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "item": "skysterrainsmoother:sand_slab",
+        "data": 0
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:red_sand_slab",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "item": "minecraft:sand",
+        "data": 1
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:red_sand_from_slabs",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "item": "skysterrainsmoother:sand_slab",
+        "data": 2
+      }
+    ]
+  }
+]

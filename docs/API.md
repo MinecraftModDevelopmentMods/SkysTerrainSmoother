@@ -20,8 +20,9 @@ TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
 
 `addShapes(materialId, steps, corners)` supplies missing forms on an existing
 mapping. It cannot replace that mapping's slab or existing finer forms. A
-Mineralogy add-on can therefore extend a built-in `mineralogy:<rock>` mapping
-without replacing its native slab. Do not assume the mapping exists when the
+material add-on can therefore extend an existing mapping without replacing
+its native slab. Mineralogy already gets its finer pieces from Building Pieces,
+without an add-on. Do not assume a Mineralogy mapping exists when the
 player has disabled Mineralogy support or its slab registration. Use
 `hasMaterial(materialId)` to check before contributing. The Mineralogy setting
 also applies to mappings supplied by add-ons for Mineralogy source blocks.
@@ -44,7 +45,9 @@ apply at each floor's actual position. Ores remain outside the source
 catalogue, but a late ore replacement beneath a generated piece is preserved.
 
 Grass-like material mappings should provide their full dirt support state in
-`supportAfterPlacement`. Register matching content orientations through the
+`supportAfterPlacement`. This conversion applies only when the output covers
+the whole footprint. Steps and corners retain their original support so exposed
+grass remains visible. Register matching content orientations through the
 Grass Slabs version 1 grass API if their lifecycle should participate
 in its shared spreading rules. Content mods still own placement, drops,
 rendering and migration.

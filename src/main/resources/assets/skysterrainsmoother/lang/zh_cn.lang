@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=沙子台阶
 tile.skysterrainsmoother.red_sand_slab.name=红沙台阶
+config.skysterrainsmoother.enabled=启用地形平滑
+config.skysterrainsmoother.smoothingLevel=平滑等级 (1–3)
+config.skysterrainsmoother.enableMineralogy=使用 Mineralogy 台阶
+config.skysterrainsmoother.enabled.tooltip=平滑新生成的主世界干燥斜坡和洞穴地面。关闭后也会停止Grass Slabs的独立生成。已有区块不会改变。需要重启Minecraft。
+config.skysterrainsmoother.smoothingLevel.tooltip=1：台阶。2：台阶和四分之一方块。3：再加入八分之一方块。缺少的形状仅在安全合适的位置用台阶代替。需要重启Minecraft。
+config.skysterrainsmoother.enableMineralogy.tooltip=安装Mineralogy后使用可用的天然岩石台阶。已禁用的台阶类型会跳过。需要重启Minecraft。

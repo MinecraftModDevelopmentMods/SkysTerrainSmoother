@@ -3,7 +3,7 @@ package zone.moddev.mc.skysterrainsmoother;
 import java.io.File;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.config.Configuration;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
@@ -17,11 +17,12 @@ import zone.moddev.mc.skysterrainsmoother.internal.*;
         name = "Sky's Terrain Smoother",
         version = SkysTerrainSmoother.VERSION,
         acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "required-before:skysgrassslabs@[1.1.0.112021,2);required-before:skysbuildingpieces@[0.3.0.112021,0.4)")
+        dependencies = "required-before:skysgrassslabs@[1.1.1.112021,2);required-before:skysbuildingpieces@[0.3.8.112021,0.4)",
+        guiFactory = "zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherGuiFactory")
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother", VERSION = "0.1.0.112021";
     public static boolean enabled = true, mineralogy = true;
-    public static int level = 1;
+    public static int level = 3;
     public static Logger logger;
     public static SmoothingEngine engine;
     @SidedProxy(
@@ -33,19 +34,7 @@ public final class SkysTerrainSmoother {
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
 
-        Configuration config = new Configuration(event.getSuggestedConfigurationFile());
-
-        config.load();
-        enabled = config.getBoolean("enabled", "worldgen", true,
-                "Smooth newly generated dry Overworld slopes and cave floors. Requires restart.");
-        level = config.getInt("smoothingLevel", "worldgen", 1, 1, 3,
-                "1: slabs; 2: slabs and steps; 3: slabs, steps and corners. Missing shapes use slabs. Requires restart.");
-        mineralogy = config.getBoolean("enableMineralogy", "compat", true,
-                "Reuse available natural Mineralogy rock slabs. No additional blocks are registered. Requires restart.");
-
-        if (config.hasChanged()) {
-            config.save();
-        }
+        TerrainSmootherConfig.load(event.getSuggestedConfigurationFile());
 
         GrassSlabsApi.claimSmoothing(ID, enabled);
         zone.moddev.mc.skysterrainsmoother.content.SandContent.register();
