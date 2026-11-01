@@ -227,7 +227,7 @@ public final class SmoothingEngine {
 
                 if (!blocked && replacement != null && (!replacement.grass || GrassSlabsApi.grassGenerationAllowed())
                         && (!replacement.mineralogy || SkysTerrainSmoother.mineralogy)
-                        && support.func_224756_o(world, placement.pos.down())
+                        && support.isCollisionShapeOpaque(world, placement.pos.down())
                         && !support.getBlock().hasTileEntity(support)
                         && owner.getTileEntity(placement.pos) == null
                         && !structures.contains(placement.pos)
@@ -340,7 +340,7 @@ public final class SmoothingEngine {
             return 0;
         }
         boolean grassAllowed = GrassSlabsApi.grassGenerationAllowed();
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        BlockPos.Mutable cursor = new BlockPos.Mutable();
 
         for (int localBlockZ = 0; localBlockZ < 16; ++localBlockZ) {
             for (int localBlockX = 0; localBlockX < 16; ++localBlockX) {
@@ -380,7 +380,7 @@ public final class SmoothingEngine {
                     boolean cave = floorY < surfaceY;
 
                     if (cave && !caveHeadroom(world, owner, support)
-                            || !lower.func_224756_o(world, support)
+                            || !lower.isCollisionShapeOpaque(world, support)
                             || !SmoothingFoliage.canReplace(world, owner, target)
                             || lower.getBlock().hasTileEntity(lower)
                             || owner.getTileEntity(target) != null
@@ -545,7 +545,7 @@ public final class SmoothingEngine {
                 BlockPos lowerFloor = beside.down();
                 BlockState below = neighbour.getBlockState(lowerFloor);
 
-                if (fullCollision(below) && below.func_224756_o(world, lowerFloor)
+                if (fullCollision(below) && below.isCollisionShapeOpaque(world, lowerFloor)
                         && !below.getBlock().hasTileEntity(below)) {
                     edges |= 1 << direction;
                 }
@@ -634,7 +634,7 @@ public final class SmoothingEngine {
         // getChunk(..., false) can still wait for an existing holder's future.
         // This native lookup uses getNow and returns null while generation is unfinished.
         return world.getChunkProvider() instanceof ServerChunkProvider
-                ? ((ServerChunkProvider) world.getChunkProvider()).func_225313_a(chunkX, chunkZ) : null;
+                ? ((ServerChunkProvider) world.getChunkProvider()).getChunkWithoutLoading(chunkX, chunkZ) : null;
     }
 
     private static StructureProtection structures(IWorld world, IChunk owner) {

@@ -59,6 +59,28 @@ final class FamilyForwardChecks {
             }
             checked++;
         }
+        if (fixture.has("native_sand_states")) {
+            int wet = 0;
+
+            RuntimeProbe.require(fixture.getAsJsonArray("native_sand_states").size() == 8,
+                    "The named source includes every sand colour, half and wet state");
+            for (JsonElement element : fixture.getAsJsonArray("native_sand_states")) {
+                JsonObject saved = element.getAsJsonObject();
+                BlockPos position = position(saved);
+                BlockState expected = net.minecraft.nbt.NBTUtil.readBlockState(
+                        JsonToNBT.getTagFromJson(saved.get("state").getAsString()));
+                BlockState actual = world.getBlockState(position);
+
+                RuntimeProbe.require(actual.equals(expected),
+                        "Named sand retains its colour, orientation and water: " + position + " / " + actual);
+                if (!actual.getFluidState().isEmpty()) {
+                    wet++;
+                }
+                checked++;
+            }
+            RuntimeProbe.require(wet == 4, "All four waterlogged source sand states survive");
+            System.out.println("TERRAIN_NAMED_SAND_FORWARD_PASS states=8 wet=4");
+        }
         int stackIndex = 0;
         for (JsonElement element : fixture.getAsJsonArray("stacks")) {
             JsonObject saved = element.getAsJsonObject();

@@ -127,8 +127,18 @@ final class ConfigScreenProbe {
 
     static void render(Minecraft minecraft, Screen screen, int mouseX, int mouseY) {
         minecraft.getFramebuffer().bindFramebuffer(true);
-        minecraft.mainWindow.loadGUIRenderMatrix(Minecraft.IS_RUNNING_ON_MAC);
-        com.mojang.blaze3d.platform.GlStateManager.clear(256, Minecraft.IS_RUNNING_ON_MAC);
+        net.minecraft.client.MainWindow window = minecraft.getMainWindow();
+
+        com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.IS_RUNNING_ON_MAC);
+        com.mojang.blaze3d.systems.RenderSystem.matrixMode(5889);
+        com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
+        com.mojang.blaze3d.systems.RenderSystem.ortho(0,
+                window.getFramebufferWidth() / window.getGuiScaleFactor(),
+                window.getFramebufferHeight() / window.getGuiScaleFactor(), 0, 1000, 3000);
+        com.mojang.blaze3d.systems.RenderSystem.matrixMode(5888);
+        com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
+        com.mojang.blaze3d.systems.RenderSystem.translatef(0, 0, -2000);
+        net.minecraft.client.renderer.RenderHelper.setupGui3DDiffuseLighting();
         screen.render(mouseX, mouseY, 0);
     }
 
@@ -147,7 +157,7 @@ final class ConfigScreenProbe {
         String savedName = phase + "-" + screenshotNumber++ + "-" + filename;
         java.util.concurrent.CountDownLatch saved = new java.util.concurrent.CountDownLatch(1);
         net.minecraft.util.ScreenShotHelper.saveScreenshot(minecraft.gameDir, savedName,
-                minecraft.mainWindow.getFramebufferWidth(), minecraft.mainWindow.getFramebufferHeight(),
+                minecraft.getMainWindow().getFramebufferWidth(), minecraft.getMainWindow().getFramebufferHeight(),
                 minecraft.getFramebuffer(), message -> saved.countDown());
         try {
             RuntimeProbe.require(saved.await(10, java.util.concurrent.TimeUnit.SECONDS), "Screen capture finished");

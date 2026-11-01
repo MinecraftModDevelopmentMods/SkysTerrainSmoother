@@ -27,18 +27,18 @@ final class FineGrassModelProbe {
                     String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
                     for (BakedQuad quad : allFaces(model, state)) {
                         if (quad.getFace().getAxis() == net.minecraft.util.Direction.Axis.Y
-                                || !quad.getSprite().getName().toString().equals(sideTexture)) {
+                                || !quad.func_187508_a().getName().toString().equals(sideTexture)) {
                             continue;
                         }
-                        int stride = quad.getFormat().getIntegerSize();
-                        int textureOffset = quad.getFormat().getUvOffsetById(0) / 4;
+                        int stride = net.minecraft.client.renderer.vertex.DefaultVertexFormats.BLOCK.getIntegerSize();
+                        int textureOffset = primaryTextureOffset();
                         double firstRow = Double.POSITIVE_INFINITY;
                         double lastRow = Double.NEGATIVE_INFINITY;
 
                         for (int vertex = 0; vertex < 4; vertex++) {
                             float atlasV = Float.intBitsToFloat(quad.getVertexData()[vertex * stride + textureOffset + 1]);
-                            double row = 16 * (atlasV - quad.getSprite().getMinV())
-                                    / (quad.getSprite().getMaxV() - quad.getSprite().getMinV());
+                            double row = 16 * (atlasV - quad.func_187508_a().getMinV())
+                                    / (quad.func_187508_a().getMaxV() - quad.func_187508_a().getMinV());
                             firstRow = Math.min(firstRow, row);
                             lastRow = Math.max(lastRow, row);
                         }
@@ -57,6 +57,22 @@ final class FineGrassModelProbe {
             }
         }
         System.out.println("TERRAIN_FINE_GRASS_MODELS_PASS states=" + checked);
+    }
+
+    private static int primaryTextureOffset() {
+        net.minecraft.client.renderer.vertex.VertexFormat format =
+                net.minecraft.client.renderer.vertex.DefaultVertexFormats.BLOCK;
+
+        for (int index = 0; index < format.getElements().size(); index++) {
+            net.minecraft.client.renderer.vertex.VertexFormatElement element = format.getElements().get(index);
+
+            if (element.getUsage() == net.minecraft.client.renderer.vertex.VertexFormatElement.Usage.UV
+                    && element.getType() == net.minecraft.client.renderer.vertex.VertexFormatElement.Type.FLOAT
+                    && element.getIndex() == 0) {
+                return format.getOffset(index) / 4;
+            }
+        }
+        throw new AssertionError("The native block format has no primary texture coordinates");
     }
 
     private static List<BakedQuad> allFaces(IBakedModel model, BlockState state) {

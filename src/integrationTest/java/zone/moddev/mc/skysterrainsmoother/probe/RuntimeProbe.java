@@ -567,7 +567,7 @@ public final class RuntimeProbe {
         try {
                 for (int blockZ = centerZ - 4; blockZ <= centerZ + 4; blockZ++) {
                     for (int blockX = centerX - 4; blockX <= centerX + 4; blockX++) {
-                        Chunk chunk = world.getChunkProvider().func_225313_a(blockX, blockZ);
+                        Chunk chunk = world.getChunkProvider().getChunkWithoutLoading(blockX, blockZ);
 
                         if (chunk == null) {
                             continue;
@@ -668,7 +668,7 @@ public final class RuntimeProbe {
     private static boolean allTrackedChunksLoaded(ServerWorld world, int centerX, int centerZ) {
         for (int chunkZ = centerZ - 4; chunkZ <= centerZ + 4; chunkZ++) {
             for (int chunkX = centerX - 4; chunkX <= centerX + 4; chunkX++) {
-                if (world.getChunkProvider().func_225313_a(chunkX, chunkZ) == null) {
+                if (world.getChunkProvider().getChunkWithoutLoading(chunkX, chunkZ) == null) {
                     return false;
                 }
             }
@@ -720,7 +720,7 @@ public final class RuntimeProbe {
                     }
                 }
                 for (Chunk chunk : chunks) {
-                    net.minecraft.world.gen.Heightmap.func_222690_a(chunk,
+                    net.minecraft.world.gen.Heightmap.updateChunkHeightmaps(chunk,
                             java.util.EnumSet.allOf(net.minecraft.world.gen.Heightmap.Type.class));
                 }
                 if (order == 1) {

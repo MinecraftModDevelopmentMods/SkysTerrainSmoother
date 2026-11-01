@@ -201,7 +201,7 @@ final class LateTerrainProbe {
                                 int height = 200
                                         + Math.floorMod(blockX * 31 + blockZ * 17 + (blockX >> 3) * (blockZ >> 3), 3);
                                 // Resolve by coordinate, not traversal order.
-                                Chunk chunk = world.getChunkProvider().func_225313_a(origin + (blockX >> 4),
+                                Chunk chunk = world.getChunkProvider().getChunkWithoutLoading(origin + (blockX >> 4),
                                         128 + (blockZ >> 4));
 
                                 chunk.setBlockState(new BlockPos((origin << 4) + blockX, height, (128 << 4) + blockZ),

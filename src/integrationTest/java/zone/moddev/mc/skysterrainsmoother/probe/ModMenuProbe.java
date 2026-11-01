@@ -5,16 +5,16 @@ import java.lang.reflect.Method;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.button.Button;
-import net.minecraftforge.fml.client.gui.GuiModList;
-import net.minecraftforge.fml.client.gui.GuiSlotModList;
+import net.minecraftforge.fml.client.gui.screen.ModListScreen;
+import net.minecraftforge.fml.client.gui.widget.ModListWidget;
 import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
 /** Uses Forge's actual Mods list and Config button, without desktop automation. */
 final class ModMenuProbe {
     static Screen open(Minecraft minecraft, String modId, Screen parent) {
-        GuiModList mods = new GuiModList(parent);
+        ModListScreen mods = new ModListScreen(parent);
         minecraft.displayGuiScreen(mods);
-        GuiSlotModList list = (GuiSlotModList) field(GuiModList.class, mods, "modList");
+        ModListWidget list = (ModListWidget) field(ModListScreen.class, mods, "modList");
         Object selected = null;
         for (Object entry : list.children()) {
             try {
@@ -33,14 +33,14 @@ final class ModMenuProbe {
         }
         RuntimeProbe.require(selected != null, "The Mods list includes " + modId);
         try {
-            Method select = GuiModList.class.getDeclaredMethod("setSelected", selected.getClass());
+            Method select = ModListScreen.class.getDeclaredMethod("setSelected", selected.getClass());
             select.invoke(mods, selected);
         } catch (ReflectiveOperationException failure) {
             throw new IllegalStateException("Cannot select the native mod entry", failure);
         }
         ConfigScreenProbe.render(minecraft, mods, 0, 0);
         ConfigScreenProbe.screenshot(minecraft, modId + "-mod-info.png");
-        Button button = (Button) field(GuiModList.class, mods, "configButton");
+        Button button = (Button) field(ModListScreen.class, mods, "configButton");
         RuntimeProbe.require(button.visible && button.active, "The Config button is available for " + modId);
         button.onPress();
         RuntimeProbe.require(minecraft.currentScreen != mods && minecraft.currentScreen != null,

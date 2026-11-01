@@ -1,1 +1,6 @@
-{"pack":{"pack_format":4,"description":"Build-only runtime checks"}}
+{
+  "pack": {
+    "pack_format": 5,
+    "description": "Build-only runtime checks"
+  }
+}

@@ -21,7 +21,7 @@ import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.ToolType;
 
 /** A horizontal sand half. Joining it creates ordinary sand, so there is no double state. */
@@ -34,7 +34,7 @@ public final class SandSlabBlock extends FallingBlock implements IWaterLoggable 
     private final boolean red;
 
     public SandSlabBlock(boolean red) {
-        super(Block.Properties.from(red ? Blocks.RED_SAND : Blocks.SAND));
+        super(Block.Properties.from(red ? Blocks.RED_SAND : Blocks.SAND).notSolid());
         this.red = red;
         setDefaultState(stateContainer.getBaseState().with(TYPE, SlabType.BOTTOM).with(WATERLOGGED, false));
     }
@@ -93,17 +93,12 @@ public final class SandSlabBlock extends FallingBlock implements IWaterLoggable 
     }
 
     @Override
-    public boolean isSolid(BlockState state) {
-        return false;
-    }
-
-    @Override
     public int getOpacity(BlockState state, IBlockReader world, BlockPos position) {
         return 0;
     }
 
     @Override
-    public void tick(BlockState state, World world, BlockPos position, Random random) {
+    public void tick(BlockState state, ServerWorld world, BlockPos position, Random random) {
         if (world.isRemote || !world.getBlockState(position).equals(state) || position.getY() < 0
                 || !canFallThrough(world.getBlockState(position.down()))) {
             return;

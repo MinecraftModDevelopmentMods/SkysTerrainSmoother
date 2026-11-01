@@ -26,7 +26,7 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 @Mod.EventBusSubscriber(modid = SkysTerrainSmoother.ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class TerrainSmoothingFeature extends Feature<NoFeatureConfig> {
     public static final TerrainSmoothingFeature INSTANCE = create();
-    private static ConfiguredFeature<?> configured;
+    private static ConfiguredFeature<?, ?> configured;
 
     public TerrainSmoothingFeature() {
         super(NoFeatureConfig::deserialize);
@@ -47,13 +47,13 @@ public final class TerrainSmoothingFeature extends Feature<NoFeatureConfig> {
         if (configured != null) {
             return;
         }
-        configured = Biome.createDecoratedFeature(INSTANCE, IFeatureConfig.NO_FEATURE_CONFIG,
-                Placement.NOPE, new NoPlacementConfig());
+        configured = INSTANCE.withConfiguration(IFeatureConfig.NO_FEATURE_CONFIG)
+                .withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
         for (Biome biome : ForgeRegistries.BIOMES.getValues()) {
             if (biome.getCategory() == Biome.Category.NETHER || biome.getCategory() == Biome.Category.THEEND) {
                 continue;
             }
-            List<ConfiguredFeature<?>> vegetation = biome.getFeatures(GenerationStage.Decoration.VEGETAL_DECORATION);
+            List<ConfiguredFeature<?, ?>> vegetation = biome.getFeatures(GenerationStage.Decoration.VEGETAL_DECORATION);
             vegetation.add(0, configured);
         }
     }

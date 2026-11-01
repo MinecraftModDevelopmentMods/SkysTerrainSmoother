@@ -55,7 +55,7 @@ final class ProbeWorld {
     }
 
     static void rebuildHeights(net.minecraft.world.chunk.IChunk chunk) {
-        net.minecraft.world.gen.Heightmap.func_222690_a(chunk,
+        net.minecraft.world.gen.Heightmap.updateChunkHeightmaps(chunk,
                 java.util.EnumSet.allOf(net.minecraft.world.gen.Heightmap.Type.class));
     }
 

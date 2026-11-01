@@ -2,14 +2,14 @@
 
 Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
 Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
-Minecraft 1.14.4 with ForgeGradle 7.0.34.
+Minecraft 1.15.2 with ForgeGradle 7.0.34.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.114041 and Building Pieces
-0.3.8.114041.
+The source lock records locally qualified Grass Slabs 1.2.0.115021 and Building Pieces
+0.3.8.115021.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -88,3 +88,9 @@ It checks placed pieces, chest stacks, dropped items, an item frame and the save
 player's main, ender and nested inventories. The source archive stays unchanged.
 Archive a previous disposable run before starting that task again; its logs and
 world are kept for inspection.
+
+The packaged checks also use a native 1.14.4 save in
+`src/test/resources/fixtures/forward-1.14.4-family`. It retains the same building
+and inventory coverage, with both sand colours, both slab halves and waterlogged
+sand states saved by the preceding version. Its source artifacts and files are
+checksum locked; checks always run on extracted copies.

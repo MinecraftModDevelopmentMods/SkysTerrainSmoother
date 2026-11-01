@@ -163,7 +163,7 @@ final class CaveProbe {
         // Structure bounds and add-on vetoes apply to underground floors as well.
         StructureStart previous = owner.getStructureStarts().get("Mineshaft");
         StructureStart protectedStart = new StructureStart(Feature.MINESHAFT, owner.getPos().x, owner.getPos().z,
-                world.getBiome(floor), new MutableBoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
+                new MutableBoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
                         floor.getX() + 2, 80, floor.getZ() + 2), 0, 1) {
             @Override
             public void init(net.minecraft.world.gen.ChunkGenerator<?> generator,

@@ -21,7 +21,7 @@ public final class ClientProbe extends ProbeProxy {
     public void tick(TickEvent.ClientTickEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
 
-        org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.mainWindow.getHandle());
+        org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getMainWindow().getHandle());
 
         if (event.phase != TickEvent.Phase.END) {
             return;
@@ -123,7 +123,7 @@ public final class ClientProbe extends ProbeProxy {
                 net.minecraft.util.Direction.NORTH, net.minecraft.util.Direction.SOUTH,
                 net.minecraft.util.Direction.WEST, net.minecraft.util.Direction.EAST }) {
             for (net.minecraft.client.renderer.model.BakedQuad quad : model.getQuads(state, face, new java.util.Random(0))) {
-                RuntimeProbe.require(!quad.getSprite().getName().toString().contains("missingno"), "missing texture " + state);
+                RuntimeProbe.require(!quad.func_187508_a().getName().toString().contains("missingno"), "missing texture " + state);
             }
         }
     }
