@@ -40,6 +40,6 @@ public final class SandContent {
     public static BlockState legacyState(int metadata) {
         SandSlabBlock block = (metadata & 2) == 0 ? slab : redSlab;
         SlabType half = (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM;
-        return block.getDefaultState().with(SandSlabBlock.TYPE, half);
+        return block.defaultBlockState().setValue(SandSlabBlock.TYPE, half);
     }
 }

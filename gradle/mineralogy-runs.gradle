@@ -266,7 +266,7 @@ def prepareOptionalClient = tasks.register('prepareMineralogyIntegrationClient')
             into new File(directory, 'mods')
         }
         new File(directory, 'options.txt').setText(
-                'fullscreen:false\nmaxFps:30\nrenderDistance:6\n', 'UTF-8')
+                'fullscreen:false\nmaxFps:30\nrenderDistance:6\npauseOnLostFocus:false\n', 'UTF-8')
     }
 }
 def optionalClientFresh = tasks.register('integrationMineralogyClientProcess', JavaExec) {

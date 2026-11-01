@@ -19,41 +19,41 @@ public final class SandSlabItem extends BlockItem {
     private final SandSlabBlock slab;
 
     public SandSlabItem(SandSlabBlock slab) {
-        super(slab, new Item.Properties().group(ItemGroup.BUILDING_BLOCKS));
+        super(slab, new Item.Properties().tab(ItemGroup.TAB_BUILDING_BLOCKS));
         this.slab = slab;
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        World world = context.getWorld();
-        BlockPos clicked = context.getPos();
+    public ActionResultType useOn(ItemUseContext context) {
+        World world = context.getLevel();
+        BlockPos clicked = context.getClickedPos();
         BlockState existing = world.getBlockState(clicked);
-        Direction face = context.getFace();
+        Direction face = context.getClickedFace();
         boolean exposed = existing.getBlock() == slab
-                && (face == Direction.UP && existing.get(SandSlabBlock.TYPE) == SlabType.BOTTOM
-                        || face == Direction.DOWN && existing.get(SandSlabBlock.TYPE) == SlabType.TOP);
-        BlockPos target = exposed ? clicked : clicked.offset(face);
+                && (face == Direction.UP && existing.getValue(SandSlabBlock.TYPE) == SlabType.BOTTOM
+                        || face == Direction.DOWN && existing.getValue(SandSlabBlock.TYPE) == SlabType.TOP);
+        BlockPos target = exposed ? clicked : clicked.relative(face);
         existing = world.getBlockState(target);
 
         if (existing.getBlock() != slab) {
-            return super.onItemUse(context);
+            return super.useOn(context);
         }
 
         PlayerEntity player = context.getPlayer();
-        ItemStack held = context.getItem();
+        ItemStack held = context.getItemInHand();
         BlockState full = slab.fullState();
-        if (player == null || held.isEmpty() || !player.canPlayerEdit(target, face, held)
-                || !world.checkNoEntityCollision(null, full.getCollisionShape(world, target)
-                        .withOffset(target.getX(), target.getY(), target.getZ()))) {
+        if (player == null || held.isEmpty() || !player.mayUseItemAt(target, face, held)
+                || !world.isUnobstructed(null, full.getCollisionShape(world, target)
+                        .move(target.getX(), target.getY(), target.getZ()))) {
             return ActionResultType.FAIL;
         }
-        if (!world.setBlockState(target, full, 11)) {
+        if (!world.setBlock(target, full, 11)) {
             return ActionResultType.FAIL;
         }
 
         world.playSound(player, target, full.getSoundType(world, target, player).getPlaceSound(),
                 SoundCategory.BLOCKS, 1, .8f);
-        if (!player.abilities.isCreativeMode) {
+        if (!player.abilities.instabuild) {
             held.shrink(1);
         }
         return ActionResultType.SUCCESS;

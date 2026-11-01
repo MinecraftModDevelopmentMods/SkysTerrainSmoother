@@ -1,4 +1,4 @@
-"""Negative controls for Forge 31 server completion and native settings."""
+"""Negative controls for Forge 36 server completion and native settings."""
 
 from pathlib import Path
 import shutil
@@ -54,6 +54,59 @@ class NativeServerLogTest(unittest.TestCase):
             classify_server(NOTICE.replace('ForgeConfig/CORE', 'OtherConfig/CORE') + '\n' + LOG, DETAILS, True)
 
 
+class NativeRegistryNoticeTest(unittest.TestCase):
+    def setUp(self):
+        import json
+        from native_registry_notices import audit_text
+        root = Path(__file__).resolve().parent.parent
+        self.profile = json.loads((root / "tools/native-log-profiles.json").read_text(encoding="utf-8"))["profiles"][
+            "B812D07B20C34EE058D155EC8592FFE8AB36DB386FF04A3687BBE9419A81BA5F"]
+        self.check = audit_text
+        self.entity_notice = "minecraft:zombie_pigman: " + str(
+            self.profile["mappings"]["minecraft:entity_type"]["minecraft:zombie_pigman"])
+        prefix = "[time] [main/ERROR] [net.minecraftforge.registries.GameData/REGISTRIES]: "
+        self.valid = "".join(prefix + "Unidentified mapping from registry " + registry + "\n" +
+                             "\n".join("\t" + name + ": " + str(number) for name, number in entries.items()) + "\n\n"
+                             for registry, entries in self.profile["mappings"].items())
+        self.valid += prefix + "There are unidentified mappings in this world - we are going to attempt to process anyway\n"
+
+    def test_exact_native_notices_and_a_clean_reload_pass(self):
+        self.assertEqual(len(self.check(self.valid, self.profile)), 5)
+        self.assertEqual(self.check("A clean native reload", None), [])
+
+    def test_client_control_allows_exactly_two_render_thread_reads(self):
+        profile = dict(self.profile, notice_thread="Render thread", notice_reads=2)
+        one_read = self.valid.replace("[main/ERROR]", "[Render thread/ERROR]")
+        self.assertEqual(len(self.check(one_read * 2, profile)), 5)
+        for text in (one_read, one_read * 3, self.valid * 2,
+                     one_read + one_read.replace(self.entity_notice, self.entity_notice + "0")):
+            with self.subTest(text=text[:80]), self.assertRaises(ValueError):
+                self.check(text, profile)
+
+    def test_every_notice_boundary_is_enforced(self):
+        candidates = [
+            (self.valid, None),
+            (self.valid.replace(self.entity_notice, self.entity_notice + "0"), self.profile),
+            (self.valid.replace(self.entity_notice, "minecraft:unknown: 57"), self.profile),
+            (self.valid.replace(self.entity_notice, self.entity_notice + "\n\tminecraft:unknown: 58"), self.profile),
+            (self.valid.replace("[main/ERROR]", "[Server thread/ERROR]"), self.profile),
+            (self.valid.replace("GameData/REGISTRIES", "Other/REGISTRIES"), self.profile),
+            (self.valid.replace("/ERROR]", "/FATAL]"), self.profile),
+            (self.valid.replace(self.entity_notice, "malformed entry"), self.profile),
+            (self.valid + self.valid, self.profile),
+            (self.valid + "[time] [main/ERROR] [Other/]: Failed", self.profile),
+            (self.valid + "[STDERR/]: hidden stack trace", self.profile),
+            (self.valid + "Unable to load model", self.profile),
+            (self.valid + "cascading worldgen lag", self.profile),
+            (self.valid.replace("There are unidentified mappings in this world - we are going to attempt to process anyway", "MissingModsException"), self.profile),
+        ]
+        for index, (text, profile) in enumerate(candidates):
+            if profile is not None:
+                self.assertNotEqual(self.valid, text, "The negative control must alter the native notice")
+            with self.subTest(boundary=index), self.assertRaises(ValueError):
+                self.check(text, profile)
+
+
 class NativeServerFilesTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -81,6 +134,20 @@ class NativeServerFilesTest(unittest.TestCase):
         self.config.unlink()
         with self.assertRaises(ValueError):
             audit_server(self.directory, 'test')
+
+    def test_rolled_error_cannot_be_hidden_by_a_clean_latest_log(self):
+        import gzip
+        with gzip.open(self.directory / "logs/previous.log.gz", "wt", encoding="utf-8") as output:
+            output.write("[Server thread/ERROR] [other/]: A real failure\n")
+        with self.assertRaises(ValueError):
+            audit_server(self.directory, 'test')
+
+    def test_empty_complete_logs_do_not_count_as_evidence(self):
+        from native_client_log import audit_complete_logs
+        import tempfile
+        with tempfile.TemporaryDirectory() as empty:
+            with self.assertRaises(ValueError):
+                audit_complete_logs(Path(empty))
 
     def test_crash_report_fails(self):
         crashes = self.directory / 'crash-reports'

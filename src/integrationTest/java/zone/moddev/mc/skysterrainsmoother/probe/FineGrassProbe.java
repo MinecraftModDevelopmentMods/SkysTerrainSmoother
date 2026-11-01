@@ -20,7 +20,7 @@ final class FineGrassProbe {
     static int run(ServerWorld world) {
         BlockPos floor = new BlockPos(4200, 210, 4200);
         Chunk owner = world.getChunkAt(floor);
-        TerrainMaterial material = MaterialCatalogue.instance().source(Blocks.GRASS_BLOCK.getDefaultState());
+        TerrainMaterial material = MaterialCatalogue.instance().source(Blocks.GRASS_BLOCK.defaultBlockState());
         Direction[] directions = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
         int checks = 0;
 
@@ -28,12 +28,12 @@ final class FineGrassProbe {
             for (int direction = 0; direction < directions.length; direction++) {
                 for (boolean snow : new boolean[] { false, true }) {
                     prepare(world, floor);
-                    world.setBlockState(floor.offset(directions[direction]).up(), Blocks.GRASS_BLOCK.getDefaultState(), 2);
+                    world.setBlock(floor.relative(directions[direction]).above(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
                     SkysTerrainSmoother.engine.smooth(world, owner, level);
                     BlockState expected = level == 1 ? material.slab : material.step(direction);
-                    RuntimeProbe.require(world.getBlockState(floor.up()).equals(expected),
+                    RuntimeProbe.require(world.getBlockState(floor.above()).equals(expected),
                             "grass smoothing chooses the requested shape: expected=" + expected
-                                    + " actual=" + world.getBlockState(floor.up())
+                                    + " actual=" + world.getBlockState(floor.above())
                                     + " level=" + level + " direction=" + directions[direction]);
                     checks += checkSupport(world, floor, expected, level == 1, snow);
                 }
@@ -42,11 +42,11 @@ final class FineGrassProbe {
 
         for (int direction = 0; direction < directions.length; direction++) {
             prepare(world, floor);
-            BlockPos higher = floor.offset(directions[direction]).offset(directions[direction].rotateYCCW()).up();
-            world.setBlockState(higher, Blocks.GRASS_BLOCK.getDefaultState(), 2);
+            BlockPos higher = floor.relative(directions[direction]).relative(directions[direction].getCounterClockWise()).above();
+            world.setBlock(higher, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 3);
             BlockState corner = material.corner(direction);
-            RuntimeProbe.require(world.getBlockState(floor.up()).equals(corner), "diagonal grass uses a corner");
+            RuntimeProbe.require(world.getBlockState(floor.above()).equals(corner), "diagonal grass uses a corner");
             checks += checkSupport(world, floor, corner, false, true);
         }
         checks += shrinkingSlab(world, material);
@@ -58,18 +58,18 @@ final class FineGrassProbe {
             boolean fullCover, boolean snow) {
         RuntimeProbe.require(world.getBlockState(floor).getBlock() == (fullCover ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                 "only a full footprint may dirtify the supporting grass");
-        ProbeWorld.light(world, LightType.SKY, floor.up(), 15);
+        ProbeWorld.light(world, LightType.SKY, floor.above(), 15);
         if (snow) {
-            world.setBlockState(floor.up().east(), Blocks.SNOW.getDefaultState(), 2);
-            RuntimeProbe.require(piece.getBlock().updatePostPlacement(piece, Direction.EAST,
-                    world.getBlockState(floor.up().east()), world, floor.up(), floor.up().east()).get(GrassBlock.SNOWY),
+            world.setBlock(floor.above().east(), Blocks.SNOW.defaultBlockState(), 2);
+            RuntimeProbe.require(piece.getBlock().updateShape(piece, Direction.EAST,
+                    world.getBlockState(floor.above().east()), world, floor.above(), floor.above().east()).getValue(GrassBlock.SNOWY),
                     "snow keeps the same grass-support rule");
         }
-        GrassSlabsApi.repairSupport(world, floor.up());
-        piece.getBlock().tick(piece, world, floor.up(), new Random(1));
+        GrassSlabsApi.repairSupport(world, floor.above());
+        piece.getBlock().tick(piece, world, floor.above(), new Random(1));
         RuntimeProbe.require(world.getBlockState(floor).getBlock() == (fullCover ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                 "neighbour and random-tick repair preserve exposed grass");
-        world.setBlockState(floor, Blocks.DIRT.getDefaultState(), 2);
+        world.setBlock(floor, Blocks.DIRT.defaultBlockState(), 2);
         RuntimeProbe.require(GrassSpread.growTarget(world, floor) == !fullCover,
                 "exposed dirt can regrow, but dirt covered by a slab cannot");
         return snow ? 5 : 4;
@@ -78,12 +78,12 @@ final class FineGrassProbe {
     private static void prepare(ServerWorld world, BlockPos floor) {
         for (int offsetZ = -3; offsetZ <= 3; offsetZ++) {
             for (int offsetX = -3; offsetX <= 3; offsetX++) {
-                BlockPos column = floor.add(offsetX, 0, offsetZ);
+                BlockPos column = floor.offset(offsetX, 0, offsetZ);
                 for (int height = 1; height <= 4; height++) {
-                    ProbeWorld.clear(world, column.up(height));
+                    ProbeWorld.clear(world, column.above(height));
                 }
-                world.setBlockState(column.down(), Blocks.STONE.getDefaultState(), 2);
-                world.setBlockState(column, Blocks.GRASS_BLOCK.getDefaultState(), 2);
+                world.setBlock(column.below(), Blocks.STONE.defaultBlockState(), 2);
+                world.setBlock(column, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
             }
         }
     }
@@ -96,20 +96,20 @@ final class FineGrassProbe {
         try {
             SkysTerrainSmoother.level = 2;
             for (BlockState decoratedSupport : new BlockState[] { null,
-                    Blocks.SAND.getDefaultState(), Blocks.DIAMOND_ORE.getDefaultState() }) {
+                    Blocks.SAND.defaultBlockState(), Blocks.DIAMOND_ORE.defaultBlockState() }) {
                 prepare(world, floor);
-                world.setBlockState(floor.north().up(), Blocks.GRASS_BLOCK.getDefaultState(), 2);
-                world.setBlockState(floor.east().up(), Blocks.GRASS_BLOCK.getDefaultState(), 2);
+                world.setBlock(floor.north().above(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+                world.setBlock(floor.east().above(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, 2);
-                RuntimeProbe.require(world.getBlockState(floor.up()).equals(material.slab)
+                RuntimeProbe.require(world.getBlockState(floor.above()).equals(material.slab)
                         && world.getBlockState(floor).getBlock() == Blocks.DIRT, "initial full-cover slab hides dirt");
                 ProbeWorld.clear(world, floor.south());
                 if (decoratedSupport != null) {
-                    world.setBlockState(floor, decoratedSupport, 2);
+                    world.setBlock(floor, decoratedSupport, 2);
                 }
                 ProbeWorld.repair(world, new BlockPos(floor.getX() & ~15, 0, floor.getZ() & ~15));
                 if (decoratedSupport == null) {
-                    RuntimeProbe.require(world.getBlockState(floor.up()).equals(material.step(0))
+                    RuntimeProbe.require(world.getBlockState(floor.above()).equals(material.step(0))
                             && world.getBlockState(floor).getBlock() == Blocks.GRASS_BLOCK,
                             "shrinking our slab restores its original exposed grass");
                 } else {

@@ -19,8 +19,8 @@ final class TransitionProbe {
         Chunk owner = world.getChunkAt(origin);
         int checks = 0;
 
-        for (BlockState source : new BlockState[] { Blocks.STONE.getDefaultState(),
-                Blocks.SANDSTONE.getDefaultState(), Blocks.SAND.getDefaultState(), Blocks.GRASS_BLOCK.getDefaultState() }) {
+        for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
+                Blocks.SANDSTONE.defaultBlockState(), Blocks.SAND.defaultBlockState(), Blocks.GRASS_BLOCK.defaultBlockState() }) {
             if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }
@@ -31,16 +31,16 @@ final class TransitionProbe {
                 for (Direction uphill : Direction.Plane.HORIZONTAL) {
                     for (boolean roofed : new boolean[] { false, true }) {
                         prepare(world, origin, uphill, source, false, roofed);
-                        int loadedBefore = world.getChunkProvider().getLoadedChunkCount();
+                        int loadedBefore = world.getChunkSource().getLoadedChunksCount();
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
 
-                        BlockPos lowCap = origin.up();
-                        BlockPos upperCap = origin.offset(uphill).up(2);
+                        BlockPos lowCap = origin.above();
+                        BlockPos upperCap = origin.relative(uphill).above(2);
                         RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(lowCap)) == material,
                                 "the foot of a steep slope still receives its matching transition");
                         requireOpenDownhillEdge(world, upperCap, uphill.getOpposite(),
                                 "consecutive mountain ledges, level " + level + " / " + uphill);
-                        RuntimeProbe.require(world.getChunkProvider().getLoadedChunkCount() == loadedBefore,
+                        RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loadedBefore,
                                 "slope checks never load neighbouring chunks");
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                                 "a repeated pass does not add the rejected upper cap");
@@ -49,10 +49,10 @@ final class TransitionProbe {
                         prepare(world, origin, uphill, source, true, roofed);
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         RuntimeProbe.require(MaterialCatalogue.instance()
-                                .piece(world.getBlockState(origin.offset(uphill).up())) == material,
+                                .piece(world.getBlockState(origin.relative(uphill).above())) == material,
                                 "the bottom of a wider terrace is smoothed");
                         RuntimeProbe.require(MaterialCatalogue.instance()
-                                .piece(world.getBlockState(origin.offset(uphill, 3).up(2))) == material,
+                                .piece(world.getBlockState(origin.relative(uphill, 3).above(2))) == material,
                                 "a wider upper terrace retains room for its own transition");
                         checks += 2;
                     }
@@ -61,16 +61,16 @@ final class TransitionProbe {
         }
 
         // Existing caps, including those retained over an ore vein, must give the same answer as a fresh plan.
-        TerrainMaterial stone = MaterialCatalogue.instance().source(Blocks.STONE.getDefaultState());
+        TerrainMaterial stone = MaterialCatalogue.instance().source(Blocks.STONE.defaultBlockState());
         for (Direction uphill : Direction.Plane.HORIZONTAL) {
-            prepare(world, origin, uphill, Blocks.STONE.getDefaultState(), false, false);
-            world.setBlockState(origin, Blocks.COAL_ORE.getDefaultState(), 2);
-            world.setBlockState(origin.up(), stone.slab, 2);
+            prepare(world, origin, uphill, Blocks.STONE.defaultBlockState(), false, false);
+            world.setBlock(origin, Blocks.COAL_ORE.defaultBlockState(), 2);
+            world.setBlock(origin.above(), stone.slab, 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            requireOpenDownhillEdge(world, origin.offset(uphill).up(2), uphill.getOpposite(),
+            requireOpenDownhillEdge(world, origin.relative(uphill).above(2), uphill.getOpposite(),
                     "a pre-existing lower slab must not receive a parallel upper slab");
             RuntimeProbe.require(world.getBlockState(origin).getBlock() == Blocks.COAL_ORE
-                    && world.getBlockState(origin.up()).equals(stone.slab),
+                    && world.getBlockState(origin.above()).equals(stone.slab),
                     "lower slabs and their ore supports are not removed");
             checks += 2;
         }
@@ -88,21 +88,21 @@ final class TransitionProbe {
                     : uphill == Direction.SOUTH ? new BlockPos(3624, 210, 3615)
                     : new BlockPos(3624, 210, 3616);
             Chunk lowerOwner = world.getChunkAt(low);
-            Chunk upperOwner = world.getChunkAt(low.offset(uphill));
+            Chunk upperOwner = world.getChunkAt(low.relative(uphill));
 
             for (int level = 1; level <= 3; level++) {
                 BlockState[] forward = null;
                 for (boolean reverse : new boolean[] { false, true }) {
-                    prepare(world, low, uphill, Blocks.STONE.getDefaultState(), false, false);
-                    int loadedBefore = world.getChunkProvider().getLoadedChunkCount();
+                    prepare(world, low, uphill, Blocks.STONE.defaultBlockState(), false, false);
+                    int loadedBefore = world.getChunkSource().getLoadedChunksCount();
                     SkysTerrainSmoother.engine.smooth(world, reverse ? upperOwner : lowerOwner, level);
                     SkysTerrainSmoother.engine.smooth(world, reverse ? lowerOwner : upperOwner, level);
-                    requireOpenDownhillEdge(world, low.offset(uphill).up(2), uphill.getOpposite(),
+                    requireOpenDownhillEdge(world, low.relative(uphill).above(2), uphill.getOpposite(),
                             "a chunk boundary cannot recreate the upper lip, " + uphill + " / level " + level);
-                    RuntimeProbe.require(world.getChunkProvider().getLoadedChunkCount() == loadedBefore,
+                    RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loadedBefore,
                             "downhill boundary checks never generate chunks");
-                    BlockState[] result = { world.getBlockState(low.up()),
-                            world.getBlockState(low.offset(uphill).up(2)) };
+                    BlockState[] result = { world.getBlockState(low.above()),
+                            world.getBlockState(low.relative(uphill).above(2)) };
                     if (forward == null) {
                         forward = result;
                     } else {
@@ -121,22 +121,22 @@ final class TransitionProbe {
         Chunk owner = world.getChunkAt(origin);
         int checks = 0;
         for (Direction uphill : Direction.Plane.HORIZONTAL) {
-            prepare(world, origin, uphill, Blocks.STONE.getDefaultState(), false, false);
+            prepare(world, origin, uphill, Blocks.STONE.defaultBlockState(), false, false);
             for (int distance = -2; distance <= 0; distance++) {
                 for (int width = -2; width <= 2; width++) {
-                    world.setBlockState(origin.offset(uphill, distance).offset(uphill.rotateY(), width).up(),
-                            Blocks.STONE.getDefaultState(), 2);
+                    world.setBlock(origin.relative(uphill, distance).relative(uphill.getClockWise(), width).above(),
+                            Blocks.STONE.defaultBlockState(), 2);
                 }
             }
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            BlockPos upperCap = origin.offset(uphill).up(2);
+            BlockPos upperCap = origin.relative(uphill).above(2);
             RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(upperCap)) != null,
                     "late-terrace regression begins with a valid upper cap");
-            ProbeWorld.clear(world, origin.up());
+            ProbeWorld.clear(world, origin.above());
             ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
             requireOpenDownhillEdge(world, upperCap, uphill.getOpposite(),
                     "late decoration cannot leave an upper cap that raises a newly exposed downhill edge");
-            RuntimeProbe.require(SkysTerrainSmoother.level != 1 || world.isAirBlock(upperCap),
+            RuntimeProbe.require(SkysTerrainSmoother.level != 1 || world.isEmptyBlock(upperCap),
                     "slab-only mode leaves the upper lip uncapped");
             checks += 3;
         }
@@ -150,7 +150,7 @@ final class TransitionProbe {
             return;
         }
 
-        AxisAlignedBB bounds = state.getShape(world, target).getBoundingBox();
+        AxisAlignedBB bounds = state.getShape(world, target).bounds();
         boolean touches = downhill == Direction.NORTH ? bounds.minZ == 0
                 : downhill == Direction.SOUTH ? bounds.maxZ == 1
                 : downhill == Direction.WEST ? bounds.minX == 0 : bounds.maxX == 1;
@@ -159,16 +159,16 @@ final class TransitionProbe {
 
     private static void prepare(ServerWorld world, BlockPos origin, Direction uphill, BlockState source,
             boolean wide, boolean roofed) {
-        Direction across = uphill.rotateY();
+        Direction across = uphill.getClockWise();
         for (int distance = -3; distance <= 5; distance++) {
             int rise = Math.max(0, Math.min(2, wide ? distance / 2 : distance));
             for (int width = -3; width <= 3; width++) {
-                BlockPos column = origin.offset(uphill, distance).offset(across, width);
+                BlockPos column = origin.relative(uphill, distance).relative(across, width);
                 for (int height = 9; height >= -2; height--) {
-                    world.setBlockState(column.up(height), height <= rise ? source : Blocks.AIR.getDefaultState(), 2);
+                    world.setBlock(column.above(height), height <= rise ? source : Blocks.AIR.defaultBlockState(), 2);
                 }
                 if (roofed) {
-                    world.setBlockState(column.up(8), Blocks.BRICKS.getDefaultState(), 2);
+                    world.setBlock(column.above(8), Blocks.BRICKS.defaultBlockState(), 2);
                 }
             }
         }

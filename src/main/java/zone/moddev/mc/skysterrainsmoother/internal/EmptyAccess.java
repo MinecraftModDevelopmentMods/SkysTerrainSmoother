@@ -3,7 +3,7 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.fluid.IFluidState;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockReader;
@@ -13,17 +13,17 @@ final class EmptyAccess implements IBlockReader {
     static final EmptyAccess INSTANCE = new EmptyAccess();
 
     @Override
-    public TileEntity getTileEntity(BlockPos position) {
+    public TileEntity getBlockEntity(BlockPos position) {
         return null;
     }
 
     @Override
     public BlockState getBlockState(BlockPos position) {
-        return Blocks.AIR.getDefaultState();
+        return Blocks.AIR.defaultBlockState();
     }
 
     @Override
-    public IFluidState getFluidState(BlockPos position) {
-        return Fluids.EMPTY.getDefaultState();
+    public FluidState getFluidState(BlockPos position) {
+        return Fluids.EMPTY.defaultFluidState();
     }
 }

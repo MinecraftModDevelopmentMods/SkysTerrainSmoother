@@ -17,7 +17,7 @@ Sources and converted supports must be dry full blocks without tile entities.
 ```java
 TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
     new ResourceLocation("example", "natural_rock"),
-    Collections.singleton(naturalRock.getDefaultState()),
+    Collections.singleton(naturalRock.defaultBlockState()),
     bottomSlab, null, null, false, null));
 ```
 

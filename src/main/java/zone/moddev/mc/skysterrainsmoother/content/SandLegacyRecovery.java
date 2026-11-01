@@ -59,7 +59,7 @@ public final class SandLegacyRecovery {
             if (LEGACY_ID.equals(compound.getString("id")) && compound.contains("Damage")) {
                 stacks.add(compound);
             }
-            for (String key : compound.keySet()) {
+            for (String key : compound.getAllKeys()) {
                 collect(compound.get(key), stacks, depth + 1);
             }
         } else if (value instanceof ListNBT) {

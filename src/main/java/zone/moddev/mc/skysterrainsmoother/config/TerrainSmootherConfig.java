@@ -105,6 +105,9 @@ public final class TerrainSmootherConfig {
         pending.set("worldgen", worldgen);
         pending.set("compat", compatibility);
         loadedValues.putAll(pending);
+        // Refresh Forge's cached choices after the atomic file update. The active
+        // session keeps its separate snapshot until Minecraft starts again.
+        SPEC.afterReload();
         SPEC.save();
     }
 

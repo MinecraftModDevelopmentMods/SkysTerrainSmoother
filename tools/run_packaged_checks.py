@@ -48,11 +48,11 @@ def manifest_classpath(destination, files):
 
 def client_command(options, directory):
     runtime = options.runtime.resolve()
-    base = json.loads((runtime / "versions/1.15.2/1.15.2.json").read_text(encoding="utf-8"))
-    forge = json.loads((runtime / "versions/1.15.2-forge-31.2.57/1.15.2-forge-31.2.57.json")
+    base = json.loads((runtime / "versions/1.16.5/1.16.5.json").read_text(encoding="utf-8"))
+    forge = json.loads((runtime / "versions/1.16.5-forge-36.2.34/1.16.5-forge-36.2.34.json")
                        .read_text(encoding="utf-8"))
-    if base["id"] != "1.15.2" or forge["inheritsFrom"] != "1.15.2":
-        raise ValueError("This launcher requires the verified Forge 28 client metadata")
+    if base["id"] != "1.16.5" or forge["inheritsFrom"] != "1.16.5":
+        raise ValueError("This launcher requires the verified Forge 36 client metadata")
     libraries = {}
     for layer in (base, forge):
         for library in layer["libraries"]:
@@ -65,7 +65,7 @@ def client_command(options, directory):
         if digest(path, "sha1") != artifact["sha1"].upper():
             raise ValueError("Client library checksum changed: " + library["name"])
         classpath.append(path)
-    client = runtime / "versions/1.15.2/1.15.2.jar"
+    client = runtime / "versions/1.16.5/1.16.5.jar"
     if digest(client, "sha1") != base["downloads"]["client"]["sha1"].upper():
         raise ValueError("Official client checksum changed")
     classpath.append(client)
@@ -90,8 +90,8 @@ def client_command(options, directory):
                 if "${" in value:
                     raise ValueError("Unresolved native launch argument: " + value)
                 arguments.append(value)
-    natives = runtime / "natives/1.15.2-forge-31.2.57"
-    if not natives.is_dir() or not (options.assets / "indexes/1.15.json").is_file():
+    natives = runtime / "natives/1.16.5-forge-36.2.34"
+    if not natives.is_dir() or not (options.assets / "indexes/1.16.json").is_file():
         raise ValueError("Client natives or assets are incomplete")
     return [str(options.java), "-Xmx3g", "-Djava.library.path=" + str(natives),
             "-Dskysterrainsmoother.integrationPhase=" + options.phase,
@@ -152,6 +152,7 @@ def prepare(options, directory):
         shutil.copyfile(fixture / "source-family-fixture.json", directory / "source-family-fixture.json")
         (directory / "source-inputs.json").write_text(json.dumps({
             "world_sha256": expected,
+            "mode": options.mode,
             "manifest_sha256": digest(fixture / "source-family-fixture.json")}, indent=2) + "\n", encoding="utf-8")
 
 
@@ -162,7 +163,8 @@ def audit(directory, phase, mode):
         return
     log = (directory / "logs/latest.log").read_text(encoding="utf-8")
     audit_server(directory, phase)
-    required = ("Done (", "TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + ("reload" if "reload" in phase else "fresh"))
+    native_phase = phase.removeprefix("client-")
+    required = ("Done (", "TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + native_phase)
     missing = [marker for marker in required if marker not in log]
     if missing:
         raise ValueError("Packaged runtime completion checks are missing: " + repr(missing))
@@ -188,6 +190,10 @@ def main():
     directory = options.directory.resolve()
     if not directory.is_relative_to(Path("build").resolve()) or directory == Path("build").resolve():
         raise ValueError("Packaged checks must stay inside this checkout's build directory")
+    if not re.fullmatch(r"[a-z0-9-]+", options.phase):
+        raise ValueError("Unexpected packaged phase name")
+    if (directory / (options.phase + "-console.log")).exists() or (directory / "phase-logs" / options.phase).exists():
+        raise ValueError("Preserve the existing phase evidence before running another check")
     if options.fresh:
         prepare(options, directory)
     else:
@@ -204,7 +210,7 @@ def main():
             raise ValueError("Client checks need the verified asset directory")
         command = client_command(options, directory)
     else:
-        forge = options.runtime.resolve() / "forge-1.15.2-31.2.57.jar"
+        forge = options.runtime.resolve() / "forge-1.16.5-36.2.34.jar"
         command = [str(options.java), "-Xmx3g", "-Dskysterrainsmoother.integrationPhase=" + options.phase,
                    "-jar", str(forge), "--nogui"]
     if options.generation_only:

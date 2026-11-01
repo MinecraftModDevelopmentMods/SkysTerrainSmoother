@@ -31,14 +31,14 @@ final class SmoothingFoliage {
     }
 
     private static boolean isThinSnow(BlockState state) {
-        return state.getBlock() == Blocks.SNOW && state.get(SnowBlock.LAYERS) == 1;
+        return state.getBlock() == Blocks.SNOW && state.getValue(SnowBlock.LAYERS) == 1;
     }
 
     static int surfaceHeight(IChunk chunk, int localX, int localZ, int startX, int startZ) {
         // Full chunks retain the live heightmap, not the generation-only map.
         Heightmap.Type heightmap = chunk.getStatus() == ChunkStatus.FULL
                 ? Heightmap.Type.WORLD_SURFACE : Heightmap.Type.WORLD_SURFACE_WG;
-        int surfaceY = chunk.getTopBlockY(heightmap, localX, localZ);
+        int surfaceY = chunk.getHeight(heightmap, localX, localZ);
         while (surfaceY >= 0) {
             BlockState state = chunk.getBlockState(new BlockPos(startX + localX, surfaceY, startZ + localZ));
             if (!state.isAir() && !isCover(state)) {
@@ -51,7 +51,7 @@ final class SmoothingFoliage {
 
     static boolean canReplace(IWorld world, IChunk owner, BlockPos position) {
         BlockState state = owner.getBlockState(position);
-        if (state.hasTileEntity() || owner.getTileEntity(position) != null
+        if (state.hasTileEntity() || owner.getBlockEntity(position) != null
                 || !state.getFluidState().isEmpty()) {
             return false;
         }
@@ -64,14 +64,14 @@ final class SmoothingFoliage {
         if (!(state.getBlock() instanceof DoublePlantBlock)) {
             return true;
         }
-        if (position.getY() >= 255 || state.get(DoublePlantBlock.HALF) != DoubleBlockHalf.LOWER) {
+        if (position.getY() >= 255 || state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.LOWER) {
             return false;
         }
 
-        BlockState upper = owner.getBlockState(position.up());
+        BlockState upper = owner.getBlockState(position.above());
         return upper.getBlock() == state.getBlock()
-                && upper.get(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER
-                && owner.getTileEntity(position.up()) == null;
+                && upper.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER
+                && owner.getBlockEntity(position.above()) == null;
     }
 
     private SmoothingFoliage() {

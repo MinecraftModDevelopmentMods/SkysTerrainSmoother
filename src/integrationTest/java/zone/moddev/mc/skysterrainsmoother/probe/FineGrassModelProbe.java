@@ -20,14 +20,14 @@ final class FineGrassModelProbe {
             for (int orientation = 4; orientation < 8; orientation++) {
                 for (boolean snowy : new boolean[] { false, true }) {
                     BlockState state = Pieces.state("minecraft:grass", shape, orientation)
-                            .with(GrassBlock.SNOWY, snowy);
-                    IBakedModel model = minecraft.getBlockRendererDispatcher().getModelForState(state);
+                            .setValue(GrassBlock.SNOWY, snowy);
+                    IBakedModel model = minecraft.getBlockRenderer().getBlockModel(state);
                     int sides = 0;
                     java.util.Set<Direction> sideDirections = java.util.EnumSet.noneOf(Direction.class);
                     String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
                     for (BakedQuad quad : allFaces(model, state)) {
-                        if (quad.getFace().getAxis() == net.minecraft.util.Direction.Axis.Y
-                                || !quad.func_187508_a().getName().toString().equals(sideTexture)) {
+                        if (quad.getDirection().getAxis() == net.minecraft.util.Direction.Axis.Y
+                                || !quad.getSprite().getName().toString().equals(sideTexture)) {
                             continue;
                         }
                         int stride = net.minecraft.client.renderer.vertex.DefaultVertexFormats.BLOCK.getIntegerSize();
@@ -36,16 +36,16 @@ final class FineGrassModelProbe {
                         double lastRow = Double.NEGATIVE_INFINITY;
 
                         for (int vertex = 0; vertex < 4; vertex++) {
-                            float atlasV = Float.intBitsToFloat(quad.getVertexData()[vertex * stride + textureOffset + 1]);
-                            double row = 16 * (atlasV - quad.func_187508_a().getMinV())
-                                    / (quad.func_187508_a().getMaxV() - quad.func_187508_a().getMinV());
+                            float atlasV = Float.intBitsToFloat(quad.getVertices()[vertex * stride + textureOffset + 1]);
+                            double row = 16 * (atlasV - quad.getSprite().getV0())
+                                    / (quad.getSprite().getV1() - quad.getSprite().getV0());
                             firstRow = Math.min(firstRow, row);
                             lastRow = Math.max(lastRow, row);
                         }
                         RuntimeProbe.require(Math.abs(firstRow) < .1 && Math.abs(lastRow - 8) < .1,
                                 "baked grass/snow fringe starts at the piece's top: " + state);
-                        RuntimeProbe.require(!quad.hasTintIndex(), "The base grass and snow sides are not tinted");
-                        sideDirections.add(quad.getFace());
+                        RuntimeProbe.require(!quad.isTinted(), "The base grass and snow sides are not tinted");
+                        sideDirections.add(quad.getDirection());
                         sides++;
                     }
                     int expectedFaces = shape == Shape.HORIZONTAL_STEP ? 6 : 4;

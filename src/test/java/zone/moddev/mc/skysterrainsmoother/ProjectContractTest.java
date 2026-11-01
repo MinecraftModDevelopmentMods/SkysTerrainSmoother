@@ -15,16 +15,16 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.115021", metadata.getProperty("mod_version"));
-        assertEquals("1.15.2", metadata.getProperty("minecraft_version"));
-        assertEquals("31.2.57", metadata.getProperty("forge_version"));
-        assertEquals("20200514-1.15.1", metadata.getProperty("mapping_version"));
+        assertEquals("0.1.0.116051", metadata.getProperty("mod_version"));
+        assertEquals("1.16.5", metadata.getProperty("minecraft_version"));
+        assertEquals("36.2.34", metadata.getProperty("forge_version"));
+        assertEquals("1.16.5", metadata.getProperty("mapping_version"));
         assertEquals("8.0.502+7", metadata.getProperty("java_toolchain_version"));
         assertEquals("17", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
         assertTrue(Files.isRegularFile(Paths.get("src/main/resources/META-INF/mods.toml")));
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
-            assertEquals(5, json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
+            assertEquals(6, json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack").get("pack_format").getAsInt(), sourceSet);
         }
     }

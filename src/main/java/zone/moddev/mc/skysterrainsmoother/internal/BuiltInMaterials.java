@@ -5,7 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SlabBlock;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.state.properties.SlabType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
@@ -41,22 +41,22 @@ public final class BuiltInMaterials {
             return;
         }
         TerrainSmootherConfig.activateSettingsForThisRun();
-        vanilla("grass", Blocks.GRASS_BLOCK.getDefaultState(), true,
-                ModBlocks.GRASS_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.BOTTOM));
-        vanilla("dirt", Blocks.DIRT.getDefaultState(), false,
-                ModBlocks.DIRT_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.BOTTOM));
-        vanilla("stone", Blocks.STONE.getDefaultState(), false, null);
-        vanilla("granite", Blocks.GRANITE.getDefaultState(), false, null);
-        vanilla("diorite", Blocks.DIORITE.getDefaultState(), false, null);
-        vanilla("andesite", Blocks.ANDESITE.getDefaultState(), false, null);
-        vanilla("sandstone", Blocks.SANDSTONE.getDefaultState(), false, null);
-        vanilla("red_sandstone", Blocks.RED_SANDSTONE.getDefaultState(), false, null);
-        vanilla("hardened_clay", Blocks.TERRACOTTA.getDefaultState(), false, null);
+        vanilla("grass", Blocks.GRASS_BLOCK.defaultBlockState(), true,
+                ModBlocks.GRASS_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
+                ModBlocks.DIRT_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
+        vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
+        vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);
+        vanilla("andesite", Blocks.ANDESITE.defaultBlockState(), false, null);
+        vanilla("sandstone", Blocks.SANDSTONE.defaultBlockState(), false, null);
+        vanilla("red_sandstone", Blocks.RED_SANDSTONE.defaultBlockState(), false, null);
+        vanilla("hardened_clay", Blocks.TERRACOTTA.defaultBlockState(), false, null);
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(
                     new ResourceLocation("minecraft", variant == 0 ? "sand" : "red_sand"),
-                    Collections.singleton(sand.getDefaultState()),
+                    Collections.singleton(sand.defaultBlockState()),
                     SandContent.legacyState(variant * 2 + 1), null, null, false, null));
         }
         registerMineralogy();
@@ -78,7 +78,7 @@ public final class BuiltInMaterials {
                 continue;
             }
             MaterialCatalogue.instance().register(new TerrainMaterial(fullId,
-                    Collections.singleton(full.getDefaultState()), bottom(slab.getDefaultState()),
+                    Collections.singleton(full.defaultBlockState()), bottom(slab.defaultBlockState()),
                     mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.STEP),
                     mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.CORNER), false, null));
             available++;
@@ -103,7 +103,7 @@ public final class BuiltInMaterials {
         }
         MaterialCatalogue.instance().register(new TerrainMaterial(new ResourceLocation(material),
                 Collections.singleton(source), slab, steps, corners, grass,
-                grass ? Blocks.DIRT.getDefaultState() : null));
+                grass ? Blocks.DIRT.defaultBlockState() : null));
     }
 
     private static BlockState[] mineralogyShapes(String material, BuildingPiecesApi.TerrainShape shape) {
@@ -119,12 +119,12 @@ public final class BuiltInMaterials {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static BlockState bottom(BlockState state) {
-        if (state.has(SlabBlock.TYPE)) {
-            return state.with(SlabBlock.TYPE, SlabType.BOTTOM);
+        if (state.hasProperty(SlabBlock.TYPE)) {
+            return state.setValue(SlabBlock.TYPE, SlabType.BOTTOM);
         }
-        for (IProperty property : state.getProperties()) {
-            if (property.getName().equals("facing") && property.getAllowedValues().contains(Direction.UP)) {
-                return state.with(property, Direction.UP);
+        for (Property property : state.getProperties()) {
+            if (property.getName().equals("facing") && property.getPossibleValues().contains(Direction.UP)) {
+                return state.setValue(property, Direction.UP);
             }
         }
         throw new IllegalStateException("Unsupported Mineralogy slab orientation: " + state);

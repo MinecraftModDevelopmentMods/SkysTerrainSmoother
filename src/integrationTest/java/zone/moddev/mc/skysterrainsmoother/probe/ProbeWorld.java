@@ -5,7 +5,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.OreBlock;
 import net.minecraft.block.RedstoneOreBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.ITag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.SectionPos;
@@ -22,7 +22,7 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 final class ProbeWorld {
     static void clear(World world, BlockPos position) {
         // Fixture resets remove fluids too; World.removeBlock deliberately preserves them.
-        world.setBlockState(position, Blocks.AIR.getDefaultState(), 2);
+        world.setBlock(position, Blocks.AIR.defaultBlockState(), 2);
     }
 
     static boolean generate(World world, BlockPos origin) {
@@ -41,13 +41,13 @@ final class ProbeWorld {
     static void light(World world, LightType type, BlockPos position, int value) {
         NibbleArray data = new NibbleArray();
         java.util.Arrays.fill(data.getData(), (byte) (value | value << 4));
-        world.getChunkProvider().getLightManager().setData(type, SectionPos.from(position), data);
+        world.getChunkSource().getLightEngine().queueSectionData(type, SectionPos.of(position), data, true);
         net.minecraft.world.server.ServerWorld serverWorld = (net.minecraft.world.server.ServerWorld) world;
-        net.minecraft.world.server.ServerWorldLightManager light = serverWorld.getChunkProvider().getLightManager();
+        net.minecraft.world.server.ServerWorldLightManager light = serverWorld.getChunkSource().getLightEngine();
         java.util.concurrent.CompletableFuture<?> barrier = light.lightChunk(world.getChunkAt(position), true);
         long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
-        serverWorld.getServer().driveUntil(() -> {
-            light.func_215588_z_();
+        serverWorld.getServer().managedBlock(() -> {
+            light.tryScheduleUpdate();
             return barrier.isDone() || System.nanoTime() >= deadline;
         });
         RuntimeProbe.require(barrier.isDone(), "Native lighting completed the fixture update");
@@ -55,7 +55,7 @@ final class ProbeWorld {
     }
 
     static void rebuildHeights(net.minecraft.world.chunk.IChunk chunk) {
-        net.minecraft.world.gen.Heightmap.updateChunkHeightmaps(chunk,
+        net.minecraft.world.gen.Heightmap.primeHeightmaps(chunk,
                 java.util.EnumSet.allOf(net.minecraft.world.gen.Heightmap.Type.class));
     }
 
@@ -63,7 +63,7 @@ final class ProbeWorld {
         if (state.hasTileEntity() || state.getMaterial().isLiquid()) {
             return false;
         }
-        Tag<net.minecraft.block.Block> ores = BlockTags.getCollection().get(new ResourceLocation("forge", "ores"));
+        ITag<net.minecraft.block.Block> ores = BlockTags.getAllTags().getTag(new ResourceLocation("forge", "ores"));
         return state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedstoneOreBlock
                 || ores != null && ores.contains(state.getBlock());
     }

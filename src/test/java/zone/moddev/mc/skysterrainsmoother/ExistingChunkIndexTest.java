@@ -31,6 +31,15 @@ class ExistingChunkIndexTest {
     }
 
     @Test
+    void unusedNativeRegionFilesDoNotExcludeUnsavedChunks() throws Exception {
+        Path regions = Files.createDirectories(directory.resolve("region"));
+        Files.createFile(regions.resolve("r.-1.0.mca"));
+        ExistingChunkIndex index = new ExistingChunkIndex(directory.toFile());
+        assertEquals(0, index.size());
+        assertFalse(index.contains(-1, 0));
+    }
+
+    @Test
     void damagedHeaderStopsSafely() throws Exception {
         Files.createDirectories(directory.resolve("region"));
         Files.write(directory.resolve("region/r.0.0.mca"), new byte[10]);

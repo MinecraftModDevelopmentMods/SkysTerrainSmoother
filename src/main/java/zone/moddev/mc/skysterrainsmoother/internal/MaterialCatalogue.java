@@ -218,7 +218,7 @@ public final class MaterialCatalogue {
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
-        AxisAlignedBB boundingBox = shape.getBoundingBox();
+        AxisAlignedBB boundingBox = shape.bounds();
         double minimumX = 1;
         double minimumZ = 1;
         double maximumX = 0;
@@ -241,17 +241,17 @@ public final class MaterialCatalogue {
             throw new IllegalArgumentException("Incorrect bottom-piece geometry: " + state);
         }
         VoxelShape expected = VoxelShapes.create(new AxisAlignedBB(minimumX, 0, minimumZ, maximumX, .5, maximumZ));
-        if (VoxelShapes.compare(shape, expected, IBooleanFunction.NOT_SAME)) {
+        if (VoxelShapes.joinIsNotEmpty(shape, expected, IBooleanFunction.NOT_SAME)) {
             throw new IllegalArgumentException("A terrain piece must fill its declared footprint: " + state);
         }
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !VoxelShapes.compare(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                VoxelShapes.fullCube(), IBooleanFunction.NOT_SAME);
+        return !VoxelShapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
+                VoxelShapes.block(), IBooleanFunction.NOT_SAME);
     }
 
     private static BlockState canonical(BlockState state) {
-        return state.has(SnowyDirtBlock.SNOWY) ? state.with(SnowyDirtBlock.SNOWY, false) : state;
+        return state.hasProperty(SnowyDirtBlock.SNOWY) ? state.setValue(SnowyDirtBlock.SNOWY, false) : state;
     }
 }

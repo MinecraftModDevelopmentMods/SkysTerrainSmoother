@@ -26,13 +26,13 @@ class SandStateTest {
         for (int metadata = 0; metadata < 4; metadata++) {
             BlockState state = SandContent.legacyState(metadata);
             assertSame((metadata & 2) == 0 ? SandContent.slab : SandContent.redSlab, state.getBlock());
-            assertEquals((metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM, state.get(SandSlabBlock.TYPE));
-            assertFalse(state.get(SandSlabBlock.WATERLOGGED));
+            assertEquals((metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM, state.getValue(SandSlabBlock.TYPE));
+            assertFalse(state.getValue(SandSlabBlock.WATERLOGGED));
             VoxelShape collision = state.getCollisionShape(null, BlockPos.ZERO);
-            assertEquals((metadata & 1) == 0 ? .5 : 0, collision.getBoundingBox().minY);
-            assertEquals((metadata & 1) == 0 ? 1 : .5, collision.getBoundingBox().maxY);
-            assertFalse(SandSlabBlock.TYPE.getAllowedValues().contains(SlabType.DOUBLE));
-            assertEquals(4, state.getBlock().getStateContainer().getValidStates().size());
+            assertEquals((metadata & 1) == 0 ? .5 : 0, collision.bounds().minY);
+            assertEquals((metadata & 1) == 0 ? 1 : .5, collision.bounds().maxY);
+            assertFalse(SandSlabBlock.TYPE.getPossibleValues().contains(SlabType.DOUBLE));
+            assertEquals(4, state.getBlock().getStateDefinition().getPossibleStates().size());
         }
     }
 

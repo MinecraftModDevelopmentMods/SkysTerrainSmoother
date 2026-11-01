@@ -1,6 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother;
 
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
@@ -24,7 +25,7 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.0.115021";
+    public static final String VERSION = "0.1.0.116051";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
@@ -39,6 +40,7 @@ public final class SkysTerrainSmoother {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::complete);
         MinecraftForge.EVENT_BUS.register(engine);
+        MinecraftForge.EVENT_BUS.addListener(TerrainSmoothingFeature::onBiomeLoading);
         MinecraftForge.EVENT_BUS.addListener(this::beforeServer);
         MinecraftForge.EVENT_BUS.addListener(this::stopped);
         DistExecutor.runWhenOn(Dist.CLIENT,
@@ -55,14 +57,15 @@ public final class SkysTerrainSmoother {
 
     private void complete(FMLLoadCompleteEvent event) {
         MaterialCatalogue.instance().freeze();
-        TerrainSmoothingFeature.install();
+        // Configured features share a vanilla registry. Update it on the loading
+        // thread after the parallel mod callbacks have finished.
+        event.enqueueWork(TerrainSmoothingFeature::install);
         logger.info("Terrain smoothing level {}: {} registered materials; two sand slab colours",
                 level, MaterialCatalogue.instance().size());
     }
 
     private void beforeServer(FMLServerAboutToStartEvent event) {
-        engine.start(event.getServer().getActiveAnvilConverter()
-                .getFile(event.getServer().getFolderName(), "level.dat").getParentFile());
+        engine.start(event.getServer().getWorldPath(FolderName.ROOT).toFile());
     }
 
     private void stopped(FMLServerStoppedEvent event) {

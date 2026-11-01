@@ -18,40 +18,40 @@ final class FoliageProbe {
         int checks = 0;
 
         for (int level = 1; level <= 3; level++) {
-            for (BlockState plant : new BlockState[] { Blocks.GRASS.getDefaultState(),
-                    Blocks.DANDELION.getDefaultState(), Blocks.POPPY.getDefaultState(),
-                    Blocks.DEAD_BUSH.getDefaultState() }) {
+            for (BlockState plant : new BlockState[] { Blocks.GRASS.defaultBlockState(),
+                    Blocks.DANDELION.defaultBlockState(), Blocks.POPPY.defaultBlockState(),
+                    Blocks.DEAD_BUSH.defaultBlockState() }) {
                 prepare(world, floor);
-                world.setBlockState(floor.up(), plant, 2);
-                world.setBlockState(floor.east().up(2), Blocks.GRASS.getDefaultState(), 2);
+                world.setBlock(floor.above(), plant, 2);
+                world.setBlock(floor.east().above(2), Blocks.GRASS.defaultBlockState(), 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
                 RuntimeProbe.require(zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue.instance()
-                        .piece(world.getBlockState(floor.up())) != null
+                        .piece(world.getBlockState(floor.above())) != null
                         && world.getBlockState(floor).getBlock() == (level == 1 ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                         "foliage must not hide a valid grass transition at level " + level);
-                RuntimeProbe.require(world.getBlockState(floor.east().up(2)).getBlock() == Blocks.GRASS,
+                RuntimeProbe.require(world.getBlockState(floor.east().above(2)).getBlock() == Blocks.GRASS,
                         "plants outside the placement remain unchanged");
                 checks += 2;
             }
         }
 
         prepare(world, floor);
-        world.setBlockState(floor.up(), Blocks.TALL_GRASS.getDefaultState()
-                .with(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER), 2);
-        world.setBlockState(floor.up(2), Blocks.TALL_GRASS.getDefaultState()
-                .with(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER), 2);
+        world.setBlock(floor.above(), Blocks.TALL_GRASS.defaultBlockState()
+                .setValue(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER), 2);
+        world.setBlock(floor.above(2), Blocks.TALL_GRASS.defaultBlockState()
+                .setValue(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
-        RuntimeProbe.require(world.getBlockState(floor.up()).getBlock() == ModBlocks.GRASS_SLAB
-                && world.isAirBlock(floor.up(2)), "both halves of a displaced tall plant are removed together");
+        RuntimeProbe.require(world.getBlockState(floor.above()).getBlock() == ModBlocks.GRASS_SLAB
+                && world.isEmptyBlock(floor.above(2)), "both halves of a displaced tall plant are removed together");
         checks++;
 
-        for (BlockState obstacle : new BlockState[] { Blocks.OAK_LEAVES.getDefaultState(),
-                Blocks.OAK_LOG.getDefaultState(), Blocks.WHEAT.getDefaultState(), Blocks.OAK_SAPLING.getDefaultState(),
-                Blocks.VINE.getDefaultState(), Blocks.CHEST.getDefaultState(), Blocks.WATER.getDefaultState() }) {
+        for (BlockState obstacle : new BlockState[] { Blocks.OAK_LEAVES.defaultBlockState(),
+                Blocks.OAK_LOG.defaultBlockState(), Blocks.WHEAT.defaultBlockState(), Blocks.OAK_SAPLING.defaultBlockState(),
+                Blocks.VINE.defaultBlockState(), Blocks.CHEST.defaultBlockState(), Blocks.WATER.defaultBlockState() }) {
             prepare(world, floor);
-            world.setBlockState(floor.up(), obstacle, 2);
+            world.setBlock(floor.above(), obstacle, 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            RuntimeProbe.require(world.getBlockState(floor.up()).equals(obstacle)
+            RuntimeProbe.require(world.getBlockState(floor.above()).equals(obstacle)
                     && world.getBlockState(floor).getBlock() == Blocks.GRASS_BLOCK,
                     "trees, crops, vines, block entities and fluids are not replaceable foliage");
             checks++;
@@ -64,14 +64,14 @@ final class FoliageProbe {
     private static void prepare(ServerWorld world, BlockPos floor) {
         for (int offsetZ = -2; offsetZ <= 2; offsetZ++) {
             for (int offsetX = -2; offsetX <= 2; offsetX++) {
-                BlockPos support = floor.add(offsetX, 0, offsetZ);
+                BlockPos support = floor.offset(offsetX, 0, offsetZ);
                 for (int height = 1; height <= 6; height++) {
-                    world.setBlockState(support.up(height), Blocks.AIR.getDefaultState(), 2);
+                    world.setBlock(support.above(height), Blocks.AIR.defaultBlockState(), 2);
                 }
-                world.setBlockState(support, Blocks.GRASS_BLOCK.getDefaultState(), 2);
+                world.setBlock(support, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
             }
         }
-        world.setBlockState(floor.east().up(), Blocks.GRASS_BLOCK.getDefaultState(), 2);
+        world.setBlock(floor.east().above(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
     }
 
     private FoliageProbe() {

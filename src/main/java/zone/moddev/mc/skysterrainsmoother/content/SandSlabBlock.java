@@ -8,7 +8,7 @@ import net.minecraft.block.FallingBlock;
 import net.minecraft.block.IWaterLoggable;
 import net.minecraft.entity.item.FallingBlockEntity;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.fluid.IFluidState;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.EnumProperty;
@@ -29,37 +29,37 @@ public final class SandSlabBlock extends FallingBlock implements IWaterLoggable 
     public static final EnumProperty<SlabType> TYPE = EnumProperty.create("type", SlabType.class,
             SlabType.TOP, SlabType.BOTTOM);
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-    private static final VoxelShape LOWER_HALF = Block.makeCuboidShape(0, 0, 0, 16, 8, 16);
-    private static final VoxelShape UPPER_HALF = Block.makeCuboidShape(0, 8, 0, 16, 16, 16);
+    private static final VoxelShape LOWER_HALF = Block.box(0, 0, 0, 16, 8, 16);
+    private static final VoxelShape UPPER_HALF = Block.box(0, 8, 0, 16, 16, 16);
     private final boolean red;
 
     public SandSlabBlock(boolean red) {
-        super(Block.Properties.from(red ? Blocks.RED_SAND : Blocks.SAND).notSolid());
+        super(Block.Properties.copy(red ? Blocks.RED_SAND : Blocks.SAND).noOcclusion().isRedstoneConductor((state, world, position) -> false));
         this.red = red;
-        setDefaultState(stateContainer.getBaseState().with(TYPE, SlabType.BOTTOM).with(WATERLOGGED, false));
+        registerDefaultState(stateDefinition.any().setValue(TYPE, SlabType.BOTTOM).setValue(WATERLOGGED, false));
     }
 
     public BlockState fullState() {
-        return (red ? Blocks.RED_SAND : Blocks.SAND).getDefaultState();
+        return (red ? Blocks.RED_SAND : Blocks.SAND).defaultBlockState();
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateContainer.Builder<Block, BlockState> builder) {
         builder.add(TYPE, WATERLOGGED);
     }
 
     @Override
     public BlockState getStateForPlacement(BlockItemUseContext context) {
-        Direction face = context.getFace();
+        Direction face = context.getClickedFace();
         boolean upper = face == Direction.DOWN || face != Direction.UP
-                && context.getHitVec().y - context.getPos().getY() > .5;
-        boolean water = context.getWorld().getFluidState(context.getPos()).getFluid() == Fluids.WATER;
-        return getDefaultState().with(TYPE, upper ? SlabType.TOP : SlabType.BOTTOM).with(WATERLOGGED, water);
+                && context.getClickLocation().y - context.getClickedPos().getY() > .5;
+        boolean water = context.getLevel().getFluidState(context.getClickedPos()).getType() == Fluids.WATER;
+        return defaultBlockState().setValue(TYPE, upper ? SlabType.TOP : SlabType.BOTTOM).setValue(WATERLOGGED, water);
     }
 
     @Override
     public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos position, ISelectionContext context) {
-        return state.get(TYPE) == SlabType.TOP ? UPPER_HALF : LOWER_HALF;
+        return state.getValue(TYPE) == SlabType.TOP ? UPPER_HALF : LOWER_HALF;
     }
 
     @Override
@@ -69,17 +69,17 @@ public final class SandSlabBlock extends FallingBlock implements IWaterLoggable 
     }
 
     @Override
-    public IFluidState getFluidState(BlockState state) {
-        return state.get(WATERLOGGED) ? Fluids.WATER.getStillFluidState(false) : super.getFluidState(state);
+    public FluidState getFluidState(BlockState state) {
+        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
     @Override
-    public BlockState updatePostPlacement(BlockState state, Direction side, BlockState neighbour, IWorld world,
+    public BlockState updateShape(BlockState state, Direction side, BlockState neighbour, IWorld world,
             BlockPos position, BlockPos neighbourPosition) {
-        if (state.get(WATERLOGGED)) {
-            world.getPendingFluidTicks().scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickRate(world));
+        if (state.getValue(WATERLOGGED)) {
+            world.getLiquidTicks().scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
-        return super.updatePostPlacement(state, side, neighbour, world, position, neighbourPosition);
+        return super.updateShape(state, side, neighbour, world, position, neighbourPosition);
     }
 
     @Override
@@ -88,28 +88,23 @@ public final class SandSlabBlock extends FallingBlock implements IWaterLoggable 
     }
 
     @Override
-    public boolean isNormalCube(BlockState state, IBlockReader world, BlockPos position) {
-        return false;
-    }
-
-    @Override
-    public int getOpacity(BlockState state, IBlockReader world, BlockPos position) {
+    public int getLightBlock(BlockState state, IBlockReader world, BlockPos position) {
         return 0;
     }
 
     @Override
     public void tick(BlockState state, ServerWorld world, BlockPos position, Random random) {
-        if (world.isRemote || !world.getBlockState(position).equals(state) || position.getY() < 0
-                || !canFallThrough(world.getBlockState(position.down()))) {
+        if (world.isClientSide || !world.getBlockState(position).equals(state) || position.getY() < 0
+                || !isFree(world.getBlockState(position.below()))) {
             return;
         }
 
         // World.removeBlock leaves water at the source. Only the sand travels;
         // vanilla waterlogs it again if the landing cell contains water.
-        BlockState fallingState = state.with(WATERLOGGED, false);
+        BlockState fallingState = state.setValue(WATERLOGGED, false);
         FallingBlockEntity entity = new FallingBlockEntity(world, position.getX() + .5, position.getY(),
                 position.getZ() + .5, fallingState);
-        onStartFalling(entity);
-        world.addEntity(entity);
+        falling(entity);
+        world.addFreshEntity(entity);
     }
 }

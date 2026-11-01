@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.TickEvent;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
@@ -49,7 +49,7 @@ public final class RuntimeProbe {
     private boolean trackedAreaWasReady;
 
     public RuntimeProbe() {
-        probeOre = new Block(Block.Properties.create(net.minecraft.block.material.Material.ROCK))
+        probeOre = new Block(Block.Properties.of(net.minecraft.block.material.Material.STONE))
                 .setRegistryName("terrainsmootherprobe", "ore_support");
         net.minecraftforge.eventbus.api.IEventBus modBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addGenericListener(Block.class, this::blocks);
@@ -85,7 +85,7 @@ public final class RuntimeProbe {
         ResourceLocation registryId = new ResourceLocation("probe:obsidian");
 
         TerrainSmoothingApi.registerMaterial(new TerrainMaterial(registryId,
-                Collections.singleton(Blocks.OBSIDIAN.getDefaultState()), BuildingPiecesApi
+                Collections.singleton(Blocks.OBSIDIAN.defaultBlockState()), BuildingPiecesApi
                         .bottomPiece("minecraft:obsidian", BuildingPiecesApi.TerrainShape.SLAB, Direction.NORTH),
                 null, null, false, null));
         TerrainSmoothingApi.addShapes(registryId, steps, corners);
@@ -97,6 +97,35 @@ public final class RuntimeProbe {
     @SubscribeEvent
     public void started(FMLServerStartedEvent event) {
         server = event.getServer();
+        checkFeatureRegistration();
+    }
+
+    private void checkFeatureRegistration() {
+        int eligible = 0;
+        int excluded = 0;
+        int vegetation = net.minecraft.world.gen.GenerationStage.Decoration.VEGETAL_DECORATION.ordinal();
+        for (net.minecraft.world.biome.Biome biome : server.registryAccess()
+                .registryOrThrow(net.minecraft.util.registry.Registry.BIOME_REGISTRY)) {
+            List<List<java.util.function.Supplier<net.minecraft.world.gen.feature.ConfiguredFeature<?, ?>>>> stages =
+                    biome.getGenerationSettings().features();
+            List<java.util.function.Supplier<net.minecraft.world.gen.feature.ConfiguredFeature<?, ?>>> features =
+                    vegetation < stages.size() ? stages.get(vegetation) : Collections.emptyList();
+            long occurrences = features.stream().filter(feature -> feature.get().getFeatures()
+                    .anyMatch(configured -> configured.feature() == TerrainSmoothingFeature.INSTANCE)).count();
+            boolean excludedBiome = biome.getBiomeCategory() == net.minecraft.world.biome.Biome.Category.NETHER
+                    || biome.getBiomeCategory() == net.minecraft.world.biome.Biome.Category.THEEND;
+            if (excludedBiome) {
+                require(occurrences == 0, "Nether and End biomes exclude terrain smoothing");
+                excluded++;
+            } else {
+                require(occurrences == 1 && features.get(0).get().getFeatures()
+                        .anyMatch(configured -> configured.feature() == TerrainSmoothingFeature.INSTANCE),
+                        "Terrain smoothing occurs once, at the start of vegetation decoration");
+                eligible++;
+            }
+        }
+        require(eligible > 0 && excluded > 0, "The native biome registry contains both biome groups");
+        System.out.println("TERRAIN_FEATURE_REGISTRATION_PASS eligible=" + eligible + " excluded=" + excluded);
     }
 
     @SubscribeEvent
@@ -106,12 +135,12 @@ public final class RuntimeProbe {
         }
 
         try {
-            ServerWorld world = server.getWorld(DimensionType.OVERWORLD);
+            ServerWorld world = server.getLevel(World.OVERWORLD);
         if (Boolean.getBoolean("skysterrainsmoother.forwardFixture")) {
             try {
                 int checked = FamilyForwardChecks.run(world);
                 ran = true;
-                File marker = new File(world.getSaveHandler().getWorldDirectory(), "family-forward-" + phase() + ".properties");
+                File marker = new File(world.getServer().getWorldPath(net.minecraft.world.storage.FolderName.ROOT).toFile(), "family-forward-" + phase() + ".properties");
                 try (Writer output = new OutputStreamWriter(new FileOutputStream(marker), java.nio.charset.StandardCharsets.UTF_8)) {
                     output.write("checks=" + checked + "\ncomplete=true\n");
                 }
@@ -119,7 +148,7 @@ public final class RuntimeProbe {
                 if (System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
                     ClientStatus.complete = true;
                 } else {
-                    server.initiateShutdown(false);
+                    server.halt(false);
                 }
                 return;
             } catch (Exception failure) {
@@ -129,7 +158,7 @@ public final class RuntimeProbe {
 
 
             if (!gameplayComplete) {
-                server.getCommandManager().handleCommand(server.getCommandSource(), "gamerule randomTickSpeed 0");
+                server.getCommands().performCommand(server.createCommandSourceStack(), "gamerule randomTickSpeed 0");
                 require(GrassSlabsApi.hasSmoothingOwner(), "ownership claimed before Grass Slabs startup");
                 require(SkysTerrainSmoother.engine.indexedChunks() > 0 == phase().equals("reload"),
                         "saved-chunk index lifecycle");
@@ -167,7 +196,7 @@ public final class RuntimeProbe {
             int generation = finishTrackedGeneration(world);
             ran = true;
             Properties values = new Properties();
-            File marker = new File(server.getActiveAnvilConverter().getFile(server.getFolderName(), "level.dat").getParentFile(),
+            File marker = new File(server.getWorldPath(net.minecraft.world.storage.FolderName.ROOT).toFile(),
                     "skysterrainsmoother-integration.properties");
 
             if (marker.isFile()) {
@@ -193,7 +222,7 @@ public final class RuntimeProbe {
         if (System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             ClientStatus.complete = true;
         } else {
-            server.initiateShutdown(false);
+            server.halt(false);
         }
     }
 
@@ -215,24 +244,24 @@ public final class RuntimeProbe {
                 for (int blockZ = -2; blockZ <= 2; blockZ++) {
                     for (int blockX = -2; blockX <= 2; blockX++) {
                         for (int blockY = 200; blockY <= 203; blockY++) {
-                            ProbeWorld.clear(world, position.add(blockX, blockY - 200, blockZ));
+                            ProbeWorld.clear(world, position.offset(blockX, blockY - 200, blockZ));
                         }
                     }
                 }
 
-                BlockState source = GrassSlabsApi.grassGenerationAllowed() ? Blocks.GRASS_BLOCK.getDefaultState()
-                        : Blocks.STONE.getDefaultState();
+                BlockState source = GrassSlabsApi.grassGenerationAllowed() ? Blocks.GRASS_BLOCK.defaultBlockState()
+                        : Blocks.STONE.defaultBlockState();
 
-                world.setBlockState(position, source, 2);
-                world.setBlockState(position.north().up(), Blocks.STONE.getDefaultState(), 2);
+                world.setBlock(position, source, 2);
+                world.setBlock(position.north().above(), Blocks.STONE.defaultBlockState(), 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
-                require(!world.isAirBlock(position.up()), "regression starts with an actual generated piece");
-                world.setBlockState(position, replacement.getDefaultState(), 2);
+                require(!world.isEmptyBlock(position.above()), "regression starts with an actual generated piece");
+                world.setBlock(position, replacement.defaultBlockState(), 2);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
                 require(replacement == Blocks.SAND
-                        ? world.getBlockState(position.up())
+                        ? world.getBlockState(position.above())
                                 .getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
-                        : world.isAirBlock(position.up()),
+                        : world.isEmptyBlock(position.above()),
                         "decoration retargets sand and removes unsupported gravel/air caps");
                 require(world.getBlockState(position).getBlock() == replacement, "decorator's terrain is not reverted");
                 checks += 3;
@@ -243,28 +272,28 @@ public final class RuntimeProbe {
                 for (int blockZ = -2; blockZ <= 2; blockZ++) {
                     for (int blockX = -2; blockX <= 2; blockX++) {
                         for (int blockY = 200; blockY <= 203; blockY++) {
-                            ProbeWorld.clear(world, position.add(blockX, blockY - 200, blockZ));
+                            ProbeWorld.clear(world, position.offset(blockX, blockY - 200, blockZ));
                         }
                     }
                 }
 
-                world.setBlockState(position, Blocks.STONE.getDefaultState(), 2);
-                world.setBlockState(position.north().up(), Blocks.STONE.getDefaultState(), 2);
+                world.setBlock(position, Blocks.STONE.defaultBlockState(), 2);
+                world.setBlock(position.north().above(), Blocks.STONE.defaultBlockState(), 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
 
-                BlockState piece = world.getBlockState(position.up());
+                BlockState piece = world.getBlockState(position.above());
 
                 if (replacePiece) {
-                    world.setBlockState(position, Blocks.SAND.getDefaultState(), 2);
-                    world.setBlockState(position.up(), Blocks.GLASS.getDefaultState(), 2);
-                    piece = Blocks.GLASS.getDefaultState();
+                    world.setBlock(position, Blocks.SAND.defaultBlockState(), 2);
+                    world.setBlock(position.above(), Blocks.GLASS.defaultBlockState(), 2);
+                    piece = Blocks.GLASS.defaultBlockState();
                 }
 
                 BlockPos post = new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4);
 
                 ProbeWorld.repair(world, post);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
-                require(world.getBlockState(position.up()).equals(piece),
+                require(world.getBlockState(position.above()).equals(piece),
                         "valid support and decorator-owned replacement remain intact; repeated Post is harmless");
                 checks++;
             }
@@ -274,40 +303,40 @@ public final class RuntimeProbe {
         Chunk lateOwner = world.getChunkAt(late);
 
         for (int blockY = 200; blockY <= 203; blockY++) {
-            ProbeWorld.clear(world, late.up(blockY - 200));
-            ProbeWorld.clear(world, late.north().up(blockY - 200));
+            ProbeWorld.clear(world, late.above(blockY - 200));
+            ProbeWorld.clear(world, late.north().above(blockY - 200));
         }
 
-        world.setBlockState(late, Blocks.STONE.getDefaultState(), 2);
-        world.setBlockState(late.north().up(), Blocks.STONE.getDefaultState(), 2);
+        world.setBlock(late, Blocks.STONE.defaultBlockState(), 2);
+        world.setBlock(late.north().above(), Blocks.STONE.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, lateOwner, 1);
         ProbeWorld.repair(world, new BlockPos(lateOwner.getPos().x << 4, 0, lateOwner.getPos().z << 4));
-        require(!world.isAirBlock(late.up()), "own Post retains supported generated piece");
-        world.setBlockState(late, Blocks.SAND.getDefaultState(), 2);
+        require(!world.isEmptyBlock(late.above()), "own Post retains supported generated piece");
+        world.setBlock(late, Blocks.SAND.defaultBlockState(), 2);
         ProbeWorld.repair(world, new BlockPos((lateOwner.getPos().x - 1) << 4, 0, lateOwner.getPos().z << 4));
-        require(world.getBlockState(late.up()).getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
+        require(world.getBlockState(late.above()).getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
                 && world.getBlockState(late).getBlock() == Blocks.SAND,
                 "later neighbouring decoration retargets only its affected generated cap");
         checks += 2;
 
-        BlockPos beach = late.add(32, 0, 32);
+        BlockPos beach = late.offset(32, 0, 32);
         Chunk beachOwner = world.getChunkAt(beach);
 
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 for (int blockY = 200; blockY <= 203; blockY++) {
-                    ProbeWorld.clear(world, beach.add(blockX, blockY - 200, blockZ));
+                    ProbeWorld.clear(world, beach.offset(blockX, blockY - 200, blockZ));
                 }
             }
         }
 
-        world.setBlockState(beach, Blocks.GRAVEL.getDefaultState(), 2);
+        world.setBlock(beach, Blocks.GRAVEL.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, beachOwner, 1);
-        require(world.isAirBlock(beach.up()), "unsupported first pass leaves no piece");
-        world.setBlockState(beach, Blocks.RED_SAND.getDefaultState(), 2);
-        world.setBlockState(beach.north().up(), Blocks.RED_SAND.getDefaultState(), 2);
+        require(world.isEmptyBlock(beach.above()), "unsupported first pass leaves no piece");
+        world.setBlock(beach, Blocks.RED_SAND.defaultBlockState(), 2);
+        world.setBlock(beach.north().above(), Blocks.RED_SAND.defaultBlockState(), 2);
         ProbeWorld.repair(world, new BlockPos(beachOwner.getPos().x << 4, 0, beachOwner.getPos().z << 4));
-        require(world.getBlockState(beach.up())
+        require(world.getBlockState(beach.above())
                 .equals(zone.moddev.mc.skysterrainsmoother.content.SandContent.legacyState(3)),
                 "late beach gets a red sand cap without any initial placement");
         checks += 2;
@@ -329,7 +358,7 @@ public final class RuntimeProbe {
         }
 
         MaterialCatalogue catalogue = MaterialCatalogue.instance();
-        TerrainMaterial stone = catalogue.source(Blocks.STONE.getDefaultState());
+        TerrainMaterial stone = catalogue.source(Blocks.STONE.defaultBlockState());
         int checks = 0;
         int[] offsetsX = { 0, 1, 0, -1 };
         int[] offsetsZ = { -1, 0, 1, 0 };
@@ -341,57 +370,57 @@ public final class RuntimeProbe {
                 for (int diagonal = 0; diagonal < 16; diagonal++) {
                     for (int blockZ = -2; blockZ <= 2; blockZ++) {
                         for (int blockX = -2; blockX <= 2; blockX++) {
-                            world.setBlockState(position.add(blockX, 0, blockZ), Blocks.STONE.getDefaultState(), 2);
-                            ProbeWorld.clear(world, position.add(blockX, 1, blockZ));
-                            ProbeWorld.clear(world, position.add(blockX, 2, blockZ));
+                            world.setBlock(position.offset(blockX, 0, blockZ), Blocks.STONE.defaultBlockState(), 2);
+                            ProbeWorld.clear(world, position.offset(blockX, 1, blockZ));
+                            ProbeWorld.clear(world, position.offset(blockX, 2, blockZ));
                         }
                     }
                     for (int directionIndex = 0; directionIndex < 4; directionIndex++) {
                         if ((cardinal & (1 << directionIndex)) != 0) {
-                            world.setBlockState(position.add(offsetsX[directionIndex], 1, offsetsZ[directionIndex]),
-                                    Blocks.STONE.getDefaultState(), 2);
+                            world.setBlock(position.offset(offsetsX[directionIndex], 1, offsetsZ[directionIndex]),
+                                    Blocks.STONE.defaultBlockState(), 2);
                         }
                         if ((diagonal & (1 << directionIndex)) != 0) {
-                            world.setBlockState(position.add(cx[directionIndex], 1, cz[directionIndex]),
-                                    Blocks.STONE.getDefaultState(), 2);
+                            world.setBlock(position.offset(cx[directionIndex], 1, cz[directionIndex]),
+                                    Blocks.STONE.defaultBlockState(), 2);
                         }
                     }
 
                     BlockState expected = catalogue.result(stone, Footprint.mask(cardinal, diagonal, level), level);
 
                     SkysTerrainSmoother.engine.smooth(world, owner, level);
-                    require(world.getBlockState(position.up())
-                            .equals(expected == null ? Blocks.AIR.getDefaultState() : expected),
+                    require(world.getBlockState(position.above())
+                            .equals(expected == null ? Blocks.AIR.defaultBlockState() : expected),
                             "snapshot footprint " + level + "/" + cardinal + "/" + diagonal);
                     checks++;
                 }
             }
         }
 
-        world.setBlockState(position, Blocks.GRASS_BLOCK.getDefaultState(), 2);
-        ProbeWorld.clear(world, position.up());
-        world.setBlockState(position.east().up(), Blocks.STONE.getDefaultState(), 2);
+        world.setBlock(position, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+        ProbeWorld.clear(world, position.above());
+        world.setBlock(position.east().above(), Blocks.STONE.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
 
         if (GrassSlabsApi.grassGenerationAllowed()) {
-            require(world.getBlockState(position).equals(Blocks.DIRT.getDefaultState()),
+            require(world.getBlockState(position).equals(Blocks.DIRT.defaultBlockState()),
                     "support dirtified after grass placement");
         } else {
-            require(world.getBlockState(position).getBlock() == Blocks.GRASS_BLOCK && world.isAirBlock(position.up()),
+            require(world.getBlockState(position).getBlock() == Blocks.GRASS_BLOCK && world.isEmptyBlock(position.above()),
                     "grass switch authoritative");
         }
 
-        world.setBlockState(position.up(), Blocks.GLASS.getDefaultState(), 2);
+        world.setBlock(position.above(), Blocks.GLASS.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 3);
-        require(world.getBlockState(position.up()).getBlock() == Blocks.GLASS, "occupied target protected");
+        require(world.getBlockState(position.above()).getBlock() == Blocks.GLASS, "occupied target protected");
 
-        BlockPos veto = position.up(40);
+        BlockPos veto = position.above(40);
 
-        world.setBlockState(veto, Blocks.STONE.getDefaultState(), 2);
-        ProbeWorld.clear(world, veto.up());
-        world.setBlockState(veto.east().up(), Blocks.STONE.getDefaultState(), 2);
+        world.setBlock(veto, Blocks.STONE.defaultBlockState(), 2);
+        ProbeWorld.clear(world, veto.above());
+        world.setBlock(veto.east().above(), Blocks.STONE.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 3);
-        require(world.isAirBlock(veto.up()), "protected area veto");
+        require(world.isEmptyBlock(veto.above()), "protected area veto");
 
         long start = System.nanoTime();
 
@@ -418,7 +447,7 @@ public final class RuntimeProbe {
                         require(world.getBlockState(pos).equals(expected),
                                 "saved fine piece retains identity and orientation");
                     } else {
-                        world.setBlockState(pos, expected, 2);
+                        world.setBlock(pos, expected, 2);
                     }
                 }
             }
@@ -427,25 +456,25 @@ public final class RuntimeProbe {
         BlockPos saved = new BlockPos(1600, 210, 1600);
 
         world.getChunk(saved);
-        world.setBlockState(saved, Blocks.STONE.getDefaultState(), 2);
-        world.setBlockState(saved.east().up(), Blocks.STONE.getDefaultState(), 2);
-        ProbeWorld.clear(world, saved.up());
+        world.setBlock(saved, Blocks.STONE.defaultBlockState(), 2);
+        world.setBlock(saved.east().above(), Blocks.STONE.defaultBlockState(), 2);
+        ProbeWorld.clear(world, saved.above());
 
         if (phase().equals("reload")) {
             long skipped = SkysTerrainSmoother.engine.skippedExisting;
 
             ProbeWorld.generate(world, new BlockPos(saved.getX() & ~15, 0, saved.getZ() & ~15));
-            require(world.isAirBlock(saved.up()), "saved unpopulated chunks are never smoothed");
+            require(world.isEmptyBlock(saved.above()), "saved unpopulated chunks are never smoothed");
 
             if (SkysTerrainSmoother.enabled) {
                 require(SkysTerrainSmoother.engine.skippedExisting == skipped + 1,
                         "existing entry skips before terrain access");
             }
 
-            world.setBlockState(saved, Blocks.GRASS_BLOCK.getDefaultState(), 2);
-            world.setBlockState(saved.east().up(), Blocks.TERRACOTTA.getDefaultState(), 2);
+            world.setBlock(saved, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+            world.setBlock(saved.east().above(), Blocks.TERRACOTTA.defaultBlockState(), 2);
             ProbeWorld.repair(world, new BlockPos(saved.getX() & ~15, 0, saved.getZ() & ~15));
-            require(world.isAirBlock(saved.up()) && world.getBlockState(saved).getBlock() == Blocks.GRASS_BLOCK,
+            require(world.isEmptyBlock(saved.above()) && world.getBlockState(saved).getBlock() == Blocks.GRASS_BLOCK,
                     "late oasis pass never retrogenerates an indexed saved chunk");
         }
 
@@ -457,8 +486,8 @@ public final class RuntimeProbe {
         BlockPos position = new BlockPos(1020, 210, 1020);
 
         world.getChunk(position);
-        world.getChunk(position.add(-8, 0, -8));
-        world.getChunk(position.add(8, 0, 8));
+        world.getChunk(position.offset(-8, 0, -8));
+        world.getChunk(position.offset(8, 0, 8));
 
         for (Shape shape : new Shape[] { Shape.HORIZONTAL_STEP, Shape.VERTICAL_STEP, Shape.CORNER, Shape.STAIRS }) {
             for (int direction = 0; direction < shape.states; direction++) {
@@ -467,46 +496,46 @@ public final class RuntimeProbe {
 
                 require(GrassSlabsApi.grassFor(dirt).equals(grass) && GrassSlabsApi.dirtFor(grass).equals(dirt),
                         "shared orientation mapping");
-                ProbeWorld.clear(world, position.up());
-                world.setBlockState(position, dirt, 2);
-                ProbeWorld.light(world, LightType.SKY, position.up(), 15);
+                ProbeWorld.clear(world, position.above());
+                world.setBlock(position, dirt, 2);
+                ProbeWorld.light(world, LightType.SKY, position.above(), 15);
                 require(GrassSpread.growTarget(world, position) && world.getBlockState(position).equals(grass),
                         "cross-mod grass growth preserves orientation");
 
                 PieceBlock piece = (PieceBlock) grass.getBlock();
                 boolean completeTop = Geometry.completeTop(piece.mask(grass));
 
-                require(piece.canGrow(world, position, grass, false) == completeTop
-                        && piece.canUseBonemeal(world, new Random(1), position, grass) == completeTop,
+                require(piece.isValidBonemealTarget(world, position, grass, false) == completeTop
+                        && piece.isBonemealSuccess(world, new Random(1), position, grass) == completeTop,
                         "bonemeal requires a complete upper supporting face");
-                require(!piece.canGrow(world, position, dirt, false), "dirt forms do not accept grass bonemeal");
-                world.setBlockState(position.north().down(), Blocks.STONE.getDefaultState(), 2);
-                world.setBlockState(position.north(), Blocks.SNOW.getDefaultState(), 2);
+                require(!piece.isValidBonemealTarget(world, position, dirt, false), "dirt forms do not accept grass bonemeal");
+                world.setBlock(position.north().below(), Blocks.STONE.defaultBlockState(), 2);
+                world.setBlock(position.north(), Blocks.SNOW.defaultBlockState(), 2);
                 require(world.getBlockState(position.north()).getBlock() == Blocks.SNOW,
                         "Snow fixture has a supporting block");
-                require(piece.getActualState(grass, world, position).get(net.minecraft.block.GrassBlock.SNOWY),
+                require(piece.getActualState(grass, world, position).getValue(net.minecraft.block.GrassBlock.SNOWY),
                         "fine grass snow visual");
                 ProbeWorld.clear(world, position.north());
-                require(!piece.getActualState(grass, world, position).get(net.minecraft.block.GrassBlock.SNOWY),
+                require(!piece.getActualState(grass, world, position).getValue(net.minecraft.block.GrassBlock.SNOWY),
                         "fine grass snow clears");
-                world.setBlockState(position.down(), Blocks.GRASS_BLOCK.getDefaultState(), 2);
-                grass.getBlock().neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, position.down(), false);
+                world.setBlock(position.below(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+                grass.getBlock().neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, position.below(), false);
                 int cells = piece.mask(grass);
                 boolean coversSupport = ((cells | cells >> 4) & 15) == 15;
-                require(world.getBlockState(position.down()).getBlock() == (coversSupport ? Blocks.DIRT : Blocks.GRASS_BLOCK),
+                require(world.getBlockState(position.below()).getBlock() == (coversSupport ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                         "only full footprints dirtify the grass support");
-                world.setBlockState(position.down(), Blocks.DIRT.getDefaultState(), 2);
-                require(GrassSpread.growTarget(world, position.down()) == !coversSupport,
+                world.setBlock(position.below(), Blocks.DIRT.defaultBlockState(), 2);
+                require(GrassSpread.growTarget(world, position.below()) == !coversSupport,
                         "visible soil beneath finer pieces can regain grass");
-                world.setBlockState(position, dirt, 2);
-                world.setBlockState(position.up(), ModBlocks.GRASS_SLAB.getDefaultState(), 2);
+                world.setBlock(position, dirt, 2);
+                world.setBlock(position.above(), ModBlocks.GRASS_SLAB.defaultBlockState(), 2);
                 require(!GrassSpread.growTarget(world, position), "covered dirt piece rejected");
-                world.setBlockState(position.up(), Pieces.state("minecraft:grass", Shape.HORIZONTAL_STEP, 4), 2);
+                world.setBlock(position.above(), Pieces.state("minecraft:grass", Shape.HORIZONTAL_STEP, 4), 2);
                 require(!GrassSpread.growTarget(world, position), "covered dirt pieces still reject partial grass cover");
-                world.setBlockState(position, grass, 2);
-                world.setBlockState(position.up(), Blocks.STONE.getDefaultState(), 2);
-                ProbeWorld.light(world, LightType.SKY, position.up(), 0);
-                ProbeWorld.light(world, LightType.BLOCK, position.up(), 0);
+                world.setBlock(position, grass, 2);
+                world.setBlock(position.above(), Blocks.STONE.defaultBlockState(), 2);
+                ProbeWorld.light(world, LightType.SKY, position.above(), 0);
+                ProbeWorld.light(world, LightType.BLOCK, position.above(), 0);
                 grass.getBlock().tick(grass, world, position, new Random(1));
                 require(world.getBlockState(position).equals(dirt), "covered decay keeps orientation");
                 checks += 10;
@@ -523,7 +552,7 @@ public final class RuntimeProbe {
         trackedPlayer.connection = new net.minecraft.network.play.ServerPlayNetHandler(world.getServer(),
                 new net.minecraft.network.NetworkManager(net.minecraft.network.PacketDirection.SERVERBOUND), trackedPlayer) {
             @Override
-            public void sendPacket(net.minecraft.network.IPacket<?> packet) {
+            public void send(net.minecraft.network.IPacket<?> packet) {
             }
         };
         world.getServer().getPlayerList().setViewDistance(6);
@@ -532,7 +561,7 @@ public final class RuntimeProbe {
         generationCenterZ = Integer.getInteger("skysterrainsmoother.probeCenterZ", 400);
         generationBefore = SkysTerrainSmoother.engine.passes;
         trackingStarted = System.nanoTime();
-        trackedPlayer.setPosition(generationCenterX * 16 + 8, 90, generationCenterZ * 16 + 8);
+        trackedPlayer.setPos(generationCenterX * 16 + 8, 90, generationCenterZ * 16 + 8);
         trackedPlayer.revive();
         world.addNewPlayer(trackedPlayer);
     }
@@ -547,7 +576,7 @@ public final class RuntimeProbe {
         trackedAreaWasReady = false;
         require(System.nanoTime() - trackingStarted < java.util.concurrent.TimeUnit.SECONDS.toNanos(60),
                 "Normal player tracking completes the full 9x9 area; loaded="
-                        + world.getChunkProvider().getLoadedChunkCount() + "; generation passes="
+                        + world.getChunkSource().getLoadedChunksCount() + "; generation passes="
                         + (SkysTerrainSmoother.engine.passes - generationBefore));
         return false;
     }
@@ -567,7 +596,7 @@ public final class RuntimeProbe {
         try {
                 for (int blockZ = centerZ - 4; blockZ <= centerZ + 4; blockZ++) {
                     for (int blockX = centerX - 4; blockX <= centerX + 4; blockX++) {
-                        Chunk chunk = world.getChunkProvider().getChunkWithoutLoading(blockX, blockZ);
+                        Chunk chunk = world.getChunkSource().getChunkNow(blockX, blockZ);
 
                         if (chunk == null) {
                             continue;
@@ -582,8 +611,8 @@ public final class RuntimeProbe {
 
                                             if (terrainMaterial != null) {
                                                 BlockPos piece = new BlockPos((blockX << 4) + localX,
-                                                        section.getYLocation() + blockY, (blockZ << 4) + localZ);
-                                                BlockState support = chunk.getBlockState(piece.down());
+                                                        section.bottomBlockY() + blockY, (blockZ << 4) + localZ);
+                                                BlockState support = chunk.getBlockState(piece.below());
 
                                                 require(MaterialCatalogue.instance().source(support) == terrainMaterial
                                                         || support.equals(terrainMaterial.supportAfterPlacement)
@@ -591,7 +620,7 @@ public final class RuntimeProbe {
                                                         "normal decoration leaves no piece over unrelated support: "
                                                                 + piece + " / " + support);
 
-                                                if (piece.getY() < chunk.getTopBlockY(net.minecraft.world.gen.Heightmap.Type.WORLD_SURFACE, localX, localZ)
+                                                if (piece.getY() < chunk.getHeight(net.minecraft.world.gen.Heightmap.Type.WORLD_SURFACE, localX, localZ)
                                                         && !terrainMaterial.grass) {
                                                     caves++;
 
@@ -613,7 +642,7 @@ public final class RuntimeProbe {
 
                                                 if (terrainMaterial.grass) grassPieces++;
                                                 net.minecraft.util.math.AxisAlignedBB shape = chunk.getBlockState(piece)
-                                                        .getShape(world, piece).getBoundingBox();
+                                                        .getShape(world, piece).bounds();
                                                 require(shape.minY == 0 && shape.maxY == .5,
                                                         "Generated transitions are bottom pieces");
                                                 double volume = (shape.maxX - shape.minX) * (shape.maxY - shape.minY)
@@ -660,7 +689,7 @@ public final class RuntimeProbe {
         System.out.println("TERRAIN_SMOOTHER_GENERATED_CAVES_PASS caves=" + caves + " mineralogy=" + mineralogy);
         return found;
         } finally {
-            world.removePlayer(trackedPlayer);
+            world.removePlayerImmediately(trackedPlayer);
             trackedPlayer = null;
         }
     }
@@ -668,7 +697,7 @@ public final class RuntimeProbe {
     private static boolean allTrackedChunksLoaded(ServerWorld world, int centerX, int centerZ) {
         for (int chunkZ = centerZ - 4; chunkZ <= centerZ + 4; chunkZ++) {
             for (int chunkX = centerX - 4; chunkX <= centerX + 4; chunkX++) {
-                if (world.getChunkProvider().getChunkWithoutLoading(chunkX, chunkZ) == null) {
+                if (world.getChunkSource().getChunkNow(chunkX, chunkZ) == null) {
                     return false;
                 }
             }
@@ -703,24 +732,24 @@ public final class RuntimeProbe {
                                 chunk.getSections()[blockY >> 4] = section = new ChunkSection(blockY & ~15);
                             }
 
-                            section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.getDefaultState());
+                            section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.defaultBlockState());
                         }
                         for (int floor : new int[] { 170, 188, 200 }) {
                             int floorY = floor + height - 200;
 
                             chunk.getSections()[floorY >> 4].setBlockState(blockX & 15, floorY & 15, blockZ & 15,
-                                    Blocks.STONE.getDefaultState());
+                                    Blocks.STONE.defaultBlockState());
                         }
                         for (int roof : new int[] { 180, 198 }) {
                             chunk.getSections()[roof >> 4].setBlockState(blockX & 15, roof & 15, blockZ & 15,
-                                    Blocks.BRICKS.getDefaultState());
+                                    Blocks.BRICKS.defaultBlockState());
                         }
 
 
                     }
                 }
                 for (Chunk chunk : chunks) {
-                    net.minecraft.world.gen.Heightmap.updateChunkHeightmaps(chunk,
+                    net.minecraft.world.gen.Heightmap.primeHeightmaps(chunk,
                             java.util.EnumSet.allOf(net.minecraft.world.gen.Heightmap.Type.class));
                 }
                 if (order == 1) {

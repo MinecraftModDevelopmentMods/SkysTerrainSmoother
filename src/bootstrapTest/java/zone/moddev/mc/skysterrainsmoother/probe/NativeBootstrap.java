@@ -14,7 +14,7 @@ import net.minecraft.state.properties.SlabType;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -47,7 +47,7 @@ public final class NativeBootstrap {
     }
 
     private void started(FMLServerStartedEvent event) {
-        ServerWorld world = event.getServer().getWorld(DimensionType.OVERWORLD);
+        ServerWorld world = event.getServer().getLevel(World.OVERWORLD);
         require(setupComplete && MaterialCatalogue.instance().frozen(), "Native setup completed and froze");
         require(GrassSlabsApi.hasSmoothingOwner(), "Grass generation ownership was claimed");
         boolean lateRejected = false;
@@ -61,10 +61,10 @@ public final class NativeBootstrap {
         for (int metadata = 0; metadata < 4; metadata++) {
             BlockState state = SandContent.legacyState(metadata);
             Block block = (metadata & 2) == 0 ? SandContent.slab : SandContent.redSlab;
-            require(state.getBlock() == block && state.get(SandSlabBlock.TYPE)
+            require(state.getBlock() == block && state.getValue(SandSlabBlock.TYPE)
                     == ((metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM), "Legacy sand orientation");
-            require(!state.get(SandSlabBlock.WATERLOGGED), "Legacy sand begins dry");
-            require(block.getStateContainer().getValidStates().size() == 4, "No double sand state");
+            require(!state.getValue(SandSlabBlock.WATERLOGGED), "Legacy sand begins dry");
+            require(block.getStateDefinition().getPossibleStates().size() == 4, "No double sand state");
             CompoundNBT oldStack = new CompoundNBT();
             oldStack.putString("id", "skysterrainsmoother:sand_slab");
             oldStack.putByte("Count", (byte) 17);
@@ -82,8 +82,7 @@ public final class NativeBootstrap {
             checks += 5;
             checks += falling(world, state, metadata);
         }
-        File root = event.getServer().getActiveAnvilConverter()
-                .getFile(event.getServer().getFolderName(), "level.dat").getParentFile();
+        File root = event.getServer().getWorldPath(net.minecraft.world.storage.FolderName.ROOT).toFile();
         Properties receipt = new Properties();
         receipt.setProperty("checks", Integer.toString(checks));
         receipt.setProperty("materials", Integer.toString(MaterialCatalogue.instance().size()));
@@ -93,36 +92,36 @@ public final class NativeBootstrap {
             throw new IllegalStateException("Cannot write native check receipt", failure);
         }
         System.out.println("TERRAIN_NATIVE_BOOTSTRAP_PASS checks=" + checks);
-        event.getServer().initiateShutdown(false);
+        event.getServer().halt(false);
     }
 
     private static int falling(ServerWorld world, BlockState state, int metadata) {
         BlockPos source = new BlockPos(80 + metadata * 4, 220, 80);
         world.getChunk(source);
         for (int height = 215; height <= 223; height++) {
-            world.setBlockState(new BlockPos(source.getX(), height, source.getZ()), Blocks.AIR.getDefaultState(), 2);
+            world.setBlock(new BlockPos(source.getX(), height, source.getZ()), Blocks.AIR.defaultBlockState(), 2);
         }
-        world.setBlockState(source.down(5), Blocks.STONE.getDefaultState(), 2);
-        world.setBlockState(source, state, 2);
+        world.setBlock(source.below(5), Blocks.STONE.defaultBlockState(), 2);
+        world.setBlock(source, state, 2);
         ((SandSlabBlock) state.getBlock()).tick(state, world, source, new java.util.Random(1));
-        java.util.List<FallingBlockEntity> entities = world.getEntitiesWithinAABB(FallingBlockEntity.class,
-                new AxisAlignedBB(source).grow(1));
+        java.util.List<FallingBlockEntity> entities = world.getEntitiesOfClass(FallingBlockEntity.class,
+                new AxisAlignedBB(source).inflate(1));
         require(entities.size() == 1, "Native falling entity created");
         FallingBlockEntity falling = entities.get(0);
         for (int tick = 0; tick < 100 && falling.isAlive(); tick++) {
             falling.tick();
         }
-        require(!falling.isAlive() && world.getBlockState(source.down(4)).equals(state),
+        require(!falling.isAlive() && world.getBlockState(source.below(4)).equals(state),
                 "Falling preserves native sand colour and orientation");
-        world.setBlockState(source, state.with(SandSlabBlock.WATERLOGGED, true), 2);
+        world.setBlock(source, state.setValue(SandSlabBlock.WATERLOGGED, true), 2);
         ((SandSlabBlock) state.getBlock()).tick(world.getBlockState(source), world, source, new java.util.Random(1));
-        entities = world.getEntitiesWithinAABB(FallingBlockEntity.class, new AxisAlignedBB(source).grow(1));
+        entities = world.getEntitiesOfClass(FallingBlockEntity.class, new AxisAlignedBB(source).inflate(1));
         entities.removeIf(entity -> !entity.isAlive());
         require(entities.size() == 1, "Wet sand begins falling");
         FallingBlockEntity wet = entities.get(0);
-        require(!wet.getBlockState().get(SandSlabBlock.WATERLOGGED), "Falling sand carries no source water");
+        require(!wet.getBlockState().getValue(SandSlabBlock.WATERLOGGED), "Falling sand carries no source water");
         wet.tick();
-        require(world.getFluidState(source).getFluid() == Fluids.WATER, "Water remains at the source");
+        require(world.getFluidState(source).getType() == Fluids.WATER, "Water remains at the source");
         wet.remove();
         return 5;
     }

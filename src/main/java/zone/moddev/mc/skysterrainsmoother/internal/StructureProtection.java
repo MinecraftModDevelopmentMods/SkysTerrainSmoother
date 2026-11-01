@@ -20,9 +20,9 @@ final class StructureProtection {
     static StructureProtection read(IChunk owner, Function<ChunkPos, IChunk> loadedChunk) {
         StructureProtection result = new StructureProtection();
         Set<Long> visited = new HashSet<>();
-        visited.add(owner.getPos().asLong());
+        visited.add(owner.getPos().toLong());
         result.addStarts(owner);
-        for (LongSet references : owner.getStructureReferences().values()) {
+        for (LongSet references : owner.getAllReferences().values()) {
             for (long reference : references) {
                 if (!visited.add(reference)) {
                     continue;
@@ -46,7 +46,7 @@ final class StructureProtection {
 
     boolean contains(BlockPos position) {
         for (MutableBoundingBox box : bounds) {
-            if (box.isVecInside(position)) {
+            if (box.isInside(position)) {
                 return true;
             }
         }
@@ -54,7 +54,7 @@ final class StructureProtection {
     }
 
     private void addStarts(IChunk chunk) {
-        for (StructureStart start : chunk.getStructureStarts().values()) {
+        for (StructureStart start : chunk.getAllStarts().values()) {
             if (start != null && start.isValid()) {
                 bounds.add(new MutableBoundingBox(start.getBoundingBox()));
             }

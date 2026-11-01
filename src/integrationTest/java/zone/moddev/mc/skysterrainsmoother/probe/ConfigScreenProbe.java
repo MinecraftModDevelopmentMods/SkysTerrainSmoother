@@ -28,7 +28,7 @@ final class ConfigScreenProbe {
     private static String[] keys;
 
     static void begin(Minecraft minecraft) {
-        parent = minecraft.currentScreen;
+        parent = minecraft.screen;
         activeGrass = SkysGrassSlabsConfig.generateGrassSlabs();
         activeTerrain = TerrainSmootherConfig.enabled();
         activeLevel = TerrainSmootherConfig.level();
@@ -39,7 +39,7 @@ final class ConfigScreenProbe {
 
     static boolean tick(Minecraft minecraft) {
         if (modIndex == 2) {
-            minecraft.displayGuiScreen(parent);
+            minecraft.setScreen(parent);
             RuntimeProbe.require(tooltips == 5, "All five settings were exercised");
             System.out.println("SKY_CONFIG_SCREENS_PASS factories=2 widgets=5 restart_safe=true");
             return true;
@@ -52,19 +52,19 @@ final class ConfigScreenProbe {
             RuntimeProbe.require(buttons(screen).size() == keys.length + 1, "Each setting has its own control");
             original = new ArrayList<>();
             for (int index = 0; index < keys.length; index++) {
-                original.add(buttons(screen).get(index).getMessage());
+                original.add(buttons(screen).get(index).getMessage().getString());
             }
             choiceIndex = 0;
             stage = 1;
         } else if (stage == 1) {
             Button button = buttons(screen).get(choiceIndex);
             String key = "config." + modId + "." + keys[choiceIndex];
-            RuntimeProbe.require(!I18n.format(key).equals(key) && !I18n.format(key + ".tooltip").equals(key + ".tooltip"),
+            RuntimeProbe.require(!I18n.get(key).equals(key) && !I18n.get(key + ".tooltip").equals(key + ".tooltip"),
                     "Readable label and tooltip for " + key);
             render(minecraft, screen, button.x + 5, button.y + 5);
             screenshot(minecraft, modId + "-" + keys[choiceIndex] + "-tooltip.png");
             button.onPress();
-            RuntimeProbe.require(!button.getMessage().equals(original.get(choiceIndex)), "The pending choice changes");
+            RuntimeProbe.require(!button.getMessage().getString().equals(original.get(choiceIndex)), "The pending choice changes");
             tooltips++;
             if (++choiceIndex == keys.length) {
                 buttons(screen).get(keys.length).onPress();
@@ -77,10 +77,10 @@ final class ConfigScreenProbe {
             // a later frame also follows the same path a player uses.
             RuntimeProbe.require(System.nanoTime() < deadline, "Saved config choices became readable for " + modId);
             Screen pending = newConfigScreen(modId);
-            minecraft.displayGuiScreen(pending);
+            minecraft.setScreen(pending);
             boolean changed = true;
             for (int index = 0; index < keys.length; index++) {
-                changed &= !buttons(pending).get(index).getMessage().equals(original.get(index));
+                changed &= !buttons(pending).get(index).getMessage().getString().equals(original.get(index));
             }
             if (!changed) {
                 settleTicks = 0;
@@ -90,11 +90,11 @@ final class ConfigScreenProbe {
             screen = ModMenuProbe.open(minecraft, modId, parent);
             for (int index = 0; index < keys.length; index++) {
                 Button button = buttons(screen).get(index);
-                RuntimeProbe.require(!button.getMessage().equals(original.get(index)), "Saved choices are reloaded: " + keys[index]);
-                for (int attempt = 0; attempt < 3 && !button.getMessage().equals(original.get(index)); attempt++) {
+                RuntimeProbe.require(!button.getMessage().getString().equals(original.get(index)), "Saved choices are reloaded: " + keys[index]);
+                for (int attempt = 0; attempt < 3 && !button.getMessage().getString().equals(original.get(index)); attempt++) {
                     button.onPress();
                 }
-                RuntimeProbe.require(button.getMessage().equals(original.get(index)), "Restore the disposable configuration");
+                RuntimeProbe.require(button.getMessage().getString().equals(original.get(index)), "Restore the disposable configuration");
             }
             buttons(screen).get(keys.length).onPress();
             settleTicks = 0;
@@ -102,9 +102,9 @@ final class ConfigScreenProbe {
         } else {
             RuntimeProbe.require(System.nanoTime() < deadline, "Original config choices restored for " + modId);
             Screen restored = newConfigScreen(modId);
-            minecraft.displayGuiScreen(restored);
+            minecraft.setScreen(restored);
             for (int index = 0; index < keys.length; index++) {
-                if (!buttons(restored).get(index).getMessage().equals(original.get(index))) {
+                if (!buttons(restored).get(index).getMessage().getString().equals(original.get(index))) {
                     settleTicks = 0;
                     return false;
                 }
@@ -126,20 +126,20 @@ final class ConfigScreenProbe {
     }
 
     static void render(Minecraft minecraft, Screen screen, int mouseX, int mouseY) {
-        minecraft.getFramebuffer().bindFramebuffer(true);
-        net.minecraft.client.MainWindow window = minecraft.getMainWindow();
+        minecraft.getMainRenderTarget().bindWrite(true);
+        net.minecraft.client.MainWindow window = minecraft.getWindow();
 
-        com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.IS_RUNNING_ON_MAC);
+        com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.ON_OSX);
         com.mojang.blaze3d.systems.RenderSystem.matrixMode(5889);
         com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
         com.mojang.blaze3d.systems.RenderSystem.ortho(0,
-                window.getFramebufferWidth() / window.getGuiScaleFactor(),
-                window.getFramebufferHeight() / window.getGuiScaleFactor(), 0, 1000, 3000);
+                window.getWidth() / window.getGuiScale(),
+                window.getHeight() / window.getGuiScale(), 0, 1000, 3000);
         com.mojang.blaze3d.systems.RenderSystem.matrixMode(5888);
         com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
         com.mojang.blaze3d.systems.RenderSystem.translatef(0, 0, -2000);
-        net.minecraft.client.renderer.RenderHelper.setupGui3DDiffuseLighting();
-        screen.render(mouseX, mouseY, 0);
+        net.minecraft.client.renderer.RenderHelper.setupFor3DItems();
+        screen.render(new com.mojang.blaze3d.matrix.MatrixStack(), mouseX, mouseY, 0);
     }
 
     private static List<Button> buttons(Screen screen) {
@@ -156,16 +156,16 @@ final class ConfigScreenProbe {
         String phase = System.getProperty("skysterrainsmoother.integrationPhase", "client");
         String savedName = phase + "-" + screenshotNumber++ + "-" + filename;
         java.util.concurrent.CountDownLatch saved = new java.util.concurrent.CountDownLatch(1);
-        net.minecraft.util.ScreenShotHelper.saveScreenshot(minecraft.gameDir, savedName,
-                minecraft.getMainWindow().getFramebufferWidth(), minecraft.getMainWindow().getFramebufferHeight(),
-                minecraft.getFramebuffer(), message -> saved.countDown());
+        net.minecraft.util.ScreenShotHelper.grab(minecraft.gameDirectory, savedName,
+                minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight(),
+                minecraft.getMainRenderTarget(), message -> saved.countDown());
         try {
             RuntimeProbe.require(saved.await(10, java.util.concurrent.TimeUnit.SECONDS), "Screen capture finished");
         } catch (InterruptedException failure) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Screen capture interrupted", failure);
         }
-        RuntimeProbe.require(new File(minecraft.gameDir, "screenshots/" + savedName).isFile(),
+        RuntimeProbe.require(new File(minecraft.gameDirectory, "screenshots/" + savedName).isFile(),
                 "Screen capture saved: " + savedName);
     }
 

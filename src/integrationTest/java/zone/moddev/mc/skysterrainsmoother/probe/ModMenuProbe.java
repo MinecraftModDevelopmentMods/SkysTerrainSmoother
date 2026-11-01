@@ -13,7 +13,7 @@ import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 final class ModMenuProbe {
     static Screen open(Minecraft minecraft, String modId, Screen parent) {
         ModListScreen mods = new ModListScreen(parent);
-        minecraft.displayGuiScreen(mods);
+        minecraft.setScreen(mods);
         ModListWidget list = (ModListWidget) field(ModListScreen.class, mods, "modList");
         Object selected = null;
         for (Object entry : list.children()) {
@@ -43,9 +43,9 @@ final class ModMenuProbe {
         Button button = (Button) field(ModListScreen.class, mods, "configButton");
         RuntimeProbe.require(button.visible && button.active, "The Config button is available for " + modId);
         button.onPress();
-        RuntimeProbe.require(minecraft.currentScreen != mods && minecraft.currentScreen != null,
+        RuntimeProbe.require(minecraft.screen != mods && minecraft.screen != null,
                 "The Config button opens " + modId);
-        return minecraft.currentScreen;
+        return minecraft.screen;
     }
 
     static Object field(Class<?> owner, Object instance, String name) {

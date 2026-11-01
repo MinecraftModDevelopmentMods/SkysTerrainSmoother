@@ -28,8 +28,8 @@ final class OpportunityProbe {
         Chunk owner = world.getChunkAt(floor);
         int checks = 0;
 
-        for (BlockState source : new BlockState[] { Blocks.STONE.getDefaultState(),
-                Blocks.GRASS_BLOCK.getDefaultState(), Blocks.SAND.getDefaultState() }) {
+        for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
+                Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.SAND.defaultBlockState() }) {
             if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }
@@ -38,25 +38,25 @@ final class OpportunityProbe {
                 for (Direction uphill : Direction.Plane.HORIZONTAL) {
                     for (int cover = 1; cover <= 3; cover++) {
                         prepare(world, floor, source);
-                        world.setBlockState(floor.offset(uphill).up(), source, 2);
+                        world.setBlock(floor.relative(uphill).above(), source, 2);
                         if ((cover & 1) != 0) {
-                            world.setBlockState(floor.up(), Blocks.SNOW.getDefaultState(), 2);
+                            world.setBlock(floor.above(), Blocks.SNOW.defaultBlockState(), 2);
                         }
                         if ((cover & 2) != 0) {
-                            world.setBlockState(floor.offset(uphill).up(2), Blocks.SNOW.getDefaultState(), 2);
+                            world.setBlock(floor.relative(uphill).above(2), Blocks.SNOW.defaultBlockState(), 2);
                         }
                         RuntimeProbe.require(MaterialCatalogue.instance().source(world.getBlockState(floor)) == material,
                                 "Resetting the fixture restores its intended source material");
                         BlockState beforeSupport = world.getBlockState(floor);
-                        BlockState beforeTarget = world.getBlockState(floor.up());
+                        BlockState beforeTarget = world.getBlockState(floor.above());
                         int placed = SkysTerrainSmoother.engine.smooth(world, owner, level);
-                        RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(floor.up())) == material,
+                        RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(floor.above())) == material,
                                 "thin snow must not hide a valid transition: level " + level + " / " + uphill
                                         + " / cover=" + cover + " / source=" + source + " / before=" + beforeSupport
                                         + " / target=" + beforeTarget + " / after=" + world.getBlockState(floor)
-                                        + " / cap=" + world.getBlockState(floor.up()) + " / placed=" + placed);
+                                        + " / cap=" + world.getBlockState(floor.above()) + " / placed=" + placed);
                         RuntimeProbe.require((cover & 2) == 0
-                                || world.getBlockState(floor.offset(uphill).up(2)).getBlock() == Blocks.SNOW,
+                                || world.getBlockState(floor.relative(uphill).above(2)).getBlock() == Blocks.SNOW,
                                 "snow outside the chosen placement is not cleared");
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                                 "snow replacement remains idempotent");
@@ -66,23 +66,23 @@ final class OpportunityProbe {
                     // More than one layer is not the thin cover produced by normal snowfall.
                     for (int layers = 2; layers <= 8; layers++) {
                         prepare(world, floor, source);
-                        world.setBlockState(floor.offset(uphill).up(), source, 2);
-                        BlockState snow = Blocks.SNOW.getDefaultState().with(SnowBlock.LAYERS, layers);
-                        world.setBlockState(floor.up(), snow, 2);
+                        world.setBlock(floor.relative(uphill).above(), source, 2);
+                        BlockState snow = Blocks.SNOW.defaultBlockState().setValue(SnowBlock.LAYERS, layers);
+                        world.setBlock(floor.above(), snow, 2);
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
-                        RuntimeProbe.require(world.getBlockState(floor.up()).equals(snow),
+                        RuntimeProbe.require(world.getBlockState(floor.above()).equals(snow),
                                 "deep snow remains occupied terrain");
                         checks++;
                     }
 
                     for (int lowerEdges = 1; lowerEdges <= 2; lowerEdges++) {
                         prepare(world, floor, source);
-                        Direction secondRise = uphill.rotateY();
-                        world.setBlockState(floor.offset(uphill).up(), source, 2);
-                        world.setBlockState(floor.offset(secondRise).up(), source, 2);
-                        ProbeWorld.clear(world, floor.offset(uphill.getOpposite()));
+                        Direction secondRise = uphill.getClockWise();
+                        world.setBlock(floor.relative(uphill).above(), source, 2);
+                        world.setBlock(floor.relative(secondRise).above(), source, 2);
+                        ProbeWorld.clear(world, floor.relative(uphill.getOpposite()));
                         if (lowerEdges == 2) {
-                            ProbeWorld.clear(world, floor.offset(secondRise.getOpposite()));
+                            ProbeWorld.clear(world, floor.relative(secondRise.getOpposite()));
                         }
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         // Terrain API directions are N/E/S/W, unlike Minecraft's horizontal index.
@@ -90,8 +90,8 @@ final class OpportunityProbe {
                         int cornerDirection = corner(uphill, secondRise);
                         BlockState expected = lowerEdges == 1 && level >= 2 ? material.step(stepDirection)
                                 : lowerEdges == 2 && level == 3 ? material.corner(cornerDirection) : null;
-                        RuntimeProbe.require(world.getBlockState(floor.up())
-                                .equals(expected == null ? Blocks.AIR.getDefaultState() : expected),
+                        RuntimeProbe.require(world.getBlockState(floor.above())
+                                .equals(expected == null ? Blocks.AIR.defaultBlockState() : expected),
                                 "use a fitting piece instead of rejecting a mixed terrace, level " + level
                                         + " / " + uphill + " / lower edges " + lowerEdges);
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
@@ -122,7 +122,7 @@ final class OpportunityProbe {
             Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.util.ResourceLocation(entry.get("block").getAsString()));
             RuntimeProbe.require(block != null, "unknown block in the mountain regression fixture");
             RuntimeProbe.require(entry.get("meta").getAsInt() == 0, "Only default native states occur in this terrace fixture");
-            palette[index] = block.getDefaultState();
+            palette[index] = block.defaultBlockState();
         }
 
         BlockPos origin = new BlockPos(3768, 210, 3768);
@@ -134,19 +134,19 @@ final class OpportunityProbe {
         int checks = 0;
 
         for (int level = 1; level <= 3; level++) {
-            prepare(world, origin, Blocks.STONE.getDefaultState());
+            prepare(world, origin, Blocks.STONE.defaultBlockState());
             int index = 0;
             for (int height = minimumHeight; height <= maximumHeight; height++) {
                 for (int offsetZ = -radius; offsetZ <= radius; offsetZ++) {
                     for (int offsetX = -radius; offsetX <= radius; offsetX++) {
-                        world.setBlockState(origin.add(offsetX, height, offsetZ),
+                        world.setBlock(origin.offset(offsetX, height, offsetZ),
                                 palette[blocks.get(index++).getAsInt()], 2);
                     }
                 }
             }
             SkysTerrainSmoother.engine.smooth(world, owner, level);
-            RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(origin.up()))
-                    == MaterialCatalogue.instance().source(Blocks.STONE.getDefaultState()),
+            RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(origin.above()))
+                    == MaterialCatalogue.instance().source(Blocks.STONE.defaultBlockState()),
                     "the reported snowy stone terrace receives its matching transition at level " + level);
             RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                     "the reported terrace stays stable on a repeated pass");
@@ -170,8 +170,8 @@ final class OpportunityProbe {
         for (int offsetZ = -3; offsetZ <= 3; offsetZ++) {
             for (int offsetX = -3; offsetX <= 3; offsetX++) {
                 for (int height = 6; height >= -2; height--) {
-                    world.setBlockState(floor.add(offsetX, height, offsetZ),
-                            height <= 0 ? source : Blocks.AIR.getDefaultState(), 2);
+                    world.setBlock(floor.offset(offsetX, height, offsetZ),
+                            height <= 0 ? source : Blocks.AIR.defaultBlockState(), 2);
                 }
             }
         }

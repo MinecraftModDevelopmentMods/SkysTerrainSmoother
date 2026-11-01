@@ -1,7 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import net.minecraft.block.Block;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
@@ -28,9 +28,9 @@ public final class MineralogyProbe {
             ResourceLocation slabId = new ResourceLocation("mineralogy", material.id.getPath() + "_slab");
             require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(slabId) == material.slab.getBlock(), "native slab identity");
             boolean bottom = false;
-            for (IProperty<?> property : material.slab.getProperties()) {
+            for (Property<?> property : material.slab.getProperties()) {
                 if (property.getName().equals("facing")) {
-                    bottom = material.slab.get(property) == Direction.UP;
+                    bottom = material.slab.getValue(property) == Direction.UP;
                 }
             }
             require(bottom, "Mineralogy FACING=UP is the bottom horizontal slab");

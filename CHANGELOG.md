@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.116051 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.16.5.
+- Use the matching Grass Slabs and Building Pieces versions.
+
 ## 0.1.0.115021 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.15.2.
