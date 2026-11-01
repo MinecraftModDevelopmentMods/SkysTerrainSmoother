@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "skysterrainsmoother/slabs",
+  "pattern": [
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:sand"
+    }
+  },
+  "result": {
+    "item": "skysterrainsmoother:sand_slab",
+    "count": 6
+  }
+}

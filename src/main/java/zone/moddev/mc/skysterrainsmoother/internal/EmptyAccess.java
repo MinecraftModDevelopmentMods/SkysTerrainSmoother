@@ -1,47 +1,29 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Biomes;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.fluid.IFluidState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.WorldType;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.IBlockReader;
 
-final class EmptyAccess implements IBlockAccess {
+/** Empty neighbours for validating immutable piece collision shapes. */
+final class EmptyAccess implements IBlockReader {
     static final EmptyAccess INSTANCE = new EmptyAccess();
 
-    public TileEntity getTileEntity(BlockPos pos) {
+    @Override
+    public TileEntity getTileEntity(BlockPos position) {
         return null;
     }
 
-    public int getCombinedLight(BlockPos pos, int light) {
-        return 0;
-    }
-
-    public IBlockState getBlockState(BlockPos pos) {
+    @Override
+    public BlockState getBlockState(BlockPos position) {
         return Blocks.AIR.getDefaultState();
     }
 
-    public boolean isAirBlock(BlockPos pos) {
-        return true;
-    }
-
-    public Biome getBiome(BlockPos pos) {
-        return Biomes.PLAINS;
-    }
-
-    public int getStrongPower(BlockPos pos, EnumFacing side) {
-        return 0;
-    }
-
-    public WorldType getWorldType() {
-        return WorldType.DEFAULT;
-    }
-
-    public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean fallback) {
-        return false;
+    @Override
+    public IFluidState getFluidState(BlockPos position) {
+        return Fluids.EMPTY.getDefaultState();
     }
 }

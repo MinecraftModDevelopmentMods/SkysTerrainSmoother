@@ -22,7 +22,7 @@ class MineralogyLaunchContractTest {
         assertFalse(build.contains("runtimeOnly "));
         assertFalse(build.contains("into sourceSets.main"));
         assertTrue(text("build.gradle").contains(
-                "contents.replace('${MC_VERSION}', project.minecraft_version.toString())"));
+                "key=\"MC_VERSION\" value=\"${MC_VERSION}\""));
     }
 
     @Test
@@ -41,9 +41,10 @@ class MineralogyLaunchContractTest {
         assertTrue(script.contains("Missing optional"));
         assertTrue(script.contains("does not match gradle/mineralogy-runtime.properties"));
         assertFalse(script.contains("delete(gameDirectory"));
-        assertTrue(script.contains("original optional jars remain untouched"));
-        assertTrue(script.contains("minecraft.accessTransformers.from(accessRules)"));
-        assertTrue(script.contains("getValue('FMLAT')"));
+        assertTrue(script.contains("Exact mapped reference jars"));
+        assertTrue(script.contains(".development.path"));
+        assertTrue(script.contains(".development.sha256"));
+        assertFalse(script.contains("minecraft.accessTransformers.from(accessRules)"));
     }
 
     @Test

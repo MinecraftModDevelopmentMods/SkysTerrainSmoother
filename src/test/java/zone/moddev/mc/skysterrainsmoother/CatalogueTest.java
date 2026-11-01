@@ -1,13 +1,15 @@
 package zone.moddev.mc.skysterrainsmoother;
 
 import java.util.*;
-import net.minecraft.init.*;
+import net.minecraft.block.Blocks;
+import net.minecraft.world.biome.Biomes;
+import net.minecraft.util.registry.Bootstrap;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
 import org.junit.jupiter.api.*;
 import zone.moddev.mc.skysterrainsmoother.api.*;
 import zone.moddev.mc.skysterrainsmoother.internal.*;
@@ -16,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class CatalogueTest {
     @BeforeAll
     static void boot() {
-        Bootstrap.register();
+        MinecraftTestBootstrap.registerVanilla();
     }
 
-    private static IBlockState piece(int mask) {
+    private static BlockState piece(int mask) {
         double x0 = 1;
         double z0 = 1;
         double x1 = 0;
@@ -39,21 +41,23 @@ class CatalogueTest {
 
         final AxisAlignedBB boundingBox = new AxisAlignedBB(x0, 0, z0, x1, .5, z1);
 
-        return new Block(Material.ROCK) {
+        return new Block(Block.Properties.create(Material.ROCK)) {
             @Override
-            public AxisAlignedBB getBoundingBox(IBlockState blockState, IBlockAccess blockAccess, BlockPos position) {
-                return boundingBox;
+            public net.minecraft.util.math.shapes.VoxelShape getShape(BlockState state, IBlockReader world,
+                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
+                return net.minecraft.util.math.shapes.VoxelShapes.create(boundingBox);
             }
 
             @Override
-            public boolean isFullCube(IBlockState blockState) {
-                return false;
+            public net.minecraft.util.math.shapes.VoxelShape getCollisionShape(BlockState state, IBlockReader world,
+                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
+                return getShape(state, world, position, context);
             }
         }.getDefaultState();
     }
 
-    private static TerrainMaterial material(String name, IBlockState full, IBlockState slab, IBlockState[] steps,
-            IBlockState[] corners) {
+    private static TerrainMaterial material(String name, BlockState full, BlockState slab, BlockState[] steps,
+            BlockState[] corners) {
         return new TerrainMaterial(new ResourceLocation("test", name), Collections.singleton(full), slab, steps,
                 corners, false, null);
     }
@@ -61,7 +65,7 @@ class CatalogueTest {
     @Test
     void missingFormsFallbackAndAdditiveExtensionDoesNotReplaceSlab() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
-        IBlockState slab = piece(15);
+        BlockState slab = piece(15);
         TerrainMaterial terrainMaterial = material("stone", Blocks.STONE.getDefaultState(), slab, null, null);
 
         catalogue.register(terrainMaterial);
@@ -72,8 +76,8 @@ class CatalogueTest {
             }
         }
 
-        IBlockState[] steps = new IBlockState[4];
-        IBlockState[] corners = new IBlockState[4];
+        BlockState[] steps = new BlockState[4];
+        BlockState[] corners = new BlockState[4];
 
         for (int directionIndex = 0; directionIndex < 4; directionIndex++) {
             steps[directionIndex] = piece(Footprint.EDGES[directionIndex]);
@@ -92,7 +96,7 @@ class CatalogueTest {
         steps[0] = slab;
         assertNotSame(slab, extended.step(0));
         assertSame(slab, extended.slab);
-        assertThrows(IllegalArgumentException.class, () -> catalogue.addShapes(terrainMaterial.id, new IBlockState[4], null));
+        assertThrows(IllegalArgumentException.class, () -> catalogue.addShapes(terrainMaterial.id, new BlockState[4], null));
         catalogue.freeze();
         assertThrows(IllegalStateException.class, () -> catalogue.addBiomeRule((id, b) -> true));
     }
@@ -100,7 +104,7 @@ class CatalogueTest {
     @Test
     void conflictsAreAtomicAndInvalidGeometryIsRejected() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
-        IBlockState slab = piece(15);
+        BlockState slab = piece(15);
         TerrainMaterial terrainMaterial = material("stone", Blocks.STONE.getDefaultState(), slab, null, null);
 
         catalogue.register(terrainMaterial);
@@ -127,8 +131,70 @@ class CatalogueTest {
         catalogue.register(terrainMaterial);
         catalogue.addBiomeRule((id, biome) -> biome == Biomes.PLAINS);
         catalogue.addAreaProtection((dimension, pos, biome) -> pos.getX() < 0);
-        assertTrue(catalogue.allows(terrainMaterial, Biomes.PLAINS, 0, BlockPos.ORIGIN));
-        assertFalse(catalogue.allows(terrainMaterial, Biomes.DESERT, 0, BlockPos.ORIGIN));
+        assertTrue(catalogue.allows(terrainMaterial, Biomes.PLAINS, 0, BlockPos.ZERO));
+        assertFalse(catalogue.allows(terrainMaterial, Biomes.DESERT, 0, BlockPos.ZERO));
         assertFalse(catalogue.allows(terrainMaterial, Biomes.PLAINS, 0, new BlockPos(-1, 1, 1)));
     }
+    @Test
+    void wetOutputsAndHollowGeometryAreRejected() {
+        MaterialCatalogue catalogue = new MaterialCatalogue();
+        zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock sand =
+                new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false);
+        BlockState wet = sand.getDefaultState().with(
+                zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.WATERLOGGED, true);
+        assertThrows(IllegalArgumentException.class,
+                () -> catalogue.register(material("wet", Blocks.STONE.getDefaultState(), wet, null, null)));
+        Block hollow = new Block(Block.Properties.create(Material.ROCK)) {
+            @Override
+            public net.minecraft.util.math.shapes.VoxelShape getCollisionShape(BlockState state, IBlockReader world,
+                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
+                return net.minecraft.util.math.shapes.VoxelShapes.combineAndSimplify(
+                        net.minecraft.util.math.shapes.VoxelShapes.create(new AxisAlignedBB(0, 0, 0, 1, .5, 1)),
+                        net.minecraft.util.math.shapes.VoxelShapes.create(new AxisAlignedBB(.25, .125, .25, .75, .375, .75)),
+                        net.minecraft.util.math.shapes.IBooleanFunction.ONLY_FIRST);
+            }
+        };
+        assertThrows(IllegalArgumentException.class,
+                () -> catalogue.register(material("hollow", Blocks.DIRT.getDefaultState(), hollow.getDefaultState(), null, null)));
+        assertEquals(0, catalogue.size());
+    }
+
+    @Test
+    void snowyGrassKeepsItsLogicalMaterialButWetPiecesDoNotAliasDryOnes() {
+        MaterialCatalogue catalogue = new MaterialCatalogue();
+        BlockState dry = new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false).getDefaultState();
+        TerrainMaterial grass = material("grass", Blocks.GRASS_BLOCK.getDefaultState(), dry, null, null);
+        catalogue.register(grass);
+        assertSame(grass, catalogue.source(Blocks.GRASS_BLOCK.getDefaultState().with(SnowyDirtBlock.SNOWY, true)));
+        assertNull(catalogue.piece(dry.with(zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.WATERLOGGED, true)));
+    }
+
+    @Test
+    void parallelSetupContributionsRetainAllMappings() throws Exception {
+        MaterialCatalogue catalogue = new MaterialCatalogue();
+        Block[] sources = { Blocks.STONE, Blocks.DIRT, Blocks.SANDSTONE, Blocks.RED_SANDSTONE,
+                Blocks.GRANITE, Blocks.DIORITE, Blocks.ANDESITE, Blocks.OBSIDIAN };
+        java.util.concurrent.ExecutorService workers = java.util.concurrent.Executors.newFixedThreadPool(4);
+        try {
+            java.util.List<java.util.concurrent.Future<?>> results = new java.util.ArrayList<>();
+            for (int index = 0; index < sources.length; index++) {
+                final int materialIndex = index;
+                results.add(workers.submit(() -> catalogue.register(material("parallel_" + materialIndex,
+                        sources[materialIndex].getDefaultState(), piece(15), null, null))));
+            }
+            for (java.util.concurrent.Future<?> result : results) {
+                result.get();
+            }
+        } finally {
+            workers.shutdownNow();
+        }
+        catalogue.freeze();
+        assertEquals(sources.length, catalogue.size());
+        for (Block source : sources) {
+            assertNotNull(catalogue.source(source.getDefaultState()));
+        }
+        assertThrows(IllegalStateException.class,
+                () -> catalogue.register(material("late", Blocks.COBBLESTONE.getDefaultState(), piece(15), null, null)));
+    }
+
 }

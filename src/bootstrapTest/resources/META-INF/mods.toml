@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[28,)"
+license="LGPL-2.1-only"
+[[mods]]
+modId="terrainbootstrap"
+version="1.0"
+displayName="Terrain Smoother Native Checks"
+description="Build-only native lifecycle checks."
+[[dependencies.terrainbootstrap]]
+modId="skysterrainsmoother"
+mandatory=true
+versionRange="[0.1.0.114041,)"
+ordering="AFTER"
+side="BOTH"

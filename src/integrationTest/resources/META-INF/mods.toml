@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[28,)"
+license="LGPL-2.1-only"
+[[mods]]
+modId="terrainsmootherprobe"
+version="1.0"
+displayName="Terrain Smoother Runtime Checks"
+description="Build-only gameplay and upgrade checks."
+[[dependencies.terrainsmootherprobe]]
+modId="skysterrainsmoother"
+mandatory=true
+versionRange="[0.1.0.114041,)"
+ordering="AFTER"
+side="BOTH"

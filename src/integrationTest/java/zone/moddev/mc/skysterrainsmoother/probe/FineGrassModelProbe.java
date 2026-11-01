@@ -1,10 +1,14 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.BlockGrass;
-import net.minecraft.block.state.IBlockState;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import net.minecraft.util.Direction;
+import net.minecraft.block.GrassBlock;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.client.renderer.model.IBakedModel;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.content.Pieces;
 
@@ -15,13 +19,15 @@ final class FineGrassModelProbe {
         for (Shape shape : new Shape[] { Shape.HORIZONTAL_STEP, Shape.CORNER }) {
             for (int orientation = 4; orientation < 8; orientation++) {
                 for (boolean snowy : new boolean[] { false, true }) {
-                    IBlockState state = Pieces.state("minecraft:grass", shape, orientation)
-                            .withProperty(BlockGrass.SNOWY, snowy);
+                    BlockState state = Pieces.state("minecraft:grass", shape, orientation)
+                            .with(GrassBlock.SNOWY, snowy);
                     IBakedModel model = minecraft.getBlockRendererDispatcher().getModelForState(state);
                     int sides = 0;
-                    for (BakedQuad quad : model.getQuads(state, null, 0)) {
-                        if (quad.getFace().getAxis() == net.minecraft.util.EnumFacing.Axis.Y
-                                || !quad.getSprite().getIconName().contains("grass_side")) {
+                    java.util.Set<Direction> sideDirections = java.util.EnumSet.noneOf(Direction.class);
+                    String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
+                    for (BakedQuad quad : allFaces(model, state)) {
+                        if (quad.getFace().getAxis() == net.minecraft.util.Direction.Axis.Y
+                                || !quad.getSprite().getName().toString().equals(sideTexture)) {
                             continue;
                         }
                         int stride = quad.getFormat().getIntegerSize();
@@ -38,15 +44,28 @@ final class FineGrassModelProbe {
                         }
                         RuntimeProbe.require(Math.abs(firstRow) < .1 && Math.abs(lastRow - 8) < .1,
                                 "baked grass/snow fringe starts at the piece's top: " + state);
-                        RuntimeProbe.require(!snowy || !quad.hasTintIndex(), "snow edges are not biome tinted");
+                        RuntimeProbe.require(!quad.hasTintIndex(), "The base grass and snow sides are not tinted");
+                        sideDirections.add(quad.getFace());
                         sides++;
                     }
-                    RuntimeProbe.require(sides > 0, "grass piece has real side faces");
+                    int expectedFaces = shape == Shape.HORIZONTAL_STEP ? 6 : 4;
+                    RuntimeProbe.require(sides == expectedFaces && sideDirections.size() == 4,
+                            "Grass piece has every exposed side of its quadrant model: " + state
+                                    + " faces=" + sides + " directions=" + sideDirections);
                     checked++;
                 }
             }
         }
         System.out.println("TERRAIN_FINE_GRASS_MODELS_PASS states=" + checked);
+    }
+
+    private static List<BakedQuad> allFaces(IBakedModel model, BlockState state) {
+        // Boundary faces live in direction-specific lists; inset faces are unculled.
+        List<BakedQuad> faces = new ArrayList<>(model.getQuads(state, null, new Random(0)));
+        for (Direction direction : Direction.values()) {
+            faces.addAll(model.getQuads(state, direction, new Random(0)));
+        }
+        return faces;
     }
 
     private FineGrassModelProbe() {

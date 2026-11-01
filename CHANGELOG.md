@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0.114041
+
+- Added Minecraft 1.14.4 support, including cave floors and all three smoothing levels.
+- Kept existing sand slabs, colours, orientations and custom item data when upgrading from 1.12.2.
+- Moved settings to TOML while preserving choices from the old CFG file.
+- Added the native Mods Config screen and kept changes pending until Minecraft restarts.
+- Kept Mineralogy's slabs and Building Pieces' steps and corners working together.
+
 ## 0.1.0.112021
 
 - Added ingredient-based recipe unlocks, including slab recombination.

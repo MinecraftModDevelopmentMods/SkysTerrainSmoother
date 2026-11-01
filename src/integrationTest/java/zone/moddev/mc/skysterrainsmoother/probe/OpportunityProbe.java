@@ -9,12 +9,12 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockSnow;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.SnowBlock;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.chunk.Chunk;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -23,33 +23,40 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
 /** Snowy terraces and mixed uphill/downhill edges that still have room for a transition. */
 final class OpportunityProbe {
-    static int run(WorldServer world) throws IOException {
+    static int run(ServerWorld world) throws IOException {
         BlockPos floor = new BlockPos(3720, 210, 3720);
-        Chunk owner = world.getChunk(floor);
+        Chunk owner = world.getChunkAt(floor);
         int checks = 0;
 
-        for (IBlockState source : new IBlockState[] { Blocks.STONE.getDefaultState(),
-                Blocks.GRASS.getDefaultState(), Blocks.SAND.getDefaultState() }) {
-            if (source.getBlock() == Blocks.GRASS && !GrassSlabsApi.grassGenerationAllowed()) {
+        for (BlockState source : new BlockState[] { Blocks.STONE.getDefaultState(),
+                Blocks.GRASS_BLOCK.getDefaultState(), Blocks.SAND.getDefaultState() }) {
+            if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }
             TerrainMaterial material = MaterialCatalogue.instance().source(source);
             for (int level = 1; level <= 3; level++) {
-                for (EnumFacing uphill : EnumFacing.HORIZONTALS) {
+                for (Direction uphill : Direction.Plane.HORIZONTAL) {
                     for (int cover = 1; cover <= 3; cover++) {
                         prepare(world, floor, source);
                         world.setBlockState(floor.offset(uphill).up(), source, 2);
                         if ((cover & 1) != 0) {
-                            world.setBlockState(floor.up(), Blocks.SNOW_LAYER.getDefaultState(), 2);
+                            world.setBlockState(floor.up(), Blocks.SNOW.getDefaultState(), 2);
                         }
                         if ((cover & 2) != 0) {
-                            world.setBlockState(floor.offset(uphill).up(2), Blocks.SNOW_LAYER.getDefaultState(), 2);
+                            world.setBlockState(floor.offset(uphill).up(2), Blocks.SNOW.getDefaultState(), 2);
                         }
-                        SkysTerrainSmoother.engine.smooth(world, owner, level);
+                        RuntimeProbe.require(MaterialCatalogue.instance().source(world.getBlockState(floor)) == material,
+                                "Resetting the fixture restores its intended source material");
+                        BlockState beforeSupport = world.getBlockState(floor);
+                        BlockState beforeTarget = world.getBlockState(floor.up());
+                        int placed = SkysTerrainSmoother.engine.smooth(world, owner, level);
                         RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(floor.up())) == material,
-                                "thin snow must not hide a valid transition: level " + level + " / " + uphill);
+                                "thin snow must not hide a valid transition: level " + level + " / " + uphill
+                                        + " / cover=" + cover + " / source=" + source + " / before=" + beforeSupport
+                                        + " / target=" + beforeTarget + " / after=" + world.getBlockState(floor)
+                                        + " / cap=" + world.getBlockState(floor.up()) + " / placed=" + placed);
                         RuntimeProbe.require((cover & 2) == 0
-                                || world.getBlockState(floor.offset(uphill).up(2)).getBlock() == Blocks.SNOW_LAYER,
+                                || world.getBlockState(floor.offset(uphill).up(2)).getBlock() == Blocks.SNOW,
                                 "snow outside the chosen placement is not cleared");
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                                 "snow replacement remains idempotent");
@@ -60,7 +67,7 @@ final class OpportunityProbe {
                     for (int layers = 2; layers <= 8; layers++) {
                         prepare(world, floor, source);
                         world.setBlockState(floor.offset(uphill).up(), source, 2);
-                        IBlockState snow = Blocks.SNOW_LAYER.getDefaultState().withProperty(BlockSnow.LAYERS, layers);
+                        BlockState snow = Blocks.SNOW.getDefaultState().with(SnowBlock.LAYERS, layers);
                         world.setBlockState(floor.up(), snow, 2);
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         RuntimeProbe.require(world.getBlockState(floor.up()).equals(snow),
@@ -70,18 +77,18 @@ final class OpportunityProbe {
 
                     for (int lowerEdges = 1; lowerEdges <= 2; lowerEdges++) {
                         prepare(world, floor, source);
-                        EnumFacing secondRise = uphill.rotateY();
+                        Direction secondRise = uphill.rotateY();
                         world.setBlockState(floor.offset(uphill).up(), source, 2);
                         world.setBlockState(floor.offset(secondRise).up(), source, 2);
-                        world.setBlockToAir(floor.offset(uphill.getOpposite()));
+                        ProbeWorld.clear(world, floor.offset(uphill.getOpposite()));
                         if (lowerEdges == 2) {
-                            world.setBlockToAir(floor.offset(secondRise.getOpposite()));
+                            ProbeWorld.clear(world, floor.offset(secondRise.getOpposite()));
                         }
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         // Terrain API directions are N/E/S/W, unlike Minecraft's horizontal index.
                         int stepDirection = direction(uphill);
                         int cornerDirection = corner(uphill, secondRise);
-                        IBlockState expected = lowerEdges == 1 && level >= 2 ? material.step(stepDirection)
+                        BlockState expected = lowerEdges == 1 && level >= 2 ? material.step(stepDirection)
                                 : lowerEdges == 2 && level == 3 ? material.corner(cornerDirection) : null;
                         RuntimeProbe.require(world.getBlockState(floor.up())
                                 .equals(expected == null ? Blocks.AIR.getDefaultState() : expected),
@@ -100,7 +107,7 @@ final class OpportunityProbe {
     }
 
     /** A small block-only sample from the reported mountain; no player or world metadata is included. */
-    private static int snowyTerrace(WorldServer world) throws IOException {
+    private static int snowyTerrace(ServerWorld world) throws IOException {
         JsonObject fixture;
         InputStream input = OpportunityProbe.class.getResourceAsStream("/fixtures/snowy_stone_terrace.json");
         RuntimeProbe.require(input != null, "the mountain regression fixture is packaged with the probe");
@@ -109,16 +116,17 @@ final class OpportunityProbe {
         }
 
         JsonArray savedPalette = fixture.getAsJsonArray("palette");
-        IBlockState[] palette = new IBlockState[savedPalette.size()];
+        BlockState[] palette = new BlockState[savedPalette.size()];
         for (int index = 0; index < palette.length; index++) {
             JsonObject entry = savedPalette.get(index).getAsJsonObject();
-            Block block = Block.getBlockFromName(entry.get("block").getAsString());
+            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.util.ResourceLocation(entry.get("block").getAsString()));
             RuntimeProbe.require(block != null, "unknown block in the mountain regression fixture");
-            palette[index] = block.getStateFromMeta(entry.get("meta").getAsInt());
+            RuntimeProbe.require(entry.get("meta").getAsInt() == 0, "Only default native states occur in this terrace fixture");
+            palette[index] = block.getDefaultState();
         }
 
         BlockPos origin = new BlockPos(3768, 210, 3768);
-        Chunk owner = world.getChunk(origin);
+        Chunk owner = world.getChunkAt(origin);
         int radius = fixture.get("radius").getAsInt();
         int minimumHeight = fixture.get("min_height").getAsInt();
         int maximumHeight = fixture.get("max_height").getAsInt();
@@ -147,21 +155,21 @@ final class OpportunityProbe {
         return checks;
     }
 
-    private static int direction(EnumFacing facing) {
-        return facing == EnumFacing.NORTH ? 0 : facing == EnumFacing.EAST ? 1
-                : facing == EnumFacing.SOUTH ? 2 : 3;
+    private static int direction(Direction facing) {
+        return facing == Direction.NORTH ? 0 : facing == Direction.EAST ? 1
+                : facing == Direction.SOUTH ? 2 : 3;
     }
 
-    private static int corner(EnumFacing first, EnumFacing second) {
+    private static int corner(Direction first, Direction second) {
         int firstEdge = zone.moddev.mc.skysterrainsmoother.internal.Footprint.EDGES[direction(first)];
         int secondEdge = zone.moddev.mc.skysterrainsmoother.internal.Footprint.EDGES[direction(second)];
         return Integer.numberOfTrailingZeros(firstEdge & secondEdge);
     }
 
-    private static void prepare(WorldServer world, BlockPos floor, IBlockState source) {
+    private static void prepare(ServerWorld world, BlockPos floor, BlockState source) {
         for (int offsetZ = -3; offsetZ <= 3; offsetZ++) {
             for (int offsetX = -3; offsetX <= 3; offsetX++) {
-                for (int height = -2; height <= 6; height++) {
+                for (int height = 6; height >= -2; height--) {
                     world.setBlockState(floor.add(offsetX, height, offsetZ),
                             height <= 0 ? source : Blocks.AIR.getDefaultState(), 2);
                 }

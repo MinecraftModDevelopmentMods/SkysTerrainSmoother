@@ -1,80 +1,61 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import net.minecraft.block.BlockSlab;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockSand;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.SoundEvents;
-import net.minecraft.item.*;
-import net.minecraft.util.*;
-import net.minecraft.util.math.*;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.state.properties.SlabType;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-/** Horizontal placement only. Matching halves normalize to the original sand. */
-public final class SandSlabItem extends ItemBlock {
-    public SandSlabItem(SandSlabBlock block) {
-        super(block);
-        setHasSubtypes(true);
-        setMaxDamage(0);
+/** Normal block-item placement, with matching horizontal halves joined before placement. */
+public final class SandSlabItem extends BlockItem {
+    private final SandSlabBlock slab;
+
+    public SandSlabItem(SandSlabBlock slab) {
+        super(slab, new Item.Properties().group(ItemGroup.BUILDING_BLOCKS));
+        this.slab = slab;
     }
 
     @Override
-    public int getMetadata(int damage) {
-        return damage & 2;
-    }
+    public ActionResultType onItemUse(ItemUseContext context) {
+        World world = context.getWorld();
+        BlockPos clicked = context.getPos();
+        BlockState existing = world.getBlockState(clicked);
+        Direction face = context.getFace();
+        boolean exposed = existing.getBlock() == slab
+                && (face == Direction.UP && existing.get(SandSlabBlock.TYPE) == SlabType.BOTTOM
+                        || face == Direction.DOWN && existing.get(SandSlabBlock.TYPE) == SlabType.TOP);
+        BlockPos target = exposed ? clicked : clicked.offset(face);
+        existing = world.getBlockState(target);
 
-    @Override
-    public String getTranslationKey(ItemStack stack) {
-        return "tile.skysterrainsmoother." + ((stack.getItemDamage() & 2) == 0 ? "sand_slab" : "red_sand_slab");
-    }
-
-    @Override
-    public boolean canPlaceBlockOnSide(World world, BlockPos pos, EnumFacing side, EntityPlayer player,
-            ItemStack stack) {
-        if (world.getBlockState(pos).getBlock() == block || world.getBlockState(pos.offset(side)).getBlock() == block) {
-            return player.canPlayerEdit(pos, side, stack);
+        if (existing.getBlock() != slab) {
+            return super.onItemUse(context);
         }
 
-        return super.canPlaceBlockOnSide(world, pos, side, player, stack);
-    }
-
-    @Override
-    public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos pos, EnumHand hand, EnumFacing face,
-            float hitX, float hitY, float hitZ) {
-        ItemStack stack = player.getHeldItem(hand);
-        IBlockState state = world.getBlockState(pos);
-        boolean exposed = state.getBlock() == block
-                && (face == EnumFacing.UP && state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.BOTTOM
-                        || face == EnumFacing.DOWN && state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.TOP);
-        BlockPos target = exposed ? pos : pos.offset(face);
-
-        state = world.getBlockState(target);
-
-        if (state.getBlock() == block
-                && ((SandSlabBlock) block).damageDropped(state) == getMetadata(stack.getItemDamage())) {
-            if (stack.getCount() <= 0 || !player.canPlayerEdit(target, face, stack)
-                    || !world.checkNoEntityCollision(Block.FULL_BLOCK_AABB.offset(target))) {
-                return EnumActionResult.FAIL;
-            }
-
-            IBlockState full = Blocks.SAND.getDefaultState().withProperty(BlockSand.VARIANT,
-                    state.getValue(BlockSand.VARIANT));
-
-            if (!world.setBlockState(target, full, 11)) {
-                return EnumActionResult.FAIL;
-            }
-
-            world.playSound(player, target, SoundEvents.BLOCK_SAND_PLACE, SoundCategory.BLOCKS, 1, .8f);
-
-            if (!player.capabilities.isCreativeMode) {
-                stack.shrink(1);
-            }
-
-            return EnumActionResult.SUCCESS;
+        PlayerEntity player = context.getPlayer();
+        ItemStack held = context.getItem();
+        BlockState full = slab.fullState();
+        if (player == null || held.isEmpty() || !player.canPlayerEdit(target, face, held)
+                || !world.checkNoEntityCollision(null, full.getCollisionShape(world, target)
+                        .withOffset(target.getX(), target.getY(), target.getZ()))) {
+            return ActionResultType.FAIL;
+        }
+        if (!world.setBlockState(target, full, 11)) {
+            return ActionResultType.FAIL;
         }
 
-        return super.onItemUse(player, world, pos, hand, face, hitX, hitY, hitZ);
+        world.playSound(player, target, full.getSoundType(world, target, player).getPlaceSound(),
+                SoundCategory.BLOCKS, 1, .8f);
+        if (!player.abilities.isCreativeMode) {
+            held.shrink(1);
+        }
+        return ActionResultType.SUCCESS;
     }
 }

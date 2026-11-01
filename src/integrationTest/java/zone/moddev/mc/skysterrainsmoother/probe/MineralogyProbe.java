@@ -1,11 +1,11 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.state.IProperty;
+import net.minecraft.block.BlockState;
+import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.ModList;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
 import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
@@ -16,9 +16,9 @@ public final class MineralogyProbe {
         if (!Boolean.getBoolean("skysterrainsmoother.requireMineralogy")) {
             return 0;
         }
-        require(Loader.isModLoaded("mineralogy") && Loader.isModLoaded("orespawn"),
+        require(ModList.get().isLoaded("mineralogy") && ModList.get().isLoaded("orespawn"),
                 "the optional profile loaded Mineralogy and its OreSpawn dependency");
-        require(!Loader.isModLoaded("skysbuildingpiecesmineralogy"), "no separate piece add-on is installed");
+        require(!ModList.get().isLoaded("skysbuildingpiecesmineralogy"), "no separate piece add-on is installed");
         require(SkysTerrainSmoother.level == 3, "a fresh configuration uses level 3");
         int count = 0;
         for (TerrainMaterial material : MaterialCatalogue.instance().materials()) {
@@ -26,11 +26,11 @@ public final class MineralogyProbe {
                 continue;
             }
             ResourceLocation slabId = new ResourceLocation("mineralogy", material.id.getPath() + "_slab");
-            require(Block.REGISTRY.getObject(slabId) == material.slab.getBlock(), "native slab identity");
+            require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(slabId) == material.slab.getBlock(), "native slab identity");
             boolean bottom = false;
-            for (IProperty<?> property : material.slab.getPropertyKeys()) {
+            for (IProperty<?> property : material.slab.getProperties()) {
                 if (property.getName().equals("facing")) {
-                    bottom = material.slab.getValue(property) == EnumFacing.UP;
+                    bottom = material.slab.get(property) == Direction.UP;
                 }
             }
             require(bottom, "Mineralogy FACING=UP is the bottom horizontal slab");

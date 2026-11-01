@@ -2,13 +2,14 @@
 
 Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
 Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
-Minecraft 1.12.2 with ForgeGradle 7.0.34.
+Minecraft 1.14.4 with ForgeGradle 7.0.34.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
-`gradle/content-dependencies.properties` with their `jar` tasks first.
+`gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
+and main/development jar checksums.
 
-The source lock records released Grass Slabs 1.1.2.112021 and Building Pieces
-0.3.8.112021.
+The source lock records locally qualified Grass Slabs 1.2.0.114041 and Building Pieces
+0.3.8.114041.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -30,7 +31,9 @@ override is saved only when explicitly supplied; normal generation clears any
 older override. Refresh the Gradle project in Eclipse after generating the runs.
 
 Use `genEclipseRuns eclipse` to prepare the Java 8 IDE setup. Ordinary launches
-exclude unit tests and build-only runtime probes. See [the release guide](RELEASING.md)
+use the two pinned content jars and exclude unit tests and build-only runtime probes.
+Generation prepares those jars in the development mods folder without clearing
+its configuration or worlds. See [the release guide](RELEASING.md)
 for publication.
 
 ## Testing with Mineralogy
@@ -45,13 +48,14 @@ its OreSpawn dependency.
 Ordinary client and server profiles keep their existing mod sets and worlds.
 Runtime probes and unit tests are excluded from these manual profiles.
 
-The expected release jars and their checksums are listed in
+The expected main and mapped development jars and their checksums are listed in
 `gradle/mineralogy-runtime.properties`. The default paths use sibling checkouts;
 for a different layout, pass `-PmineralogyRuntimeJar=<jar>` and
 `-PorespawnRuntimeJar=<jar>` when generating the profiles. Missing optional jars
 do not prevent an ordinary build; `prepareMineralogyDevelopmentRun` explains
 what is needed before the combined profile can run. The jars are copied, not
-modified. Their access rules are translated for the mapped development game.
+modified. Development runs use the exact mapped jars; packaged games use the unchanged
+main jars.
 
 If a sibling build has moved on, keep the qualified jars under
 `.gradle/qualification-dependencies/` with their original filenames.
@@ -72,8 +76,15 @@ resources there. Neither task opens the manual profile's saved worlds.
 The build generates unlock advancements from `src/main/recipe-book/recipes.json`.
 The runtime checks compare those entries with the registered recipes and exercise
 inventory discovery, crafting-table discovery and recipe-book persistence.
-Optional catalogue entries load only when their recipe exists.
+All four sand recipes retain their original IDs.
 
-Recipe unlocks have no shared advancement parent. Minecraft 1.12 walks that
-visibility tree recursively when loading completed progress, which can overflow
-with a large catalogue. The inventory and crafting unlock criteria are unchanged.
+Recipe unlocks have no shared advancement parent. This avoids a long recursive
+visibility chain when loading completed progress. Inventory and crafting-table
+discovery keep the same recipe-book behaviour.
+
+
+`integrationForwardTest` upgrades a sealed 1.12.2 save and reloads the result.
+It checks placed pieces, chest stacks, dropped items, an item frame and the saved
+player's main, ender and nested inventories. The source archive stays unchanged.
+Archive a previous disposable run before starting that task again; its logs and
+world are kept for inspection.

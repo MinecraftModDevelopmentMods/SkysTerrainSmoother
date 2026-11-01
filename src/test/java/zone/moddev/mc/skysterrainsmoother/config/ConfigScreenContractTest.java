@@ -1,119 +1,125 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
-import java.io.File;
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.relauncher.FMLInjectionData;
+import java.nio.file.Paths;
+import net.minecraftforge.common.ForgeConfigSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigScreenContractTest {
     @TempDir
-    Path temporaryDirectory;
+    Path directory;
+    private ForgeConfigSpec spec;
 
     @BeforeEach
-    void provideMinecraftHome() throws Exception {
-        java.lang.reflect.Field home = FMLInjectionData.class.getDeclaredField("minecraftHome");
-        home.setAccessible(true);
-        home.set(null, temporaryDirectory.toFile());
+    void loadDefaults() throws Exception {
+        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("SPEC");
+        field.setAccessible(true);
+        spec = (ForgeConfigSpec) field.get(null);
+        field = TerrainSmootherConfig.class.getDeclaredField("active");
+        field.setAccessible(true);
+        field.set(null, null);
+        CommentedFileConfig config = CommentedFileConfig.builder(directory.resolve("settings.toml")).sync().build();
+        config.load();
+        spec.setConfig(config);
+        field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
+        field.setAccessible(true);
+        field.set(null, config);
     }
 
     @Test
-    void configButtonHasAClientFactory() {
-        assertEquals("zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherGuiFactory",
-                SkysTerrainSmoother.class.getAnnotation(Mod.class).guiFactory());
+    void defaultsAndRestartOnlyChoicesAreRetained() {
+        assertTrue(TerrainSmootherConfig.enabled());
+        assertTrue(TerrainSmootherConfig.mineralogy());
+        assertEquals(3, TerrainSmootherConfig.level());
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        TerrainSmootherConfig.saveForNextStart(false, 1, false);
+        assertTrue(TerrainSmootherConfig.enabled());
+        assertTrue(TerrainSmootherConfig.mineralogy());
+        assertEquals(3, TerrainSmootherConfig.level());
+        assertFalse(TerrainSmootherConfig.configuredEnabled());
+        assertFalse(TerrainSmootherConfig.configuredMineralogy());
+        assertEquals(1, TerrainSmootherConfig.configuredLevel());
+        assertThrows(IllegalArgumentException.class, () -> TerrainSmootherConfig.saveForNextStart(true, 0, true));
+        assertThrows(IllegalArgumentException.class, () -> TerrainSmootherConfig.saveForNextStart(true, 4, true));
     }
 
     @Test
-    void newConfigurationsStartAtLevelThree() {
-        TerrainSmootherConfig.load(temporaryDirectory.resolve("new-world.cfg").toFile());
-        assertEquals(3, SkysTerrainSmoother.level);
-        assertEquals("3", TerrainSmootherConfig.configuration()
-                .getCategory("worldgen").get("smoothingLevel").getDefault());
+    void savingChoicesPreservesOtherSettingsAndComments() throws Exception {
+        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
+        field.setAccessible(true);
+        com.electronwill.nightconfig.core.CommentedConfig values =
+                (com.electronwill.nightconfig.core.CommentedConfig) field.get(null);
+        values.set("worldgen.extra", "kept");
+        values.setComment("worldgen.extra", "A pack setting");
+        values.set("other.extra", 42);
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        for (int level = 1; level <= 3; level++) {
+            TerrainSmootherConfig.saveForNextStart(false, level, false);
+            assertEquals(level, TerrainSmootherConfig.configuredLevel());
+            assertFalse(TerrainSmootherConfig.configuredEnabled());
+            assertFalse(TerrainSmootherConfig.configuredMineralogy());
+            assertEquals("kept", values.get("worldgen.extra"));
+            assertEquals("A pack setting", values.getComment("worldgen.extra"));
+            assertEquals(42, (int) values.get("other.extra"));
+            assertEquals(3, TerrainSmootherConfig.level());
+        }
     }
 
     @Test
-    void loadingKeepsTheHelpTextOnEveryProperty() {
-        TerrainSmootherConfig.load(temporaryDirectory.resolve("help.cfg").toFile());
-        Configuration pending = TerrainSmootherConfig.configuration();
-        assertFalse(pending.getCategory("worldgen").get("enabled").getComment().trim().isEmpty());
-        assertFalse(pending.getCategory("worldgen").get("smoothingLevel").getComment().trim().isEmpty());
-        assertFalse(pending.getCategory("compat").get("enableMineralogy").getComment().trim().isEmpty());
+    void legacySettingsMigrateOnceWithoutChangingTheOriginal() throws Exception {
+        Path original = directory.resolve("skysterrainsmoother.cfg");
+        byte[] bytes = "worldgen {\n B:enabled=false\n I:smoothingLevel=2\n}\ncompat {\n B:enableMineralogy=false\n}\n".getBytes(StandardCharsets.UTF_8);
+        Files.write(original, bytes);
+        assertTrue(TerrainSmootherConfig.migrateLegacyConfig(directory));
+        String migrated = new String(Files.readAllBytes(directory.resolve(TerrainSmootherConfig.FILE_NAME)), StandardCharsets.UTF_8);
+        assertTrue(migrated.contains("enabled=false"));
+        assertTrue(migrated.contains("smoothingLevel=2"));
+        assertTrue(migrated.contains("enableMineralogy=false"));
+        assertArrayEquals(bytes, Files.readAllBytes(original));
+        assertFalse(TerrainSmootherConfig.migrateLegacyConfig(directory));
+        assertEquals(migrated, new String(Files.readAllBytes(directory.resolve(TerrainSmootherConfig.FILE_NAME)), StandardCharsets.UTF_8));
     }
 
     @Test
-    void allLanguagesExplainEachConfigEntry() throws Exception {
-        try (java.util.stream.Stream<Path> languages = java.nio.file.Files.list(
-                java.nio.file.Paths.get("src/main/resources/assets/skysterrainsmoother/lang"))) {
+    void malformedOrDuplicateSettingsStopWithoutWritingNewConfiguration() throws Exception {
+        for (String contents : new String[] { "B:enabled=perhaps", "B:enabled=true\nB:enabled=false", "I:smoothingLevel=unknown" }) {
+            Files.write(directory.resolve("skysterrainsmoother.cfg"), contents.getBytes(StandardCharsets.UTF_8));
+            assertThrows(IllegalStateException.class, () -> TerrainSmootherConfig.migrateLegacyConfig(directory));
+            assertFalse(Files.exists(directory.resolve(TerrainSmootherConfig.FILE_NAME)));
+        }
+    }
+
+    @Test
+    void existingTomlTakesPriorityAndLegacyBoundsAreClamped() throws Exception {
+        Path current = directory.resolve(TerrainSmootherConfig.FILE_NAME);
+        byte[] original = "[worldgen]\nenabled=true\n".getBytes(StandardCharsets.UTF_8);
+        Files.write(current, original);
+        Files.write(directory.resolve("skysterrainsmoother.cfg"), "B:enabled=false".getBytes(StandardCharsets.UTF_8));
+        assertFalse(TerrainSmootherConfig.migrateLegacyConfig(directory));
+        assertArrayEquals(original, Files.readAllBytes(current));
+        Files.delete(current);
+        Files.write(directory.resolve("skysterrainsmoother.cfg"), "I:smoothingLevel=19".getBytes(StandardCharsets.UTF_8));
+        assertTrue(TerrainSmootherConfig.migrateLegacyConfig(directory));
+        assertTrue(new String(Files.readAllBytes(current), StandardCharsets.UTF_8).contains("smoothingLevel=3"));
+    }
+
+    @Test
+    void everyLanguageExplainsTheThreeChoices() throws Exception {
+        try (java.util.stream.Stream<Path> languages = Files.list(Paths.get("src/main/resources/assets/skysterrainsmoother/lang"))) {
             for (Path language : languages.collect(java.util.stream.Collectors.toList())) {
-                java.util.Properties translations = new java.util.Properties();
-                try (java.io.Reader reader = java.nio.file.Files.newBufferedReader(language,
-                        java.nio.charset.StandardCharsets.UTF_8)) {
-                    translations.load(reader);
+                JsonObject values = new JsonParser().parse(new String(Files.readAllBytes(language), StandardCharsets.UTF_8)).getAsJsonObject();
+                for (String key : new String[] { "enabled", "smoothingLevel", "enableMineralogy" }) {
+                    assertFalse(values.get("config.skysterrainsmoother." + key + ".tooltip").getAsString().trim().isEmpty(), language.toString());
                 }
-                assertFalse(translations.getProperty("config.skysterrainsmoother.enabled.tooltip", "").trim().isEmpty(),
-                        language + " needs help for enabled");
-                assertFalse(translations.getProperty("config.skysterrainsmoother.smoothingLevel.tooltip", "").trim().isEmpty(),
-                        language + " needs help for smoothingLevel");
-                assertFalse(translations.getProperty("config.skysterrainsmoother.enableMineralogy.tooltip", "").trim().isEmpty(),
-                        language + " needs help for enableMineralogy");
             }
         }
     }
-
-    @Test
-    void savingChoicesDoesNotChangeTheRunningSession() {
-        File file = temporaryDirectory.resolve("settings.cfg").toFile();
-        Configuration existing = new Configuration(file);
-        existing.load();
-        existing.get("worldgen", "smoothingLevel", 1).set(1);
-        existing.save();
-        TerrainSmootherConfig.load(file);
-        Configuration pending = TerrainSmootherConfig.configuration();
-
-        assertTrue(pending.getCategory("worldgen").requiresMcRestart());
-        assertTrue(pending.getCategory("compat").requiresMcRestart());
-        pending.get("worldgen", "enabled", true).set(false);
-        pending.get("worldgen", "smoothingLevel", 1).set(3);
-        pending.get("compat", "enableMineralogy", true).set(false);
-        TerrainSmootherConfig.saveChanges();
-
-        // Saving the GUI must not re-arbitrate generation or turn on migration mid-world.
-        assertTrue(SkysTerrainSmoother.enabled);
-        assertEquals(1, SkysTerrainSmoother.level);
-        assertTrue(SkysTerrainSmoother.mineralogy);
-        Configuration written = new Configuration(file);
-        written.load();
-        assertFalse(written.get("worldgen", "enabled", true).getBoolean());
-        assertEquals(3, written.get("worldgen", "smoothingLevel", 1).getInt());
-        assertFalse(written.get("compat", "enableMineralogy", true).getBoolean());
-
-        TerrainSmootherConfig.load(file);
-        assertFalse(SkysTerrainSmoother.enabled);
-        assertEquals(3, SkysTerrainSmoother.level);
-        assertFalse(SkysTerrainSmoother.mineralogy);
-    }
-
-    @Test
-    void allThreeLevelsAndTheExistingBoundsArePreserved() {
-        File file = temporaryDirectory.resolve("levels.cfg").toFile();
-
-        for (int requested : new int[] { -1, 1, 2, 3, 9 }) {
-            Configuration input = new Configuration(file);
-            input.load();
-            input.get("worldgen", "smoothingLevel", 1).set(requested);
-            input.save();
-            TerrainSmootherConfig.load(file);
-            assertEquals(Math.max(1, Math.min(3, requested)), SkysTerrainSmoother.level);
-            assertEquals("1", TerrainSmootherConfig.configuration()
-                    .getCategory("worldgen").get("smoothingLevel").getMinValue());
-            assertEquals("3", TerrainSmootherConfig.configuration()
-                    .getCategory("worldgen").get("smoothingLevel").getMaxValue());
-        }
-    }
-
 }

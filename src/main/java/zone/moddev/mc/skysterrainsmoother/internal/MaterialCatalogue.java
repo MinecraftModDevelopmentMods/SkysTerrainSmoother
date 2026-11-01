@@ -1,10 +1,14 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.*;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.SnowyDirtBlock;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.shapes.IBooleanFunction;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.biome.Biome;
 import zone.moddev.mc.skysterrainsmoother.api.*;
 
@@ -16,20 +20,21 @@ public final class MaterialCatalogue {
         return INSTANCE;
     }
 
-    private final Map<ResourceLocation, TerrainMaterial> materials = new LinkedHashMap<>();
-    private final Map<IBlockState, TerrainMaterial> sources = new HashMap<>(), pieces = new HashMap<>();
-    private final List<TerrainSmoothingApi.BiomeRule> biomeRules = new ArrayList<>();
-    private final List<TerrainSmoothingApi.AreaProtection> protections = new ArrayList<>();
-    private boolean frozen;
+    private volatile Map<ResourceLocation, TerrainMaterial> materials = Collections.emptyMap();
+    private volatile Map<BlockState, TerrainMaterial> sources = Collections.emptyMap();
+    private volatile Map<BlockState, TerrainMaterial> pieces = Collections.emptyMap();
+    private volatile List<TerrainSmoothingApi.BiomeRule> biomeRules = Collections.emptyList();
+    private volatile List<TerrainSmoothingApi.AreaProtection> protections = Collections.emptyList();
+    private volatile boolean frozen;
 
-    public void register(TerrainMaterial material) {
+    public synchronized void register(TerrainMaterial material) {
         requireOpen();
         validate(material);
 
         if (materials.containsKey(material.id)) {
             throw new IllegalArgumentException("Duplicate material " + material.id);
         }
-        for (IBlockState source : material.sources) {
+        for (BlockState source : material.sources) {
             if (sources.containsKey(canonical(source))) {
                 throw new IllegalArgumentException("Conflicting terrain source " + source);
             }
@@ -41,7 +46,7 @@ public final class MaterialCatalogue {
         commit(candidate);
     }
 
-    public void addShapes(ResourceLocation materialId, IBlockState[] steps, IBlockState[] corners) {
+    public synchronized void addShapes(ResourceLocation materialId, BlockState[] steps, BlockState[] corners) {
         requireOpen();
 
         TerrainMaterial current = materials.get(materialId);
@@ -60,17 +65,21 @@ public final class MaterialCatalogue {
         commit(candidate);
     }
 
-    public void addBiomeRule(TerrainSmoothingApi.BiomeRule rule) {
+    public synchronized void addBiomeRule(TerrainSmoothingApi.BiomeRule rule) {
         requireOpen();
-        biomeRules.add(Objects.requireNonNull(rule));
+        List<TerrainSmoothingApi.BiomeRule> updated = new ArrayList<>(biomeRules);
+        updated.add(Objects.requireNonNull(rule));
+        biomeRules = Collections.unmodifiableList(updated);
     }
 
-    public void addAreaProtection(TerrainSmoothingApi.AreaProtection rule) {
+    public synchronized void addAreaProtection(TerrainSmoothingApi.AreaProtection rule) {
         requireOpen();
-        protections.add(Objects.requireNonNull(rule));
+        List<TerrainSmoothingApi.AreaProtection> updated = new ArrayList<>(protections);
+        updated.add(Objects.requireNonNull(rule));
+        protections = Collections.unmodifiableList(updated);
     }
 
-    public void freeze() {
+    public synchronized void freeze() {
         requireOpen();
         frozen = true;
     }
@@ -91,11 +100,11 @@ public final class MaterialCatalogue {
         return Collections.unmodifiableCollection(materials.values());
     }
 
-    public TerrainMaterial source(IBlockState state) {
+    public TerrainMaterial source(BlockState state) {
         return sources.get(canonical(state));
     }
 
-    public TerrainMaterial piece(IBlockState state) {
+    public TerrainMaterial piece(BlockState state) {
         return pieces.get(canonical(state));
     }
 
@@ -115,7 +124,7 @@ public final class MaterialCatalogue {
     }
 
     /** Use the requested finer shape when available, otherwise fall back to this material's slab. */
-    public IBlockState result(TerrainMaterial material, int mask, int level) {
+    public BlockState result(TerrainMaterial material, int mask, int level) {
         int shape = Footprint.shape(mask, level);
         int direction = Footprint.direction(mask, shape);
 
@@ -123,7 +132,7 @@ public final class MaterialCatalogue {
             return null;
         }
 
-        IBlockState fine = shape == 2 ? material.step(direction) : shape == 3 ? material.corner(direction) : null;
+        BlockState fine = shape == 2 ? material.step(direction) : shape == 3 ? material.corner(direction) : null;
 
         return fine == null ? material.slab : fine;
     }
@@ -136,11 +145,11 @@ public final class MaterialCatalogue {
 
     /** Build replacement indexes first, leaving the active catalogue intact if validation fails. */
     private void commit(Map<ResourceLocation, TerrainMaterial> candidate) {
-        Map<IBlockState, TerrainMaterial> newSources = new HashMap<>();
-        Map<IBlockState, TerrainMaterial> newPieces = new HashMap<>();
+        Map<BlockState, TerrainMaterial> newSources = new HashMap<>();
+        Map<BlockState, TerrainMaterial> newPieces = new HashMap<>();
 
         for (TerrainMaterial material : candidate.values()) {
-            for (IBlockState source : material.sources) {
+            for (BlockState source : material.sources) {
                 TerrainMaterial prior = newSources.put(canonical(source), material);
 
                 if (prior != null) {
@@ -156,15 +165,14 @@ public final class MaterialCatalogue {
             }
         }
 
-        materials.clear();
-        materials.putAll(candidate);
-        sources.clear();
-        sources.putAll(newSources);
-        pieces.clear();
-        pieces.putAll(newPieces);
+        // Setup callbacks may run in parallel. Publish validated snapshots so
+        // generation never needs to lock a shared map for each column read.
+        materials = Collections.unmodifiableMap(new LinkedHashMap<>(candidate));
+        sources = Collections.unmodifiableMap(newSources);
+        pieces = Collections.unmodifiableMap(newPieces);
     }
 
-    private static void indexPiece(Map<IBlockState, TerrainMaterial> outputs, IBlockState state,
+    private static void indexPiece(Map<BlockState, TerrainMaterial> outputs, BlockState state,
             TerrainMaterial material) {
         if (state == null) {
             return;
@@ -178,13 +186,14 @@ public final class MaterialCatalogue {
     }
 
     private static void validate(TerrainMaterial material) {
-        for (IBlockState source : material.sources) {
-            if (!source.isFullCube() || source.getBlock().hasTileEntity(source)) {
+        for (BlockState source : material.sources) {
+            if (!fullCollision(source) || source.getBlock().hasTileEntity(source) || !source.getFluidState().isEmpty()) {
                 throw new IllegalArgumentException("Terrain sources must be full blocks without tile entities");
             }
         }
-        if (material.supportAfterPlacement != null && (!material.supportAfterPlacement.isFullCube()
-                || material.supportAfterPlacement.getBlock().hasTileEntity(material.supportAfterPlacement))) {
+        if (material.supportAfterPlacement != null && (!fullCollision(material.supportAfterPlacement)
+                || material.supportAfterPlacement.getBlock().hasTileEntity(material.supportAfterPlacement)
+                || !material.supportAfterPlacement.getFluidState().isEmpty())) {
             throw new IllegalArgumentException("Support conversion requires a full non-tile state");
         }
 
@@ -200,12 +209,16 @@ public final class MaterialCatalogue {
         }
     }
 
-    private static void validatePiece(IBlockState state, int footprint) {
-        if (state.getBlock().hasTileEntity(state) || state.isFullCube()) {
+    private static void validatePiece(BlockState state, int footprint) {
+        if (state.getBlock().hasTileEntity(state) || fullCollision(state) || !state.getFluidState().isEmpty()) {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
-        AxisAlignedBB boundingBox = state.getBoundingBox(EmptyAccess.INSTANCE, BlockPos.ORIGIN);
+        VoxelShape shape = state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO);
+        if (shape.isEmpty()) {
+            throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
+        }
+        AxisAlignedBB boundingBox = shape.getBoundingBox();
         double minimumX = 1;
         double minimumZ = 1;
         double maximumX = 0;
@@ -227,9 +240,18 @@ public final class MaterialCatalogue {
                 || boundingBox.maxY != .5) {
             throw new IllegalArgumentException("Incorrect bottom-piece geometry: " + state);
         }
+        VoxelShape expected = VoxelShapes.create(new AxisAlignedBB(minimumX, 0, minimumZ, maximumX, .5, maximumZ));
+        if (VoxelShapes.compare(shape, expected, IBooleanFunction.NOT_SAME)) {
+            throw new IllegalArgumentException("A terrain piece must fill its declared footprint: " + state);
+        }
     }
 
-    private static IBlockState canonical(IBlockState state) {
-        return state.getBlock().getStateFromMeta(state.getBlock().getMetaFromState(state));
+    private static boolean fullCollision(BlockState state) {
+        return !VoxelShapes.compare(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
+                VoxelShapes.fullCube(), IBooleanFunction.NOT_SAME);
+    }
+
+    private static BlockState canonical(BlockState state) {
+        return state.has(SnowyDirtBlock.SNOWY) ? state.with(SnowyDirtBlock.SNOWY, false) : state;
     }
 }

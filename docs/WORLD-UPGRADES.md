@@ -16,3 +16,15 @@ their terrain can be smoothed.
 
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
+
+## Upgrading from Minecraft 1.12.2
+
+Use a backup and keep both required content mods installed. Sand slabs keep their
+colour and upper/lower placement. Red sand now has its own block and item ID,
+following Minecraft's flattened block format; saved red sand slabs and inventory
+stacks are converted automatically, including unopened chunks. Custom item data
+and stack counts are kept. An unsupported saved sand value stops the upgrade
+with a report rather than replacing it with ordinary sand.
+
+This conversion does not smooth old terrain. Existing pieces remain in place,
+and the saved-chunk index excludes previously generated chunks from new smoothing.

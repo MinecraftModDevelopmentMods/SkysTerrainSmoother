@@ -4,7 +4,7 @@ Open **Mods**, select **Sky's Terrain Smoother** and choose **Config**. You can
 turn smoothing on or off, choose level 1–3 and enable or disable Mineralogy
 support. Save with **Done**, then restart Minecraft to apply your choices.
 
-You can also edit `config/skysterrainsmoother.cfg` while the game or server is
+You can also edit `config/skysterrainsmoother-common.toml` while the game or server is
 stopped. On a dedicated server, edit the server's file and restart it; the
 client's Config screen does not change a remote server.
 

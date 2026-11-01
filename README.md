@@ -7,7 +7,7 @@ sandstone, sand and hardened clay.
 
 ## Smoothing levels
 
-Set `worldgen.smoothingLevel` in `config/skysterrainsmoother.cfg`:
+Set `worldgen.smoothingLevel` in `config/skysterrainsmoother-common.toml`:
 
 1. **Slabs** - half-block transitions.
 2. **Slabs and steps** - adds pieces covering half a slab's footprint.
@@ -48,14 +48,15 @@ For BOP grass and soils, add the
 
 ## Installation and settings
 
-For **Minecraft 1.12.2**, use **Forge 14.23.5.2859** and **Java 8**, with:
+For **Minecraft 1.14.4**, use **Forge 28.2.26** and **Java 8**, with:
 
-- Sky's Grass Slabs **1.1.2.112021**.
-- Sky's Building Pieces **0.3.8.112021**.
-- Sky's Terrain Smoother **0.1.0.112021**.
+- Sky's Grass Slabs **1.2.0.114041**.
+- Sky's Building Pieces **0.3.8.114041**.
+- Sky's Terrain Smoother **0.1.0.114041**.
 
 Install all three main jars on both the client and server.
 
+The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
 level, turn smoothing off or disable Mineralogy support, then restart Minecraft.

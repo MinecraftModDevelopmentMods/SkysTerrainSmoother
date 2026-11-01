@@ -4,8 +4,7 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "item": "minecraft:sand",
-        "data": 0
+        "item": "minecraft:sand"
       }
     ]
   },
@@ -14,8 +13,7 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "item": "skysterrainsmoother:sand_slab",
-        "data": 0
+        "item": "skysterrainsmoother:sand_slab"
       }
     ]
   },
@@ -24,8 +22,7 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "item": "minecraft:sand",
-        "data": 1
+        "item": "minecraft:red_sand"
       }
     ]
   },
@@ -34,8 +31,7 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "item": "skysterrainsmoother:sand_slab",
-        "data": 2
+        "item": "skysterrainsmoother:red_sand_slab"
       }
     ]
   }

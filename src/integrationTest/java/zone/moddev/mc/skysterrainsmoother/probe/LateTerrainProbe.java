@@ -2,14 +2,13 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.*;
 import java.security.MessageDigest;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -24,23 +23,23 @@ final class LateTerrainProbe {
     private LateTerrainProbe() {
     }
 
-    static int run(WorldServer world) {
+    static int run(ServerWorld world) {
         MaterialCatalogue catalogue = MaterialCatalogue.instance();
-        IBlockState clay = Blocks.HARDENED_CLAY.getDefaultState();
+        BlockState clay = Blocks.TERRACOTTA.getDefaultState();
         TerrainMaterial material = catalogue.source(clay);
-        TerrainMaterial grass = catalogue.source(Blocks.GRASS.getDefaultState());
+        TerrainMaterial grass = catalogue.source(Blocks.GRASS_BLOCK.getDefaultState());
 
         RuntimeProbe.require(material != null, "hardened clay is a smoothing source");
         RuntimeProbe.require(
                 material.slab.equals(BuildingPiecesApi.bottomPiece("minecraft:hardened_clay",
-                        BuildingPiecesApi.TerrainShape.SLAB, EnumFacing.NORTH)),
+                        BuildingPiecesApi.TerrainShape.SLAB, Direction.NORTH)),
                 "reuse existing clay slab without new registry IDs");
 
         int checks = 2;
         int previousLevel = SkysTerrainSmoother.level;
 
         BlockPos floor = new BlockPos(30008, 220, 30008);
-        Chunk owner = world.getChunk(floor);
+        Chunk owner = world.getChunkAt(floor);
 
         try {
             for (int level = 1; level <= 3; level++) {
@@ -56,7 +55,7 @@ final class LateTerrainProbe {
                         world.setBlockState(higher, clay, 2);
 
                         int mask = Footprint.mask(diagonal ? 0 : 1 << direction, diagonal ? 1 << direction : 0, level);
-                        IBlockState expected = catalogue.result(material, mask, level);
+                        BlockState expected = catalogue.result(material, mask, level);
 
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         RuntimeProbe.require(
@@ -74,14 +73,14 @@ final class LateTerrainProbe {
                     SkysTerrainSmoother.engine.smooth(world, owner, level);
                     RuntimeProbe.require(world.isAirBlock(floor.up()), "no initial cap on a flat clay surface");
                     checks++;
-                    world.setBlockState(floor, Blocks.GRASS.getDefaultState(), 2);
+                    world.setBlockState(floor, Blocks.GRASS_BLOCK.getDefaultState(), 2);
                     world.setBlockState(floor.add(DX[direction], 1, DZ[direction]), clay, 2);
 
                     int loaded = world.getChunkProvider().getLoadedChunkCount();
 
                     post(world, owner);
 
-                    IBlockState expected = GrassSlabsApi.grassGenerationAllowed()
+                    BlockState expected = GrassSlabsApi.grassGenerationAllowed()
                             ? catalogue.result(grass, Footprint.EDGES[direction], level)
                             : Blocks.AIR.getDefaultState();
 
@@ -90,7 +89,7 @@ final class LateTerrainProbe {
                     RuntimeProbe.require(
                             world.getBlockState(floor)
                                     .equals(GrassSlabsApi.grassGenerationAllowed() && level == 1 ? Blocks.DIRT.getDefaultState()
-                                            : Blocks.GRASS.getDefaultState()),
+                                            : Blocks.GRASS_BLOCK.getDefaultState()),
                             "late support conversion respects the grass switch and exposed footprint");
                     post(world, owner);
                     RuntimeProbe.require(
@@ -101,21 +100,21 @@ final class LateTerrainProbe {
                     checks += 4;
 
                     // Small grass may give way in this tracked fresh owner; trees and other occupied blocks may not.
-                    for (IBlockState occupied : new IBlockState[] { Blocks.TALLGRASS.getDefaultState(),
-                            Blocks.SAPLING.getDefaultState(),
+                    for (BlockState occupied : new BlockState[] { Blocks.GRASS.getDefaultState(),
+                            Blocks.OAK_SAPLING.getDefaultState(),
                             Blocks.WATER.getDefaultState(), Blocks.GLASS.getDefaultState() }) {
                         fixture(world, floor, Blocks.GRAVEL.getDefaultState());
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
-                        world.setBlockState(floor, Blocks.GRASS.getDefaultState(), 2);
+                        world.setBlockState(floor, Blocks.GRASS_BLOCK.getDefaultState(), 2);
                         world.setBlockState(floor.add(DX[direction], 1, DZ[direction]), clay, 2);
                         world.setBlockState(floor.up(), occupied, 2);
                         post(world, owner);
-                        boolean replacePlant = occupied.getBlock() == Blocks.TALLGRASS
+                        boolean replacePlant = occupied.getBlock() == Blocks.GRASS
                                 && GrassSlabsApi.grassGenerationAllowed();
                         RuntimeProbe.require(world.getBlockState(floor.up()).equals(replacePlant ? expected : occupied),
                                 "late pass only replaces small grass at a valid transition: " + occupied);
                         RuntimeProbe.require(world.getBlockState(floor).getBlock()
-                                == (replacePlant && level == 1 ? Blocks.DIRT : Blocks.GRASS),
+                                == (replacePlant && level == 1 ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                                 "support dirtification follows successful placement only");
                         checks += 2;
                     }
@@ -129,11 +128,11 @@ final class LateTerrainProbe {
         return checks;
     }
 
-    private static void fixture(WorldServer world, BlockPos floor, IBlockState source) {
+    private static void fixture(ServerWorld world, BlockPos floor, BlockState source) {
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 for (int blockY = floor.getY() + 1; blockY < 256; blockY++) {
-                    world.setBlockToAir(new BlockPos(floor.getX() + blockX, blockY, floor.getZ() + blockZ));
+                    ProbeWorld.clear(world, new BlockPos(floor.getX() + blockX, blockY, floor.getZ() + blockZ));
                 }
 
                 world.setBlockState(floor.add(blockX, 0, blockZ), source, 2);
@@ -141,12 +140,11 @@ final class LateTerrainProbe {
         }
     }
 
-    private static void post(WorldServer world, Chunk owner) {
-        MinecraftForge.EVENT_BUS
-                .post(new DecorateBiomeEvent.Post(world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
+    private static void post(ServerWorld world, Chunk owner) {
+        ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
     }
 
-    static int generationOrder(WorldServer world) throws Exception {
+    static int generationOrder(ServerWorld world) throws Exception {
         int previousLevel = SkysTerrainSmoother.level;
 
         try {
@@ -171,23 +169,25 @@ final class LateTerrainProbe {
                             Chunk chunk = chunks.get((blockX >> 4) + (blockZ >> 4) * 9);
 
                             for (int blockY = 170; blockY < 256; blockY++) {
-                                net.minecraft.world.chunk.storage.ExtendedBlockStorage section = chunk
-                                        .getBlockStorageArray()[blockY >> 4];
+                                net.minecraft.world.chunk.ChunkSection section = chunk
+                                        .getSections()[blockY >> 4];
 
                                 if (section == null) {
-                                    chunk.getBlockStorageArray()[blockY >> 4] = section = new net.minecraft.world.chunk.storage.ExtendedBlockStorage(
-                                            blockY & ~15, true);
+                                    chunk.getSections()[blockY >> 4] = section = new net.minecraft.world.chunk.ChunkSection(blockY & ~15);
                                 }
 
-                                section.set(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.getDefaultState());
+                                section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.getDefaultState());
                             }
 
-                            chunk.getBlockStorageArray()[height >> 4].set(blockX & 15, height & 15, blockZ & 15,
-                                    Blocks.HARDENED_CLAY.getDefaultState());
-                            chunk.getHeightMap()[(blockX & 15) | ((blockZ & 15) << 4)] = height + 1;
+                            chunk.getSections()[height >> 4].setBlockState(blockX & 15, height & 15, blockZ & 15,
+                                    Blocks.TERRACOTTA.getDefaultState());
+
                         }
                     }
-                    if (order == 1) {
+                    for (Chunk chunk : chunks) {
+                    ProbeWorld.rebuildHeights(chunk);
+                }
+                if (order == 1) {
                         Collections.reverse(chunks);
                     }
                     for (Chunk chunk : chunks) {
@@ -201,11 +201,11 @@ final class LateTerrainProbe {
                                 int height = 200
                                         + Math.floorMod(blockX * 31 + blockZ * 17 + (blockX >> 3) * (blockZ >> 3), 3);
                                 // Resolve by coordinate, not traversal order.
-                                Chunk chunk = world.getChunkProvider().getLoadedChunk(origin + (blockX >> 4),
+                                Chunk chunk = world.getChunkProvider().func_225313_a(origin + (blockX >> 4),
                                         128 + (blockZ >> 4));
 
                                 chunk.setBlockState(new BlockPos((origin << 4) + blockX, height, (128 << 4) + blockZ),
-                                        Blocks.GRASS.getDefaultState());
+                                        Blocks.GRASS_BLOCK.getDefaultState(), false);
                             }
                         }
                     }
@@ -218,11 +218,11 @@ final class LateTerrainProbe {
                     for (int blockZ = 0; blockZ < 144; blockZ++) {
                         for (int blockX = 0; blockX < 144; blockX++) {
                             for (int blockY = 200; blockY < 205; blockY++) {
-                                IBlockState state = world.getBlockState(
+                                BlockState state = world.getBlockState(
                                         new BlockPos((origin << 4) + blockX, blockY, (128 << 4) + blockZ));
 
                                 digest.update((state.getBlock().getRegistryName() + "/"
-                                        + state.getBlock().getMetaFromState(state) + "\n").getBytes("UTF-8"));
+                                        + state.toString() + "\n").getBytes("UTF-8"));
                             }
                         }
                     }

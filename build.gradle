@@ -59,8 +59,8 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs112/SkysGrassSlabs'))
-def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces112/SkysBuildingPieces'))
+def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs114/SkysGrassSlabs'))
+def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces114/SkysBuildingPieces'))
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
 
@@ -83,24 +83,48 @@ if (localPiecesVersion.isPresent() &&
 def piecesVersion = localPiecesVersion.getOrElse(contentLock.getProperty('pieces.version'))
 def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory,
         "build/libs-dev/SkysBuildingPieces-${piecesVersion}-deobf.jar")
-def verifyContentDependencies=tasks.register('verifyContentDependencies') {
+def verifyContentDependencies = tasks.register('verifyContentDependencies') {
     doLast {
-        [grass:grassSlabsDirectory,pieces:buildingPiecesDirectory].each { name,directory ->
-            Properties metadata=new Properties()
-            new File(directory,'gradle.properties').withInputStream { metadata.load(it) }
-            String expectedVersion = name == 'grass' ? grassVersion : name == 'pieces' ? piecesVersion : contentLock.getProperty(name + '.version')
-            if (metadata.mod_version != expectedVersion) {
-                String localHelp = name == 'pieces' && System.getenv('CI') == null ?
-                        ' For a local candidate, supply both -PbuildingPiecesDirectory=<checkout>' +
-                                ' and -PbuildingPiecesCoreVersion=<version>, then regenerate the Eclipse runs.' : ''
+        Map dependencies = [
+                grass: [directory: grassSlabsDirectory, version: grassVersion,
+                        override: localGrassVersion.isPresent(), artifact: 'SkysGrassSlabs'],
+                pieces: [directory: buildingPiecesDirectory, version: piecesVersion,
+                         override: localPiecesVersion.isPresent(), artifact: 'SkysBuildingPieces']
+        ]
+        dependencies.each { name, selected ->
+            File directory = selected.directory
+            Properties metadata = new Properties()
+            new File(directory, 'gradle.properties').withInputStream { metadata.load(it) }
+            if (metadata.mod_version != selected.version) {
                 throw new GradleException("Content dependency version does not match its lock: ${name}" +
-                        " (expected ${expectedVersion}, found ${metadata.mod_version})." + localHelp)
+                        " (expected ${selected.version}, found ${metadata.mod_version}).")
             }
-            if(System.getenv('CI')!=null) {
-                Process git=new ProcessBuilder('git','-C',directory.path,'rev-parse','HEAD').start()
-                String sha=git.inputStream.getText('UTF-8').trim()
-                if(git.waitFor()!=0||sha!=contentLock.getProperty(name+'.commit'))
-                    throw new GradleException('Content dependency source does not match its lock: '+name)
+            if (!selected.override) {
+                Process revision = new ProcessBuilder('git', '-C', directory.path, 'rev-parse', 'HEAD').start()
+                String commit = revision.inputStream.getText('UTF-8').trim()
+                if (revision.waitFor() != 0 || commit != contentLock.getProperty(name + '.commit')) {
+                    throw new GradleException('Content dependency source does not match its lock: ' + name)
+                }
+                Process status = new ProcessBuilder('git', '-C', directory.path,
+                        'status', '--porcelain', '--untracked-files=no').start()
+                String changes = status.inputStream.getText('UTF-8').trim()
+                if (status.waitFor() != 0 || !changes.isEmpty()) {
+                    throw new GradleException('The pinned content checkout has tracked changes: ' + name)
+                }
+                [
+                        [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.sha256'],
+                        [path: "build/libs-dev/${selected.artifact}-${selected.version}-deobf.jar", key: '.development.sha256']
+                ].each { artifact ->
+                    File jar = new File(directory, artifact.path)
+                    if (!jar.isFile()) {
+                        throw new GradleException('Build the pinned content dependency first: ' + jar)
+                    }
+                    String checksum = MessageDigest.getInstance('SHA-256').digest(Files.readAllBytes(jar.toPath()))
+                            .encodeHex().toString().toUpperCase(Locale.ROOT)
+                    if (checksum != contentLock.getProperty(name + artifact.key)) {
+                        throw new GradleException('Content dependency artifact does not match its lock: ' + jar.name)
+                    }
+                }
             }
         }
     }
@@ -130,20 +154,21 @@ tasks.withType(JavaExec).configureEach {
 
 tasks.withType(Javadoc).configureEach {
     if (pinnedJava8.isPresent()) javadocTool = javaToolchains.javadocToolFor(exactJava8Spec)
-    failOnError = false
+    failOnError = true
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
     options.addBooleanOption('notimestamp', true)
 }
 
 tasks.withType(AbstractArchiveTask).configureEach {
+    includeEmptyDirs = false
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
 
 def archiveTextSuffixes = [
         '.cfg', '.css', '.html', '.info', '.java', '.js', '.json', '.mcmeta', '.md',
-        '.properties', '.txt', '.xml'
+        '.properties', '.toml', '.txt', '.xml'
 ]
 def archiveTextPatterns = archiveTextSuffixes.collect { "**/*${it}".toString() }
 archiveTextPatterns.addAll([
@@ -157,42 +182,78 @@ def normalizeArchiveLineEndings = { details ->
 }
 
 def developmentRunDirectory = providers.gradleProperty('skysTerrainSmootherRunDirectory').getOrElse('run')
+
+def prepareContentDevelopmentRun = tasks.register('prepareContentDevelopmentRun') {
+    group = 'ide'
+    dependsOn verifyContentDependencies
+    doLast {
+        File mods = new File(file(developmentRunDirectory), 'mods')
+        Set<String> expected = [grassSlabsDevelopmentJar.name, buildingPiecesDevelopmentJar.name] as Set<String>
+        fileTree(mods).matching { include '*.jar' }.each { existing ->
+            if (existing.name ==~ /Skys(?:GrassSlabs|BuildingPieces)-[0-9].*\.jar/ && !expected.contains(existing.name)) {
+                throw new GradleException('An older content jar is already in the development profile: ' + existing)
+            }
+            if (existing.name.contains('integration-test') || existing.name.contains('native-checks')) {
+                throw new GradleException('Ordinary development runs must not contain runtime probes: ' + existing)
+            }
+        }
+        copy {
+            from grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar
+            into mods
+        }
+    }
+}
+
 minecraft {
     mappings channel: project.mapping_channel, version: project.mapping_version
     runs {
         configureEach {
+            mainClass = 'net.minecraftforge.userdev.LaunchTesting'
             workingDir.convention layout.projectDirectory.dir(developmentRunDirectory)
-            environment 'MC_VERSION', project.minecraft_version.toString()
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
-            systemProperty 'fml.coreMods.load', 'zone.moddev.mc.skysbuildingpieces.legacy.LoaderPlugin'
+            mods { skysterrainsmoother { source sourceSets.main } }
+            environment 'MOD_CLASSES',
+                    "${mod_id}%%${buildDir}/forge-run-mod-classes/main${File.pathSeparator}" +
+                            "${mod_id}%%${buildDir}/forge-run-mod-classes/main"
+            if (name.toLowerCase(Locale.ROOT).contains('client') &&
+                    providers.gradleProperty('forgeClientAssets').isPresent()) {
+                environment 'assetIndex', '1.14'
+                environment 'assetDirectory', providers.gradleProperty('forgeClientAssets').get()
+                if (providers.gradleProperty('forgeClientNatives').isPresent()) {
+                    environment 'nativesDirectory', providers.gradleProperty('forgeClientNatives').get()
+                }
+            }
         }
         register('client')
         register('server') { args '--nogui' }
     }
 }
 
-// Forge 1.12 discovers a development mod from one classes/resources root.
-def forge12DevelopmentOutput = layout.buildDirectory.dir('forge12-development/main')
-def syncForge10DevelopmentResources = tasks.register('syncForge10DevelopmentResources', Sync) {
-    group = 'ide'
-    dependsOn tasks.named('classes')
-    from tasks.named('compileJava', JavaCompile).flatMap { it.destinationDirectory }
+def forgeRunModClassesDirectory = file("${buildDir}/forge-run-mod-classes/main")
+def prepareForgeRunModClasses = tasks.register('prepareForgeRunModClasses', Sync) {
+    dependsOn tasks.named('classes'), prepareContentDevelopmentRun
+    from sourceSets.main.output.classesDirs
     from sourceSets.main.output.resourcesDir
-    into forge12DevelopmentOutput
+    into forgeRunModClassesDirectory
 }
-tasks.configureEach {
-    if (name in ['runClient', 'runServer', 'runTestClient', 'runTestServer']) {
-        dependsOn syncForge10DevelopmentResources
-        doFirst {
-            if (pinnedJava8.isPresent()) executable = javaToolchains.launcherFor(exactJava8Spec).get().executablePath.asFile.path
-            Set<File> splitMainOutputs = [
-                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
-                    sourceSets.main.output.resourcesDir
-            ] as Set<File>
-            classpath = files(forge12DevelopmentOutput, classpath.filter {
-                !splitMainOutputs.contains(it)
-            })
-        }
+
+def configureForge28Run = { JavaExec runTask, String launchTarget ->
+    runTask.dependsOn prepareForgeRunModClasses
+    runTask.environment 'target', launchTarget
+    runTask.environment 'MCP_MAPPINGS', "${mapping_channel}_${mapping_version}"
+    runTask.environment 'MCP_VERSION', mcp_version
+    runTask.environment 'FORGE_VERSION', forge_version
+    runTask.environment 'FORGE_GROUP', 'net.minecraftforge'
+    runTask.environment 'MC_VERSION', minecraft_version
+    runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory}${File.pathSeparator}" +
+            "${mod_id}%%${forgeRunModClassesDirectory}"
+}
+tasks.withType(JavaExec).configureEach { JavaExec runTask ->
+    Map<String, String> targets = [runClient: 'fmluserdevclient', runServer: 'fmluserdevserver']
+    String launchTarget = targets.get(runTask.name)
+    if (launchTarget != null) {
+        configureForge28Run(runTask, launchTarget)
     }
 }
 
@@ -226,14 +287,9 @@ def configureFromForgeRun = { JavaExec process, String runTaskName ->
             run.jvmArgs(process.jvmArgs)
             run.systemProperties(process.systemProperties)
             run.environment(process.environment)
-            Set<File> splitMainOutputs = [
-                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
-                    sourceSets.main.output.resourcesDir
-            ] as Set<File>
-            run.setClasspath(files(forge12DevelopmentOutput, run.classpath.filter {
-                !splitMainOutputs.contains(it)
-            }))
-            if (pinnedJava8.isPresent()) run.executable = javaToolchains.launcherFor(exactJava8Spec).get().executablePath.asFile.path
+            run.environment('MOD_CLASSES',
+                    "${mod_id}%%${forgeRunModClassesDirectory}${File.pathSeparator}" +
+                            "${mod_id}%%${forgeRunModClassesDirectory}")
             run.exec()
         } finally {
             runOptions.workingDir.set(originalConfiguredWorkingDir)
@@ -278,7 +334,6 @@ dependencies {
     implementation files(grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar)
     implementation minecraft.dependency(
             "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
-    compileOnly 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
@@ -290,7 +345,7 @@ def compileIntegrationTestMod = tasks.register('compileIntegrationTestMod', Java
     group = 'verification'
     dependsOn tasks.named('classes')
     source fileTree('src/integrationTest/java')
-    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    classpath = files(sourceSets.main.output, sourceSets.main.runtimeClasspath)
     destinationDirectory = integrationTestClasses
     options.encoding = 'UTF-8'
 }
@@ -324,11 +379,19 @@ def prepareIntegrationTest = tasks.register('prepareIntegrationTest') {
     dependsOn integrationTestModJar
     doLast {
         File runDirectory = integrationRunDirectory.get().asFile
-        project.delete(runDirectory)
+        if (runDirectory.canonicalFile != new File(buildDir, 'integration-test-run').canonicalFile) {
+            throw new GradleException('Integration checks must stay inside the build directory')
+        }
+        if (new File(runDirectory, 'logs/latest.log').isFile()) {
+            throw new GradleException('Archive the previous runtime evidence before preparing another run')
+        }
+        runDirectory.mkdirs()
+        copy { from 'src/bootstrapTest/defaultconfigs'; into runDirectory }
         File mods = new File(runDirectory, 'mods')
         mods.mkdirs()
         project.copy {
             from integrationTestModJar.flatMap { it.archiveFile }
+            from grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar
             into mods
         }
         new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
@@ -357,7 +420,6 @@ def createIntegrationProcess = { String phase, Object dependency ->
         dependsOn dependency
         workingDir integrationRunDirectory
         systemProperty 'skysterrainsmoother.integrationPhase', phase.toLowerCase(Locale.ROOT)
-        systemProperty 'log4j.configurationFile', file('src/integrationTest/resources/log4j2.xml').toURI().toString()
         configureFromForgeRun(delegate, 'runServer')
         doLast {
             File marker = new File(integrationRunDirectory.get().asFile,
@@ -369,6 +431,15 @@ def createIntegrationProcess = { String phase, Object dependency ->
             marker.withInputStream { values.load(it) }
             if (values.getProperty("${phase.toLowerCase(Locale.ROOT)}_complete") != 'true') {
                 throw new GradleException("${phase} integration did not complete: ${marker}")
+            }
+            project.services.get(org.gradle.process.ExecOperations).exec {
+                commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+                        'tools/native_client_log.py', '--server', '--directory',
+                        integrationRunDirectory.get().asFile.absolutePath, '--phase', phase.toLowerCase(Locale.ROOT)
+            }
+            copy {
+                from new File(integrationRunDirectory.get().asFile, 'logs')
+                into new File(integrationRunDirectory.get().asFile, 'phase-logs/' + phase.toLowerCase(Locale.ROOT))
             }
         }
     }
@@ -400,15 +471,35 @@ tasks.register('integrationTest') {
     }
 }
 
+def integrationClientDirectory = layout.buildDirectory.dir('integration-client-run')
+def prepareIntegrationClient = tasks.register('prepareIntegrationClient') {
+    dependsOn integrationTestModJar, verifyContentDependencies
+    doLast {
+        File target = integrationClientDirectory.get().asFile
+        if (target.canonicalFile != new File(buildDir, 'integration-client-run').canonicalFile) {
+            throw new GradleException('Client checks must stay inside the build directory')
+        }
+        if (new File(target, 'logs/latest.log').isFile()) {
+            throw new GradleException('Archive the previous client evidence before preparing another run')
+        }
+        target.mkdirs()
+        copy { from 'src/bootstrapTest/defaultconfigs'; into target }
+        copy {
+            from integrationTestModJar.flatMap { it.archiveFile }, grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar
+            into new File(target, 'mods')
+        }
+        new File(target, 'options.txt').text = 'fullscreen:false\noverrideWidth:854\noverrideHeight:480\nmaxFps:30\npauseOnLostFocus:false\nrenderDistance:6\n'
+    }
+}
+
 tasks.register('integrationClientProcess', JavaExec) {
     group = 'verification'
-    dependsOn prepareIntegrationTest
-    workingDir integrationRunDirectory
+    dependsOn prepareIntegrationClient
+    workingDir integrationClientDirectory
     systemProperty 'skysterrainsmoother.integrationPhase', 'client'
-    systemProperty 'log4j.configurationFile', file('src/integrationTest/resources/log4j2.xml').toURI().toString()
     configureFromForgeRun(delegate, 'runClient')
     doLast {
-        if (!new File(integrationRunDirectory.get().asFile, 'terrain-smoother-client-pass.txt').isFile())
+        if (!new File(integrationClientDirectory.get().asFile, 'terrain-smoother-client-pass.txt').isFile())
             throw new GradleException('Client did not complete resource baking')
     }
 }
@@ -419,18 +510,11 @@ tasks.named('check') {
 
 tasks.named('processResources', ProcessResources) {
     filteringCharset = 'UTF-8'
-    inputs.properties([
-            version: project.version,
-            mcversion: project.minecraft_version,
-            modid: project.mod_id,
-            name: project.mod_name,
-            description: project.mod_description
-    ])
-    filesMatching('mcmod.info') {
-        expand version: project.version, mcversion: project.minecraft_version,
-                modid: project.mod_id, name: project.mod_name,
-                description: project.mod_description
-    }
+    Map metadata = ['loader_version_range', 'mod_license', 'mod_id', 'mod_version',
+                    'mod_name', 'mod_authors', 'mod_description', 'forge_version_range',
+                    'minecraft_version_range'].collectEntries { key -> [(key): project.property(key)] }
+    inputs.properties(metadata)
+    filesMatching('META-INF/mods.toml') { expand metadata }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
@@ -486,12 +570,12 @@ def releaseFiles = provider {
 tasks.register('verifyReleaseMetadata') {
     group = 'verification'
     doLast {
-        if (project.minecraft_version != '1.12.2' || project.forge_version != '14.23.5.2859' ||
-                project.mapping_channel != 'stable' || project.mapping_version != '39-1.12' ||
+        if (project.minecraft_version != '1.14.4' || project.forge_version != '28.2.26' ||
+                project.mapping_channel != 'snapshot' || project.mapping_version != '20190719-1.14.3' ||
                 project.loader_name != 'forge' || project.loader_code != '1' ||
                 project.java_version != '8' || project.java_toolchain_version != '8.0.502+7' ||
                 project.mod_id != 'skysterrainsmoother') {
-            throw new GradleException('Unexpected 1.12.2 release metadata')
+            throw new GradleException('Unexpected 1.14.4 release metadata')
         }
     }
 }
@@ -510,7 +594,7 @@ tasks.register('verifyReleaseArtifacts') {
         ZipFile zip = new ZipFile(new File(libs, releaseFiles.get()[0]))
         try {
             Set<String> names = zip.entries().collect { it.name } as Set<String>
-            ['mcmod.info', 'META-INF/LICENSE', 'META-INF/LICENSE.spdx', 'META-INF/NOTICE',
+            ['META-INF/mods.toml', 'META-INF/LICENSE', 'META-INF/LICENSE.spdx', 'META-INF/NOTICE',
              'zone/moddev/mc/skysterrainsmoother/SkysTerrainSmoother.class'].each { required ->
                 if (!names.contains(required)) throw new GradleException("Release jar is missing ${required}")
             }
@@ -689,8 +773,20 @@ tasks.register('isolateEclipseProductionRuns') {
             File launch = file(name)
             if (!launch.isFile()) throw new GradleException("ForgeGradle did not generate ${name}")
             String contents = launch.getText('UTF-8')
-            contents = contents.replace('${MC_VERSION}', project.minecraft_version.toString())
+            // Eclipse needs a literal version, not ForgeGradle's unresolved token.
+            contents = contents.replace(
+                    'key="MC_VERSION" value="${MC_VERSION}"',
+                    "key=\"MC_VERSION\" value=\"${project.minecraft_version}\"")
             boolean production = name in ['runClient.launch', 'runServer.launch']
+            if (production) {
+                // Eclipse compiles into bin/main; use that same merged output
+                // for both of Forge 28's discovery passes, including fresh edits.
+                String roots = "${mod_id}%%${projectDir}/bin/main${File.pathSeparator}" +
+                        "${mod_id}%%${projectDir}/bin/main"
+                contents = contents.replaceAll(/key="MOD_CLASSES" value="[^"]*"/) {
+                    'key="MOD_CLASSES" value="' + roots + '"'
+                }
+            }
             if (production && !contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
                 contents = contents.replace('</launchConfiguration>',
                         '  <booleanAttribute key="org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE" value="true"/>' +
@@ -714,6 +810,7 @@ tasks.register('isolateEclipseProductionRuns') {
 }
 
 tasks.named('genEclipseRuns') {
+    dependsOn prepareContentDevelopmentRun
     finalizedBy configureEclipseBuildship, 'isolateEclipseProductionRuns'
 }
 
@@ -739,7 +836,7 @@ tasks.register('verifyEclipseProductionClasspath') {
         if (overrides != expectedOverrides) {
             throw new GradleException('Eclipse Buildship retained an incorrect Building Pieces version override')
         }
-        File metadata = file('bin/main/mcmod.info')
+        File metadata = file('bin/main/META-INF/mods.toml')
         def eclipseClasspath = new groovy.xml.XmlSlurper().parse(file('.classpath'))
         def piecesLibraries = eclipseClasspath.classpathentry.findAll {
             it.@kind == 'lib' && it.@path.text().tokenize('/\\').last().startsWith('SkysBuildingPieces-')
@@ -758,15 +855,34 @@ tasks.register('verifyEclipseProductionClasspath') {
                 resourceFolders.count { it == 'build/resources/main' } != 1) {
             throw new GradleException('Eclipse must copy processed resources, not overwrite them with templates')
         }
-        def parsed = new JsonSlurper().parseText(metadata.getText('UTF-8'))
-        if (parsed[0].version != project.mod_version || parsed[0].mcversion != project.minecraft_version) {
-            throw new GradleException('Eclipse output contains incorrect mcmod.info')
+        String nativeMetadata = metadata.isFile() ? metadata.getText('UTF-8') : ''
+        if (!nativeMetadata.contains("version=\"${project.mod_version}\"") ||
+                !nativeMetadata.contains("versionRange=\"${project.minecraft_version_range}\"")) {
+            throw new GradleException('Eclipse output contains incorrect mods.toml')
+        }
+        ['runClient.launch', 'runServer.launch', 'runTestClient.launch', 'runTestServer.launch'].each { name ->
+            String contents = file(name).getText('UTF-8')
+            if (contents.contains('${MC_VERSION}')) {
+                throw new GradleException("${name} retains ForgeGradle's unresolved MC_VERSION token")
+            }
+            if (!contents.contains("key=\"MC_VERSION\" value=\"${project.minecraft_version}\"")) {
+                throw new GradleException("${name} does not define literal MC_VERSION=${project.minecraft_version}")
+            }
         }
         ['runClient.launch', 'runServer.launch'].each { name ->
             String contents = file(name).getText('UTF-8').replace('\\', '/')
             if (!contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE') ||
                     contents.contains('src/test') || contents.contains('bin/test') || contents.contains('junit-')) {
                 throw new GradleException("${name} exposes test code or dependencies")
+            }
+            def xml = new groovy.xml.XmlParser(false, false).parse(file(name))
+            String modClasses = xml.mapAttribute.find {
+                it.@key == 'org.eclipse.debug.core.environmentVariables'
+            }.mapEntry.find { it.@key == 'MOD_CLASSES' }.@value
+            List<String> roots = modClasses.split(java.util.regex.Pattern.quote(File.pathSeparator)).toList()
+            if (roots.size() != 2 || roots[0] != roots[1] ||
+                    roots[0].replace('\\', '/') != "${mod_id}%%${projectDir}/bin/main".replace('\\', '/')) {
+                throw new GradleException("${name} must repeat the merged production output in MOD_CLASSES")
             }
         }
     }
@@ -777,31 +893,169 @@ tasks.named('check') {
 }
 
 def clientFresh = tasks.register('integrationClientFreshProcess', JavaExec) {
-    dependsOn prepareIntegrationTest
-    workingDir integrationRunDirectory
+    dependsOn prepareIntegrationClient
+    workingDir integrationClientDirectory
     systemProperty 'skysterrainsmoother.integrationPhase', 'client-fresh'
-    systemProperty 'log4j.configurationFile', file('src/integrationTest/resources/log4j2.xml').toURI().toString()
     configureFromForgeRun(delegate, 'runClient')
     doLast {
-        File marker=new File(integrationRunDirectory.get().asFile,'saves/terrain-smoother-world/skysterrainsmoother-integration.properties')
+        File marker=new File(integrationClientDirectory.get().asFile,'saves/terrain-smoother-world/skysterrainsmoother-integration.properties')
         if(!marker.isFile() || !marker.text.contains('fresh_complete=true')) throw new GradleException('Integrated fresh client did not complete')
+        project.services.get(org.gradle.process.ExecOperations).exec {
+            commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+                    'tools/native_client_log.py', '--directory', integrationClientDirectory.get().asFile.absolutePath,
+                    '--phase', 'client-fresh'
+        }
+        copy { from new File(integrationClientDirectory.get().asFile, 'logs'); into new File(integrationClientDirectory.get().asFile, 'phase-logs/fresh') }
     }
 }
 tasks.register('integrationClientReloadProcess', JavaExec) {
     dependsOn clientFresh
-    workingDir integrationRunDirectory
+    workingDir integrationClientDirectory
     systemProperty 'skysterrainsmoother.integrationPhase', 'client-reload'
-    systemProperty 'log4j.configurationFile', file('src/integrationTest/resources/log4j2.xml').toURI().toString()
     configureFromForgeRun(delegate, 'runClient')
     doLast {
-        File marker=new File(integrationRunDirectory.get().asFile,'saves/terrain-smoother-world/skysterrainsmoother-integration.properties')
+        File marker=new File(integrationClientDirectory.get().asFile,'saves/terrain-smoother-world/skysterrainsmoother-integration.properties')
         if(!marker.isFile() || !marker.text.contains('reload_complete=true')) throw new GradleException('Integrated reload client did not complete')
+        project.services.get(org.gradle.process.ExecOperations).exec {
+            commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+                    'tools/native_client_log.py', '--directory', integrationClientDirectory.get().asFile.absolutePath,
+                    '--phase', 'client-reload'
+        }
+        copy { from new File(integrationClientDirectory.get().asFile, 'logs'); into new File(integrationClientDirectory.get().asFile, 'phase-logs/reload') }
     }
 }
 
 ext.configureMineralogyVerificationRun = configureFromForgeRun
 ext.mineralogyProfileProbeId = 'skysterrainsmoother'
-ext.mineralogyProfileAdditionalMods = files()
+ext.mineralogyProfileAdditionalMods = files(grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar)
 apply from: 'gradle/mineralogy-runs.gradle'
 
 apply from: 'gradle/recipe-advancements.gradle'
+
+// Keep early native checks separate while the full gameplay suite uses its own probe.
+def nativeClasses = layout.buildDirectory.dir('native-bootstrap/classes')
+def nativeCompile = tasks.register('compileNativeBootstrapProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/bootstrapTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.runtimeClasspath)
+    destinationDirectory = nativeClasses
+}
+def nativeJar = tasks.register('nativeBootstrapProbeJar', Jar) {
+    dependsOn nativeCompile
+    archiveFileName = 'terrain-native-checks.jar'
+    destinationDirectory = layout.buildDirectory.dir('native-bootstrap')
+    from nativeClasses
+    from 'src/bootstrapTest/resources'
+}
+def nativeDirectory = layout.buildDirectory.dir('native-bootstrap-run')
+def nativePrepare = tasks.register('prepareNativeBootstrapTest') {
+    dependsOn nativeJar, verifyContentDependencies
+    doLast {
+        File target = nativeDirectory.get().asFile
+        if (target.canonicalFile != new File(buildDir, 'native-bootstrap-run').canonicalFile)
+            throw new GradleException('Native checks must stay inside build output')
+        if (new File(target, 'logs/latest.log').isFile())
+            throw new GradleException('Archive the previous native runtime evidence before preparing another run')
+        target.mkdirs()
+        copy { from nativeJar.flatMap { it.archiveFile }, grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar; into new File(target, 'mods') }
+        new File(target, 'eula.txt').text = 'eula=true\n'
+        ['banned-players.json', 'banned-ips.json', 'ops.json', 'whitelist.json'].each { new File(target, it).text = '[]\n' }
+        new File(target, 'server.properties').text = 'level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=0\ngenerate-structures=false\nmax-tick-time=120000\n'
+    }
+}
+tasks.register('nativeBootstrapTest', JavaExec) {
+    dependsOn nativePrepare
+    workingDir nativeDirectory
+    configureFromForgeRun(delegate, 'runServer')
+    doLast {
+        File log = new File(nativeDirectory.get().asFile, 'logs/latest.log')
+        String result = log.isFile() ? log.getText('UTF-8') : ''
+        if (!result.contains('TERRAIN_NATIVE_BOOTSTRAP_PASS') || !result.contains('Done (') ||
+                result =~ /(?m)\[[^\r\n]*\/(?:ERROR|FATAL)\]/ || result.contains('[STDERR/') ||
+                !fileTree(new File(nativeDirectory.get().asFile, 'crash-reports')).isEmpty())
+            throw new GradleException('Native Terrain Smoother checks failed; inspect the full logs')
+    }
+}
+
+tasks.register('verifyNativeLogPolicy', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            '-m', 'unittest', 'discover', '-s', 'tools', '-p', 'test_native_*_log.py'
+}
+tasks.named('check') { dependsOn tasks.named('verifyNativeLogPolicy') }
+
+// Recipe advancements are already in the processed resource tree. A second
+// Eclipse source entry would copy the same resources into bin/main twice.
+eclipse.classpath.file.whenMerged { classpath ->
+    classpath.entries.removeAll { entry ->
+        entry.kind == 'src' && entry.path == 'build/generated/recipe-advancements'
+    }
+}
+
+def familyForwardDirectory = layout.buildDirectory.dir('family-forward-run')
+def prepareFamilyForward = tasks.register('prepareFamilyForwardFixture') {
+    dependsOn integrationTestModJar, verifyContentDependencies
+    doLast {
+        File target = familyForwardDirectory.get().asFile
+        if (new File(target, 'logs/latest.log').isFile()) {
+            throw new GradleException('Archive the previous forward-upgrade evidence before preparing another run')
+        }
+        File fixture = file('src/test/resources/fixtures/forward-1.12.2-family')
+        File archive = new File(fixture, 'world.zip')
+        String expected = new File(fixture, 'SHA256SUMS').getText('UTF-8').trim().split(/\s+/)[0]
+        String actual = MessageDigest.getInstance('SHA-256').digest(Files.readAllBytes(archive.toPath()))
+                .encodeHex().toString().toUpperCase(Locale.ROOT)
+        if (actual != expected) throw new GradleException('The sealed source world changed')
+        copy { from zipTree(archive); into target }
+        copy { from new File(fixture, 'source-family-fixture.json'); into target }
+        copy { from 'src/bootstrapTest/defaultconfigs'; into target }
+        copy {
+            from integrationTestModJar.flatMap { it.archiveFile }, grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar
+            into new File(target, 'mods')
+        }
+        new File(target, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        ['banned-players.json', 'banned-ips.json', 'ops.json', 'whitelist.json'].each { name ->
+            new File(target, name).setText('[]\n', 'UTF-8')
+        }
+        new File(target, 'server.properties').setText('level-name=world\nonline-mode=false\n' +
+                'server-ip=127.0.0.1\nserver-port=0\nview-distance=6\nmax-tick-time=120000\n', 'UTF-8')
+    }
+}
+def forwardFresh = tasks.register('integrationForwardFreshProcess', JavaExec) {
+    dependsOn prepareFamilyForward
+    workingDir familyForwardDirectory
+    systemProperty 'skysterrainsmoother.forwardFixture', 'true'
+    systemProperty 'skysterrainsmoother.integrationPhase', 'fresh'
+    configureFromForgeRun(delegate, 'runServer')
+}
+def forwardReload = tasks.register('integrationForwardReloadProcess', JavaExec) {
+    dependsOn forwardFresh
+    workingDir familyForwardDirectory
+    systemProperty 'skysterrainsmoother.forwardFixture', 'true'
+    systemProperty 'skysterrainsmoother.integrationPhase', 'reload'
+    configureFromForgeRun(delegate, 'runServer')
+}
+[forwardFresh: 'fresh', forwardReload: 'reload'].each { taskName, phase ->
+    def task = taskName == 'forwardFresh' ? forwardFresh : forwardReload
+    task.configure {
+        doLast {
+            File target = familyForwardDirectory.get().asFile
+            File marker = new File(target, 'world/family-forward-' + phase + '.properties')
+            if (!marker.isFile() || !marker.getText('UTF-8').contains('complete=true')) {
+                throw new GradleException('Forward upgrade checks did not complete: ' + phase)
+            }
+            project.services.get(org.gradle.process.ExecOperations).exec {
+                commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+                        'tools/native_client_log.py', '--server', '--directory', target.absolutePath, '--phase', phase
+            }
+            copy { from new File(target, 'logs'); into new File(target, 'phase-logs/' + phase) }
+        }
+    }
+}
+tasks.register('integrationForwardTest') {
+    group = 'verification'
+    description = 'Upgrades and reloads a sealed native 1.12 family world.'
+    dependsOn forwardReload
+}
+
+tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }

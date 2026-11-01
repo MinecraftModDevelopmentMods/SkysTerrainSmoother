@@ -1,18 +1,19 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.*;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.gen.structure.MapGenStructureData;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.world.gen.feature.structure.StructureStart;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.util.math.MutableBoundingBox;
+import net.minecraft.block.RedstoneOreBlock;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
-import net.minecraftforge.event.terraingen.PopulateChunkEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.fml.LogicalSide;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -26,9 +27,9 @@ final class CaveProbe {
     private CaveProbe() {
     }
 
-    static int run(WorldServer world) {
+    static int run(ServerWorld world) {
         BlockPos floor = new BlockPos(3000, 70, 3000);
-        Chunk owner = world.getChunk(floor);
+        Chunk owner = world.getChunkAt(floor);
 
         clear(world, floor, 69, 255);
         fixture(world, floor, 6);
@@ -55,7 +56,7 @@ final class CaveProbe {
                         }
                     }
 
-                    IBlockState expected = MaterialCatalogue.instance().result(stone,
+                    BlockState expected = MaterialCatalogue.instance().result(stone,
                             Footprint.mask(cardinal, diagonal, level), level);
 
                     SkysTerrainSmoother.engine.smooth(world, owner, level);
@@ -86,16 +87,19 @@ final class CaveProbe {
                     "low passage remains walkable: air height " + air);
             checks++;
         }
-        for (IBlockState obstacle : new IBlockState[] { Blocks.WATER.getDefaultState(), Blocks.LAVA.getDefaultState(),
+        for (BlockState obstacle : new BlockState[] { Blocks.WATER.getDefaultState(), Blocks.LAVA.getDefaultState(),
                 Blocks.GLASS.getDefaultState(), Blocks.CHEST.getDefaultState() }) {
             for (int height = 1; height <= 3; height++) {
                 fixture(world, floor, 6);
+                RuntimeProbe.require(world.isAirBlock(floor.up()) && world.isAirBlock(floor.up(2))
+                        && world.isAirBlock(floor.up(3)), "Cave fixture starts with clear headroom");
                 world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
                 world.setBlockState(floor.up(height), obstacle, 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, 1);
                 RuntimeProbe.require(
                         height == 1 ? world.getBlockState(floor.up()).equals(obstacle) : world.isAirBlock(floor.up()),
-                        "fluid, occupied target or blocked headroom is protected");
+                        "fluid, occupied target or blocked headroom is protected: " + obstacle + " / " + height
+                                + " / actual=" + world.getBlockState(floor.up()));
                 checks++;
             }
         }
@@ -108,14 +112,14 @@ final class CaveProbe {
         checks++;
         // An open column must still see a higher floor hidden under its neighbour's roof.
         fixture(world, floor, 6);
-        world.setBlockToAir(floor.up(6));
+        ProbeWorld.clear(world, floor.up(6));
         world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         RuntimeProbe.require(!world.isAirBlock(floor.up()), "cave entrance and outdoor floor join consistently");
         checks++;
 
-        for (IBlockState source : new IBlockState[] { Blocks.COAL_ORE.getDefaultState(),
-                Blocks.GRAVEL.getDefaultState(), Blocks.PLANKS.getDefaultState(), Blocks.MONSTER_EGG.getDefaultState(),
+        for (BlockState source : new BlockState[] { Blocks.COAL_ORE.getDefaultState(),
+                Blocks.GRAVEL.getDefaultState(), Blocks.OAK_PLANKS.getDefaultState(), Blocks.INFESTED_STONE.getDefaultState(),
                 Blocks.CHEST.getDefaultState() }) {
             fixture(world, floor, 6);
             world.setBlockState(floor, source, 2);
@@ -133,7 +137,7 @@ final class CaveProbe {
                     || material.mineralogy && !SkysTerrainSmoother.mineralogy) {
                 continue;
             }
-            for (IBlockState source : material.sources) {
+            for (BlockState source : material.sources) {
                 fixture(world, floor, 6);
                 world.setBlockState(floor, source, 2);
                 world.setBlockState(floor.north().up(), source, 2);
@@ -146,7 +150,7 @@ final class CaveProbe {
                                         .equals(material.supportAfterPlacement == null ? source
                                                 : material.supportAfterPlacement),
                                 "native support identity is preserved or dirtified");
-                RuntimeProbe.require(world.getBlockState(floor.up(6)).getBlock() == Blocks.BRICK_BLOCK,
+                RuntimeProbe.require(world.getBlockState(floor.up(6)).getBlock() == Blocks.BRICKS,
                         "cave ceiling remains intact");
                 checks += 3;
 
@@ -157,34 +161,33 @@ final class CaveProbe {
         }
 
         // Structure bounds and add-on vetoes apply to underground floors as well.
-        MapGenStructureData data = (MapGenStructureData) world.getPerWorldStorage()
-                .getOrLoadData(MapGenStructureData.class, "Mineshaft");
+        StructureStart previous = owner.getStructureStarts().get("Mineshaft");
+        StructureStart protectedStart = new StructureStart(Feature.MINESHAFT, owner.getPos().x, owner.getPos().z,
+                world.getBiome(floor), new MutableBoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
+                        floor.getX() + 2, 80, floor.getZ() + 2), 0, 1) {
+            @Override
+            public void init(net.minecraft.world.gen.ChunkGenerator<?> generator,
+                    net.minecraft.world.gen.feature.template.TemplateManager templates, int chunkX, int chunkZ,
+                    net.minecraft.world.biome.Biome biome) {
+            }
 
-        if (data == null) {
-            data = new MapGenStructureData("Mineshaft");
-            world.getPerWorldStorage().setData("Mineshaft", data);
-        }
-
-        String key = MapGenStructureData.formatChunkCoords(owner.x, owner.z);
-        NBTTagCompound previous = data.getTagCompound().hasKey(key) ? data.getTagCompound().getCompoundTag(key).copy()
-                : null;
-
+            @Override
+            public boolean isValid() {
+                return true;
+            }
+        };
+        owner.getStructureStarts().put("Mineshaft", protectedStart);
         try {
-            NBTTagCompound bounds = new NBTTagCompound();
-
-            bounds.setIntArray("BB",
-                    new int[] { floor.getX() - 2, 69, floor.getZ() - 2, floor.getX() + 2, 80, floor.getZ() + 2 });
-            data.writeInstance(bounds, owner.x, owner.z);
             fixture(world, floor, 6);
             world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            RuntimeProbe.require(world.isAirBlock(floor.up()), "mineshaft structure bounds are protected underground");
+            RuntimeProbe.require(world.isAirBlock(floor.up()), "Native mineshaft bounds protect underground floors");
             checks++;
         } finally {
             if (previous == null) {
-                data.getTagCompound().removeTag(key);
+                owner.getStructureStarts().remove("Mineshaft");
             } else {
-                data.getTagCompound().setTag(key, previous);
+                owner.getStructureStarts().put("Mineshaft", previous);
             }
         }
 
@@ -203,35 +206,33 @@ final class CaveProbe {
         return checks;
     }
 
-    private static int lateDecoration(WorldServer world, BlockPos floor, Chunk owner) {
+    private static int lateDecoration(ServerWorld world, BlockPos floor, Chunk owner) {
         int checks = 0;
 
         for (int kind = 0; kind < 4; kind++) {
             fixture(world, floor, 6);
             world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            MinecraftForge.EVENT_BUS.post(
-                    new DecorateBiomeEvent.Post(world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
+            ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
             RuntimeProbe.require(!world.isAirBlock(floor.up()),
                     "decorated cave cap retained until all later generators finish");
-            MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(world.getChunkProvider().chunkGenerator, world,
-                    new Random(1), owner.x, owner.z, false));
+            ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
 
             if (kind == 0) {
-                world.setBlockState(floor, Blocks.MONSTER_EGG.getDefaultState(), 2);
+                world.setBlockState(floor, Blocks.INFESTED_STONE.getDefaultState(), 2);
             }
             if (kind == 1) {
                 world.setBlockState(floor, Blocks.SAND.getDefaultState(), 2);
             }
             if (kind == 2) {
-                world.setBlockState(floor.up(2), Blocks.BRICK_BLOCK.getDefaultState(), 2);
+                world.setBlockState(floor.up(2), Blocks.BRICKS.getDefaultState(), 2);
             }
             if (kind == 3) {
                 world.setBlockState(floor, Blocks.SAND.getDefaultState(), 2);
                 world.setBlockState(floor.up(), Blocks.GLASS.getDefaultState(), 2);
             }
 
-            MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+            MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world));
             RuntimeProbe.require(
                     kind == 1
                             ? world.getBlockState(floor.up())
@@ -245,26 +246,24 @@ final class CaveProbe {
         return checks;
     }
 
-    private static int oreDecoration(WorldServer world, BlockPos floor, Chunk owner) {
+    private static int oreDecoration(ServerWorld world, BlockPos floor, Chunk owner) {
         int checks = 0;
 
-        for (IBlockState ore : new IBlockState[] { Blocks.COAL_ORE.getDefaultState(), Blocks.IRON_ORE.getDefaultState(),
-                Blocks.REDSTONE_ORE.getDefaultState(), Blocks.LIT_REDSTONE_ORE.getDefaultState(),
+        for (BlockState ore : new BlockState[] { Blocks.COAL_ORE.getDefaultState(), Blocks.IRON_ORE.getDefaultState(),
+                Blocks.REDSTONE_ORE.getDefaultState(), Blocks.REDSTONE_ORE.getDefaultState().with(RedstoneOreBlock.LIT, true),
                 RuntimeProbe.probeOre.getDefaultState() }) {
             for (int level = 1; level <= 3; level++) {
                 fixture(world, floor, 6);
                 world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
 
-                IBlockState cap = world.getBlockState(floor.up());
+                BlockState cap = world.getBlockState(floor.up());
 
                 RuntimeProbe.require(cap.getBlock() != Blocks.AIR, "ore regression starts with a generated piece");
                 world.setBlockState(floor, ore, 2);
-                MinecraftForge.EVENT_BUS.post(
-                        new DecorateBiomeEvent.Post(world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
-                MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(world.getChunkProvider().chunkGenerator,
-                        world, new Random(1), owner.x, owner.z, false));
-                MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+                ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+                ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
+                MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world));
                 RuntimeProbe.require(world.getBlockState(floor.up()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
                 RuntimeProbe.require(world.getBlockState(floor).equals(ore), "ore support is never overwritten");
@@ -276,8 +275,8 @@ final class CaveProbe {
         world.setBlockState(floor.north().up(), Blocks.STONE.getDefaultState(), 2);
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         world.setBlockState(floor, Blocks.COAL_ORE.getDefaultState(), 2);
-        world.setBlockState(floor.up(2), Blocks.BRICK_BLOCK.getDefaultState(), 2);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+        world.setBlockState(floor.up(2), Blocks.BRICKS.getDefaultState(), 2);
+        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world));
         RuntimeProbe.require(world.isAirBlock(floor.up()) && world.getBlockState(floor).getBlock() == Blocks.COAL_ORE,
                 "ore preservation does not override cave headroom protection");
         checks++;
@@ -293,27 +292,28 @@ final class CaveProbe {
         return checks;
     }
 
-    private static int manyFloors(WorldServer world) {
+    private static int manyFloors(ServerWorld world) {
         Chunk owner = world.getChunk(200, 200);
-        net.minecraft.world.chunk.storage.ExtendedBlockStorage[] sections = owner.getBlockStorageArray();
+        net.minecraft.world.chunk.ChunkSection[] sections = owner.getSections();
 
         for (int section = 0; section < 16; section++) {
-            sections[section] = new net.minecraft.world.chunk.storage.ExtendedBlockStorage(section * 16, true);
+            sections[section] = new net.minecraft.world.chunk.ChunkSection(section * 16);
         }
         for (int blockZ = 0; blockZ < 16; blockZ++) {
             for (int blockX = 0; blockX < 16; blockX++) {
                 for (int blockY = 32; blockY < 232; blockY += 8) {
                     int floorY = blockY + ((blockX + blockZ) & 1);
 
-                    sections[floorY >> 4].set(blockX, floorY & 15, blockZ, Blocks.STONE.getDefaultState());
+                    sections[floorY >> 4].setBlockState(blockX, floorY & 15, blockZ, Blocks.STONE.getDefaultState());
                 }
 
-                sections[15].set(blockX, 246 & 15, blockZ, Blocks.BRICK_BLOCK.getDefaultState());
-                owner.getHeightMap()[blockX | blockZ << 4] = 247;
+                sections[15].setBlockState(blockX, 246 & 15, blockZ, Blocks.BRICKS.getDefaultState());
+
             }
         }
 
         int countBefore = world.getChunkProvider().getLoadedChunkCount();
+        ProbeWorld.rebuildHeights(owner);
         int placed = SkysTerrainSmoother.engine.smooth(world, owner, 1);
 
         RuntimeProbe.require(placed > 256, "decision buffer covers multiple floors across all 256 columns");
@@ -327,23 +327,23 @@ final class CaveProbe {
         return 3;
     }
 
-    private static void clear(WorldServer world, BlockPos floor, int minY, int maxY) {
+    private static void clear(ServerWorld world, BlockPos floor, int minY, int maxY) {
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 for (int blockY = minY; blockY <= maxY; blockY++) {
-                    world.setBlockToAir(new BlockPos(floor.getX() + blockX, blockY, floor.getZ() + blockZ));
+                    ProbeWorld.clear(world, new BlockPos(floor.getX() + blockX, blockY, floor.getZ() + blockZ));
                 }
             }
         }
     }
 
-    private static void fixture(WorldServer world, BlockPos floor, int roofOffset) {
+    private static void fixture(ServerWorld world, BlockPos floor, int roofOffset) {
         clear(world, floor, floor.getY(), floor.getY() + 8);
 
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 world.setBlockState(floor.add(blockX, 0, blockZ), Blocks.STONE.getDefaultState(), 2);
-                world.setBlockState(floor.add(blockX, roofOffset, blockZ), Blocks.BRICK_BLOCK.getDefaultState(), 2);
+                world.setBlockState(floor.add(blockX, roofOffset, blockZ), Blocks.BRICKS.getDefaultState(), 2);
             }
         }
     }

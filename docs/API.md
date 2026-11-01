@@ -1,15 +1,18 @@
 # Add-on API, version 1
 
 Use `zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi` during your
-mod's initialization or post-initialization. Declare ordering after
-`skysterrainsmoother`. Registration closes at load completion.
+mod's common/client setup or IMC callbacks. Declare ordering after
+`skysterrainsmoother`. Registration closes at load completion. Forge can run setup callbacks in
+parallel; the catalogue serializes registration and publishes immutable lookups.
+Biome and protection callbacks must also be safe to call from generation threads.
 
 Create an immutable `TerrainMaterial` with a namespaced logical identity, a
 set of exact full-block source states and a bottom slab state. Optionally
 supply arrays of four bottom steps and four bottom corners. Array order is
 north, east, south, west; corners use northwest, northeast, southeast,
 southwest. Steps occupy one quarter of a block's volume and corners one eighth.
-Every output must be half a block tall, non-tile, and match that footprint.
+Every output must be half a block tall, dry, non-tile, and fill that footprint.
+Sources and converted supports must be dry full blocks without tile entities.
 
 ```java
 TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
