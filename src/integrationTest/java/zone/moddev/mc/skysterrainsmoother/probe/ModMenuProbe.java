@@ -5,8 +5,8 @@ import java.lang.reflect.Method;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.Button;
-import net.minecraftforge.fmlclient.gui.screen.ModListScreen;
-import net.minecraftforge.fmlclient.gui.widget.ModListWidget;
+import net.minecraftforge.client.gui.ModListScreen;
+import net.minecraftforge.client.gui.widget.ModListWidget;
 import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
 /** Uses Forge's actual Mods list and Config button, without desktop automation. */

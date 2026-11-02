@@ -53,11 +53,11 @@ jobs:
           java-version: ${{ steps.target.outputs.java_setup_version }}
 
       - name: Pin production Java
-        if: steps.target.outputs.java_version == '16'
+        if: steps.target.outputs.java_version == '17'
         run: |
-          echo "SGS_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SGS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java for Gradle
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5

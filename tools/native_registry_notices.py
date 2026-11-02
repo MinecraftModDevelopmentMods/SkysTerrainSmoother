@@ -25,14 +25,25 @@ def profile_for(directory):
             or hashlib.sha256(saved_manifest.read_bytes()).hexdigest().upper() != profile["manifest_sha256"]
             or source.get("manifest_sha256") != profile["manifest_sha256"]
             or provenance["source_artifacts"] != profile["source_artifacts"]
-            or profile["saved_uses"] != 0 or profile["inspected_nbt_records"] <= 0):
+            or profile.get("non_biome_saved_uses", profile["saved_uses"]) != 0 or profile["inspected_nbt_records"] <= 0):
         raise ValueError("The unused-entry proof does not match the upgrade fixture")
+    proof = profile.get("native_biome_contract")
+    if proof is not None:
+        contract = root / proof["path"]
+        data = json.loads(contract.read_text(encoding="utf-8"))
+        if (hashlib.sha256(contract.read_bytes()).hexdigest().upper() != proof["sha256"]
+                or data["source_world_sha256"] != profile["sha256"]
+                or data["checked_cells"] != proof["checked_cells"]
+                or data["native_renamed_cells"] != proof["renamed_cells"]
+                or profile["saved_uses"] != proof["renamed_cells"]):
+            raise ValueError("The complete biome proof does not match this fixture")
     if source.get("mode") == "client":
-        control = policy["native_client_control"]
-        if (control["registered_game_content"] or not control["source_world_unchanged"]
-                or control["notice_reads"] != 2 or control["notice_thread"] != "Render thread"):
-            raise ValueError("The native client control is not qualified")
-        profile = dict(profile, notice_thread="Render thread", notice_reads=2)
+        control = policy["native_client_notice_contract"]
+        if (control["target"] != "Forge 40.3.0" or not control["completed_native_world"]
+                or control["production_log_filter"] or control["notice_reads"] != 1
+                or control["notice_thread"] != "Render thread"):
+            raise ValueError("The native client notice contract is not qualified")
+        profile = dict(profile, notice_thread="Render thread", notice_reads=1)
     return profile
 
 
@@ -43,7 +54,7 @@ def audit_text(text, profile=None):
     expected_reads = profile.get("notice_reads", 1) if profile else 1
     registry_reads = profile.get("registry_reads", {}) if profile else {}
     expected_thread = profile.get("notice_thread", "main") if profile else "main"
-    pattern = r"Unidentified mapping from registry (minecraft:[a-z_]+)\n(.*?)(?:\n\n)"
+    pattern = r"Unidentified mapping from registry (minecraft:[a-z_/]+)\n(.*?)(?:\n\n)"
     for registry, body in re.findall(pattern, text, re.S):
         entries = {}
         for row in body.splitlines():
@@ -85,7 +96,8 @@ def audit_text(text, profile=None):
     for problem in ("Encountered an unexpected exception", "Exception stopping the server",
                     "MissingModsException", "NoSuchMethodError", "NoClassDefFoundError",
                     "ExceptionInInitializerError", "cascading worldgen lag", "Unable to load model",
-                    "Unable to load blockstate", "outside of the generating region"):
+                    "Unable to load blockstate", "outside of the generating region",
+                    "java.lang.AssertionError", "java.lang.IllegalStateException:"):
         if problem in text:
             raise ValueError("Unexpected native failure: " + problem)
     return sorted(headers)

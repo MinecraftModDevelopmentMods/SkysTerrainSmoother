@@ -39,7 +39,7 @@ final class SmoothingFoliage {
         Heightmap.Types heightmap = chunk.getStatus() == ChunkStatus.FULL
                 ? Heightmap.Types.WORLD_SURFACE : Heightmap.Types.WORLD_SURFACE_WG;
         int surfaceY = chunk.getHeight(heightmap, localX, localZ);
-        while (surfaceY >= 0) {
+        while (surfaceY >= chunk.getMinBuildHeight()) {
             BlockState state = chunk.getBlockState(new BlockPos(startX + localX, surfaceY, startZ + localZ));
             if (!state.isAir() && !isCover(state)) {
                 break;
@@ -64,7 +64,7 @@ final class SmoothingFoliage {
         if (!(state.getBlock() instanceof DoublePlantBlock)) {
             return true;
         }
-        if (position.getY() >= 255 || state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.LOWER) {
+        if (position.getY() + 1 >= owner.getMaxBuildHeight() || state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.LOWER) {
             return false;
         }
 

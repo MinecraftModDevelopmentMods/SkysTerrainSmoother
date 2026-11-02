@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0.118021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.18.2.
+- Include the lower caves and taller terrain in newly generated chunks.
+- Use the matching Grass Slabs and Building Pieces versions.
+
 ## 0.1.0.117011 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.17.1.

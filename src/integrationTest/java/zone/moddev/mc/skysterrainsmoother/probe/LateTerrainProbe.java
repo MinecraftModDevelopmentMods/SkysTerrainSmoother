@@ -170,16 +170,16 @@ final class LateTerrainProbe {
 
                             for (int blockY = 170; blockY < 256; blockY++) {
                                 net.minecraft.world.level.chunk.LevelChunkSection section = chunk
-                                        .getSections()[blockY >> 4];
+                                        .getSections()[chunk.getSectionIndex(blockY)];
 
                                 if (section == null) {
-                                    chunk.getSections()[blockY >> 4] = section = new net.minecraft.world.level.chunk.LevelChunkSection(blockY & ~15);
+                                    chunk.getSections()[chunk.getSectionIndex(blockY)] = section = ProbeWorld.emptySection(world, chunk, chunk.getSectionIndex(blockY));
                                 }
 
                                 section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.defaultBlockState());
                             }
 
-                            chunk.getSections()[height >> 4].setBlockState(blockX & 15, height & 15, blockZ & 15,
+                            chunk.getSections()[chunk.getSectionIndex(height)].setBlockState(blockX & 15, height & 15, blockZ & 15,
                                     Blocks.TERRACOTTA.defaultBlockState());
 
                         }

@@ -17,6 +17,12 @@ their terrain can be smoothed.
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
 
+## Upgrading from Minecraft 1.17.1
+
+Update the three mods together and keep your configuration and world data.
+Saved pieces, inventories and migration history are retained. The taller world
+range also applies to newly generated cave floors; existing chunks stay unchanged.
+
 ## Upgrading from Minecraft 1.16.5
 
 Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep the

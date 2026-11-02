@@ -11,12 +11,12 @@ public final class MinecraftTestBootstrap {
         return new net.minecraft.world.level.LevelHeightAccessor() {
             @Override
             public int getHeight() {
-                return 256;
+                return 384;
             }
 
             @Override
             public int getMinBuildHeight() {
-                return 0;
+                return -64;
             }
         };
     }
@@ -28,13 +28,20 @@ public final class MinecraftTestBootstrap {
             Class<?> versionInfo = Class.forName("net.minecraftforge.fml.loading.VersionInfo");
             Object forgeVersion = versionInfo
                     .getConstructor(String.class, String.class, String.class, String.class)
-                    .newInstance("37.1.1", "1.17.1", "20210706.113038", "net.minecraftforge");
+                    .newInstance("40.3.0", "1.18.2", "20220404.173914", "net.minecraftforge");
             set(loader, "versionInfo", forgeVersion);
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
+            // Focused tests create blocks outside Forge's normal registration event.
+            net.minecraft.core.Registry.BLOCK.unfreeze();
+            net.minecraft.core.Registry.ITEM.unfreeze();
+            ((net.minecraftforge.registries.ForgeRegistry<?>)
+                    net.minecraftforge.registries.ForgeRegistries.BLOCKS).unfreeze();
+            ((net.minecraftforge.registries.ForgeRegistry<?>)
+                    net.minecraftforge.registries.ForgeRegistries.ITEMS).unfreeze();
             initialized = true;
         } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Unable to initialize the Forge 37 test runtime",
+            throw new IllegalStateException("Unable to initialize the Forge 40 test runtime",
                     exception);
         }
     }

@@ -19,7 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -46,7 +46,7 @@ public final class NativeBootstrap {
         setupComplete = true;
     }
 
-    private void started(FMLServerStartedEvent event) {
+    private void started(ServerStartedEvent event) {
         ServerLevel world = event.getServer().getLevel(Level.OVERWORLD);
         require(setupComplete && MaterialCatalogue.instance().frozen(), "Native setup completed and froze");
         require(GrassSlabsApi.hasSmoothingOwner(), "Grass generation ownership was claimed");
@@ -80,7 +80,8 @@ public final class NativeBootstrap {
             SandLegacyRecovery.recoverItems(oldStack);
             require(once.equals(oldStack), "Sand item recovery is idempotent");
             checks += 5;
-            checks += falling(world, state, metadata);
+            checks += falling(world, state, metadata, 220);
+            checks += falling(world, state, metadata, -56);
         }
         File root = event.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
         Properties receipt = new Properties();
@@ -95,10 +96,10 @@ public final class NativeBootstrap {
         event.getServer().halt(false);
     }
 
-    private static int falling(ServerLevel world, BlockState state, int metadata) {
-        BlockPos source = new BlockPos(80 + metadata * 4, 220, 80);
+    private static int falling(ServerLevel world, BlockState state, int metadata, int sourceY) {
+        BlockPos source = new BlockPos(80 + metadata * 4, sourceY, 80);
         world.getChunk(source);
-        for (int height = 215; height <= 223; height++) {
+        for (int height = sourceY - 5; height <= sourceY + 3; height++) {
             world.setBlock(new BlockPos(source.getX(), height, source.getZ()), Blocks.AIR.defaultBlockState(), 2);
         }
         world.setBlock(source.below(5), Blocks.STONE.defaultBlockState(), 2);

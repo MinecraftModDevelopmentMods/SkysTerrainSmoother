@@ -11,7 +11,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.TagKey;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.BooleanOp;
@@ -232,7 +233,7 @@ public final class SmoothingEngine {
                         && owner.getBlockEntity(placement.pos) == null
                         && !structures.contains(placement.pos)
                         && !structures.contains(placement.pos.below())
-                        && catalogue.allows(replacement, world.getBiome(placement.pos), 0, placement.pos)) {
+                        && catalogue.allows(replacement, world.getBiome(placement.pos).value(), 0, placement.pos)) {
                     int localBlockX = placement.pos.getX() & 15;
                     int localBlockZ = placement.pos.getZ() & 15;
                     int supportY = placement.pos.getY() - 1;
@@ -347,14 +348,14 @@ public final class SmoothingEngine {
                 int surfaceY = SmoothingFoliage.surfaceHeight(owner, localBlockX, localBlockZ, startX, startZ);
 
                 // Visit upward-facing floors at every depth. Finish every decision before the first world write.
-                if (surfaceY < 0) {
+                if (surfaceY < owner.getMinBuildHeight()) {
                     continue;
                 }
 
                 BlockState previous = owner.getBlockState(
-                        cursor.set(startX + localBlockX, Math.min(surfaceY, 254) + 1, startZ + localBlockZ));
+                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxBuildHeight() - 2) + 1, startZ + localBlockZ));
 
-                for (int floorY = Math.min(surfaceY, 254); floorY >= 0; --floorY) {
+                for (int floorY = Math.min(surfaceY, owner.getMaxBuildHeight() - 2); floorY >= owner.getMinBuildHeight(); --floorY) {
                     BlockState lower = owner
                             .getBlockState(cursor.set(startX + localBlockX, floorY, startZ + localBlockZ));
                     BlockState above = previous;
@@ -386,7 +387,7 @@ public final class SmoothingEngine {
                             || owner.getBlockEntity(target) != null
                             || structures.contains(target)
                             || structures.contains(support)
-                            || !catalogue.allows(material, world.getBiome(target), 0, target)) {
+                            || !catalogue.allows(material, world.getBiome(target).value(), 0, target)) {
                         continue;
                     }
 
@@ -457,7 +458,7 @@ public final class SmoothingEngine {
     }
 
     private static boolean setGenerationState(LevelAccessor world, ChunkAccess owner, BlockPos position, BlockState state) {
-        if (position.getY() < 0 || position.getY() > 255
+        if (position.getY() < owner.getMinBuildHeight() || position.getY() >= owner.getMaxBuildHeight()
                 || position.getX() >> 4 != owner.getPos().x || position.getZ() >> 4 != owner.getPos().z) {
             throw new IllegalArgumentException("Terrain smoothing cannot write outside its owning chunk");
         }
@@ -557,7 +558,7 @@ public final class SmoothingEngine {
 
     private boolean caveHeadroom(LevelAccessor world, ChunkAccess owner, BlockPos support) {
         // Three clear blocks leave 2.5 blocks above a new cap. A two-block tunnel must stay walkable.
-        if (support.getY() > 252) {
+        if (support.getY() + 3 >= owner.getMaxBuildHeight()) {
             return false;
         }
         for (int height = 2; height <= 3; height++) {
@@ -586,8 +587,7 @@ public final class SmoothingEngine {
             isOre = state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedStoneOreBlock;
 
             if (!isOre) {
-                Tag<net.minecraft.world.level.block.Block> ores = BlockTags.getAllTags().getTag(new ResourceLocation("forge", "ores"));
-                isOre = ores != null && ores.contains(state.getBlock());
+                isOre = state.is(TagKey.create(Registry.BLOCK_REGISTRY, new ResourceLocation("forge", "ores")));
             }
         }
 

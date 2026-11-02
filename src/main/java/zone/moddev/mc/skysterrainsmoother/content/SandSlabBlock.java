@@ -76,7 +76,7 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
     public BlockState updateShape(BlockState state, Direction side, BlockState neighbour, LevelAccessor world,
             BlockPos position, BlockPos neighbourPosition) {
         if (state.getValue(WATERLOGGED)) {
-            world.getLiquidTicks().scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+            world.scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
         return super.updateShape(state, side, neighbour, world, position, neighbourPosition);
     }
@@ -88,17 +88,14 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
 
     @Override
     public void tick(BlockState state, ServerLevel world, BlockPos position, Random random) {
-        if (world.isClientSide || !world.getBlockState(position).equals(state) || position.getY() < 0
+        if (world.isClientSide || !world.getBlockState(position).equals(state) || position.getY() < world.getMinBuildHeight()
                 || !isFree(world.getBlockState(position.below()))) {
             return;
         }
 
-        // World.removeBlock leaves water at the source. Only the sand travels;
-        // vanilla waterlogs it again if the landing cell contains water.
-        BlockState fallingState = state.setValue(WATERLOGGED, false);
-        FallingBlockEntity entity = new FallingBlockEntity(world, position.getX() + .5, position.getY(),
-                position.getZ() + .5, fallingState);
+        // The native factory keeps source water in place and dries only the falling entity.
+        // Vanilla waterlogs the slab again if its landing cell contains water.
+        FallingBlockEntity entity = FallingBlockEntity.fall(world, position, state);
         falling(entity);
-        world.addFreshEntity(entity);
     }
 }

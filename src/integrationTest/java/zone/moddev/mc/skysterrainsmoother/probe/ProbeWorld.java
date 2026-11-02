@@ -5,7 +5,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.OreBlock;
 import net.minecraft.world.level.block.RedStoneOreBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.TagKey;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -35,7 +36,7 @@ final class ProbeWorld {
 
     static void repair(Level world, BlockPos origin) {
         queue(world, origin.getX() >> 4, origin.getZ() >> 4);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world));
+        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
     }
 
     static void light(Level world, LightLayer type, BlockPos position, int value) {
@@ -64,9 +65,14 @@ final class ProbeWorld {
         if (state.hasBlockEntity() || state.getMaterial().isLiquid()) {
             return false;
         }
-        Tag<net.minecraft.world.level.block.Block> ores = BlockTags.getAllTags().getTag(new ResourceLocation("forge", "ores"));
         return state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedStoneOreBlock
-                || ores != null && ores.contains(state.getBlock());
+                || state.is(TagKey.create(Registry.BLOCK_REGISTRY, new ResourceLocation("forge", "ores")));
+    }
+
+    static net.minecraft.world.level.chunk.LevelChunkSection emptySection(Level world,
+            net.minecraft.world.level.chunk.LevelChunk chunk, int index) {
+        return new net.minecraft.world.level.chunk.LevelChunkSection(chunk.getMinSection() + index,
+                world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY));
     }
 
     private ProbeWorld() {

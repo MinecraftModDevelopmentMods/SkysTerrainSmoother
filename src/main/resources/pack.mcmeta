@@ -1,6 +1,8 @@
 {
   "pack": {
-    "pack_format": 7,
-    "description": "Sky's Terrain Smoother"
+    "pack_format": 9,
+    "description": "Sky's Terrain Smoother",
+    "forge:resource_pack_format": 8,
+    "forge:data_pack_format": 9
   }
 }

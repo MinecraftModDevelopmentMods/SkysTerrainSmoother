@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.client;
 
-import net.minecraftforge.fmlclient.ConfigGuiHandler;
+import net.minecraftforge.client.ConfigGuiHandler;
 import net.minecraftforge.fml.ModLoadingContext;
 
 /** Connects the Mods list's Config button to the restart-only settings screen. */

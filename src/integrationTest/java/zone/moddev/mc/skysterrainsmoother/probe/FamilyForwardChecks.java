@@ -64,6 +64,9 @@ final class FamilyForwardChecks {
                 }
             }
         }
+        if (new File("source-native-biomes.json").isFile()) {
+            NativeBiomeChecks.prepare(world, LOAD_CHUNKS);
+        }
         prepareEntityChunks(world);
     }
 
@@ -138,7 +141,7 @@ final class FamilyForwardChecks {
 
     static boolean ready(ServerLevel world) {
         for (net.minecraft.world.level.ChunkPos chunk : LOAD_CHUNKS) {
-            if (!world.isPositionTickingWithEntitiesLoaded(new BlockPos(chunk.x << 4, 0, chunk.z << 4))) {
+            if (!world.areEntitiesLoaded(chunk.toLong()) || !world.getChunkSource().isPositionTicking(chunk.toLong())) {
                 return false;
             }
         }
@@ -163,6 +166,9 @@ final class FamilyForwardChecks {
         try (InputStreamReader input = new InputStreamReader(new FileInputStream(new File("source-family-fixture.json")),
                 StandardCharsets.UTF_8)) {
             fixture = new JsonParser().parse(input).getAsJsonObject();
+        }
+        if (new File("source-native-biomes.json").isFile()) {
+            NativeBiomeChecks.verify(world);
         }
         int checked = 0;
         for (JsonElement element : fixture.getAsJsonArray("blocks")) {

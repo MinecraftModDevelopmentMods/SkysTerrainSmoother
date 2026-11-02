@@ -87,15 +87,10 @@ public final class ClientProbe extends ProbeProxy {
             if (new File(minecraft.gameDirectory, "saves/terrain-smoother-world/level.dat").isFile()) {
                 minecraft.loadLevel("terrain-smoother-world");
             } else {
-                net.minecraft.core.RegistryAccess.RegistryHolder registries =
-                        net.minecraft.core.RegistryAccess.builtin();
-                net.minecraft.core.Registry<net.minecraft.world.level.dimension.DimensionType> dimensions =
-                        registries.registryOrThrow(net.minecraft.core.Registry.DIMENSION_TYPE_REGISTRY);
-                net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome> biomes =
-                        registries.registryOrThrow(net.minecraft.core.Registry.BIOME_REGISTRY);
+                net.minecraft.core.RegistryAccess.Writable registries =
+                        net.minecraft.core.RegistryAccess.builtinCopy();
                 net.minecraft.world.level.levelgen.WorldGenSettings defaults =
-                        net.minecraft.world.level.levelgen.WorldGenSettings.makeDefault(dimensions, biomes,
-                                registries.registryOrThrow(net.minecraft.core.Registry.NOISE_GENERATOR_SETTINGS_REGISTRY));
+                        net.minecraft.world.level.levelgen.WorldGenSettings.makeDefault(registries);
                 net.minecraft.world.level.levelgen.WorldGenSettings generator =
                         new net.minecraft.world.level.levelgen.WorldGenSettings(4815162342L, false, false,
                                 defaults.dimensions());

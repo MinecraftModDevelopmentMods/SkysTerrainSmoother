@@ -40,14 +40,15 @@ final class ConfigScreenProbe {
     static boolean tick(Minecraft minecraft) {
         if (modIndex == 2) {
             minecraft.setScreen(parent);
-            RuntimeProbe.require(tooltips == 5, "All five settings were exercised");
-            zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 widgets=5 restart_safe=true");
+            RuntimeProbe.require(tooltips == 6, "All six settings were exercised");
+            zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 widgets=6 restart_safe=true");
             return true;
         }
         String modId = modIndex == 0 ? "skysgrassslabs" : "skysterrainsmoother";
         if (stage == 0) {
             screen = ModMenuProbe.open(minecraft, modId, parent);
-            keys = modIndex == 0 ? new String[] { "generateGrassSlabs", "forceReplaceBuildingBricksSlabs" }
+            keys = modIndex == 0 ? new String[] { "generateGrassSlabs", "forceReplaceBuildingBricksSlabs",
+                        "forceReplaceGrassSlabsModContent" }
                     : new String[] { "enabled", "smoothingLevel", "enableMineralogy" };
             RuntimeProbe.require(buttons(screen).size() == keys.length + 1, "Each setting has its own control");
             original = new ArrayList<>();
@@ -133,7 +134,8 @@ final class ConfigScreenProbe {
         String[] values = modId.equals("skysgrassslabs")
                 ? new String[] {
                     Boolean.toString(SkysGrassSlabsConfig.configuredGrassGeneration()),
-                    Boolean.toString(SkysGrassSlabsConfig.configuredLegacyReplacement())
+                    Boolean.toString(SkysGrassSlabsConfig.configuredLegacyReplacement()),
+                    Boolean.toString(SkysGrassSlabsConfig.configuredGrassSlabsReplacement())
                 }
                 : new String[] {
                     Boolean.toString(TerrainSmootherConfig.configuredEnabled()),
