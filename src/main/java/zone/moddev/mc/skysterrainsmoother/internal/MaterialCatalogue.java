@@ -1,15 +1,15 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.*;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.SnowyDirtBlock;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.SnowyDirtBlock;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.level.biome.Biome;
 import zone.moddev.mc.skysterrainsmoother.api.*;
 
 /** Baked lookup tables. No registry scans or reflective lookups in the column pass. */
@@ -187,12 +187,12 @@ public final class MaterialCatalogue {
 
     private static void validate(TerrainMaterial material) {
         for (BlockState source : material.sources) {
-            if (!fullCollision(source) || source.getBlock().hasTileEntity(source) || !source.getFluidState().isEmpty()) {
+            if (!fullCollision(source) || source.hasBlockEntity() || !source.getFluidState().isEmpty()) {
                 throw new IllegalArgumentException("Terrain sources must be full blocks without tile entities");
             }
         }
         if (material.supportAfterPlacement != null && (!fullCollision(material.supportAfterPlacement)
-                || material.supportAfterPlacement.getBlock().hasTileEntity(material.supportAfterPlacement)
+                || material.supportAfterPlacement.hasBlockEntity()
                 || !material.supportAfterPlacement.getFluidState().isEmpty())) {
             throw new IllegalArgumentException("Support conversion requires a full non-tile state");
         }
@@ -210,7 +210,7 @@ public final class MaterialCatalogue {
     }
 
     private static void validatePiece(BlockState state, int footprint) {
-        if (state.getBlock().hasTileEntity(state) || fullCollision(state) || !state.getFluidState().isEmpty()) {
+        if (state.hasBlockEntity() || fullCollision(state) || !state.getFluidState().isEmpty()) {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
@@ -218,7 +218,7 @@ public final class MaterialCatalogue {
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
-        AxisAlignedBB boundingBox = shape.bounds();
+        AABB boundingBox = shape.bounds();
         double minimumX = 1;
         double minimumZ = 1;
         double maximumX = 0;
@@ -240,15 +240,15 @@ public final class MaterialCatalogue {
                 || boundingBox.maxY != .5) {
             throw new IllegalArgumentException("Incorrect bottom-piece geometry: " + state);
         }
-        VoxelShape expected = VoxelShapes.create(new AxisAlignedBB(minimumX, 0, minimumZ, maximumX, .5, maximumZ));
-        if (VoxelShapes.joinIsNotEmpty(shape, expected, IBooleanFunction.NOT_SAME)) {
+        VoxelShape expected = Shapes.create(new AABB(minimumX, 0, minimumZ, maximumX, .5, maximumZ));
+        if (Shapes.joinIsNotEmpty(shape, expected, BooleanOp.NOT_SAME)) {
             throw new IllegalArgumentException("A terrain piece must fill its declared footprint: " + state);
         }
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !VoxelShapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                VoxelShapes.block(), IBooleanFunction.NOT_SAME);
+        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
+                Shapes.block(), BooleanOp.NOT_SAME);
     }
 
     private static BlockState canonical(BlockState state) {

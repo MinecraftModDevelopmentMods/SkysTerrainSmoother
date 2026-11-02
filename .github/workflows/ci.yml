@@ -38,6 +38,12 @@ jobs:
           distribution: temurin
           java-version: '8.0.502+7'
 
+      - name: Install pinned Java 16 compilation toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '16.0.2+7'
+
       - name: Install pinned Java 17 Gradle runtime
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -87,7 +93,7 @@ jobs:
           gradle_args=(
             classes test -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
             --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_16_X64,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
@@ -102,7 +108,7 @@ jobs:
           gradle_args=(
             classes test -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
             --rerun-tasks --offline --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_16_X64,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
@@ -144,11 +150,11 @@ jobs:
           java-version: ${{ steps.target.outputs.java_setup_version }}
 
       - name: Pin production Java
-        if: steps.target.outputs.java_version == '8'
+        if: steps.target.outputs.java_version == '16'
         run: |
-          echo "SGS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA8_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SGS_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA16_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java for Gradle
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -209,9 +215,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.116051.jar
-            build/libs/SkysTerrainSmoother-0.1.0.116051-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.116051-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.0.117011.jar
+            build/libs/SkysTerrainSmoother-0.1.0.117011-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.0.117011-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 

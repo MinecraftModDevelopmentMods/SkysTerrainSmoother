@@ -41,6 +41,7 @@ def audit_text(text, profile=None):
     observed = {}
     occurrences = Counter()
     expected_reads = profile.get("notice_reads", 1) if profile else 1
+    registry_reads = profile.get("registry_reads", {}) if profile else {}
     expected_thread = profile.get("notice_thread", "main") if profile else "main"
     pattern = r"Unidentified mapping from registry (minecraft:[a-z_]+)\n(.*?)(?:\n\n)"
     for registry, body in re.findall(pattern, text, re.S):
@@ -53,29 +54,33 @@ def audit_text(text, profile=None):
                 raise ValueError("Malformed or repeated registry entry: " + row)
             entries[entry[1]] = int(entry[2])
         occurrences[registry] += 1
-        if occurrences[registry] > expected_reads:
+        if occurrences[registry] > registry_reads.get(registry, expected_reads):
             raise ValueError("Repeated native registry notice: " + registry)
         if registry in observed and entries != observed[registry]:
             raise ValueError("Changed native registry entries between reads: " + registry)
         observed[registry] = entries
     if observed and (profile is None or observed != profile["mappings"]):
         raise ValueError("Unexpected missing registry entries: " + repr(observed))
-    if observed and any(count != expected_reads for count in occurrences.values()):
+    if observed and any(count != registry_reads.get(registry, expected_reads)
+                        for registry, count in occurrences.items()):
         raise ValueError("The native registry read sequence is incomplete")
     headers = {"Unidentified mapping from registry " + registry for registry in observed}
     if observed:
         headers.add("There are unidentified mappings in this world - we are going to attempt to process anyway")
+    header_reads = {"Unidentified mapping from registry " + registry:
+                    registry_reads.get(registry, expected_reads) for registry in observed}
     seen = Counter()
     for line in text.splitlines():
         if not re.search(r"/(?:ERROR|FATAL)\]|\[STDERR[/\]]", line):
             continue
         message = re.fullmatch(r"\[[^\r\n]+\] \[" + re.escape(expected_thread) + r"/ERROR\] "
                                r"\[net\.minecraftforge\.registries\.GameData/REGISTRIES\]: (.+)", line)
-        if message and message[1] in headers and seen[message[1]] < expected_reads:
+        if message and message[1] in headers and seen[message[1]] < header_reads.get(message[1], expected_reads):
             seen[message[1]] += 1
         else:
             raise ValueError("Unexpected native failure: " + line)
-    if set(seen) != headers or any(count != expected_reads for count in seen.values()):
+    if set(seen) != headers or any(count != header_reads.get(header, expected_reads)
+                                   for header, count in seen.items()):
         raise ValueError("The native registry notice is incomplete")
     for problem in ("Encountered an unexpected exception", "Exception stopping the server",
                     "MissingModsException", "NoSuchMethodError", "NoClassDefFoundError",

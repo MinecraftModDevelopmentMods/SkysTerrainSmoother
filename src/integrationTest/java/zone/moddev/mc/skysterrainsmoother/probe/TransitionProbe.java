@@ -1,12 +1,12 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -14,9 +14,9 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
 /** Mountain ledges must not gain another full-height step between two half-height caps. */
 final class TransitionProbe {
-    static int run(ServerWorld world) {
+    static int run(ServerLevel world) {
         BlockPos origin = new BlockPos(3592, 210, 3592);
-        Chunk owner = world.getChunkAt(origin);
+        LevelChunk owner = world.getChunkAt(origin);
         int checks = 0;
 
         for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
@@ -76,19 +76,19 @@ final class TransitionProbe {
         }
 
         checks += borders(world) + lateLowerFloor(world, origin);
-        System.out.println("TERRAIN_SMOOTHER_TRANSITIONS_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_TRANSITIONS_PASS checks=" + checks);
         return checks;
     }
 
-    private static int borders(ServerWorld world) {
+    private static int borders(ServerLevel world) {
         int checks = 0;
         for (Direction uphill : Direction.Plane.HORIZONTAL) {
             BlockPos low = uphill == Direction.EAST ? new BlockPos(3615, 210, 3624)
                     : uphill == Direction.WEST ? new BlockPos(3616, 210, 3624)
                     : uphill == Direction.SOUTH ? new BlockPos(3624, 210, 3615)
                     : new BlockPos(3624, 210, 3616);
-            Chunk lowerOwner = world.getChunkAt(low);
-            Chunk upperOwner = world.getChunkAt(low.relative(uphill));
+            LevelChunk lowerOwner = world.getChunkAt(low);
+            LevelChunk upperOwner = world.getChunkAt(low.relative(uphill));
 
             for (int level = 1; level <= 3; level++) {
                 BlockState[] forward = null;
@@ -117,8 +117,8 @@ final class TransitionProbe {
         return checks;
     }
 
-    private static int lateLowerFloor(ServerWorld world, BlockPos origin) {
-        Chunk owner = world.getChunkAt(origin);
+    private static int lateLowerFloor(ServerLevel world, BlockPos origin) {
+        LevelChunk owner = world.getChunkAt(origin);
         int checks = 0;
         for (Direction uphill : Direction.Plane.HORIZONTAL) {
             prepare(world, origin, uphill, Blocks.STONE.defaultBlockState(), false, false);
@@ -143,21 +143,21 @@ final class TransitionProbe {
         return checks;
     }
 
-    private static void requireOpenDownhillEdge(ServerWorld world, BlockPos target, Direction downhill,
+    private static void requireOpenDownhillEdge(ServerLevel world, BlockPos target, Direction downhill,
             String message) {
         BlockState state = world.getBlockState(target);
         if (state.getBlock() == Blocks.AIR) {
             return;
         }
 
-        AxisAlignedBB bounds = state.getShape(world, target).bounds();
+        AABB bounds = state.getShape(world, target).bounds();
         boolean touches = downhill == Direction.NORTH ? bounds.minZ == 0
                 : downhill == Direction.SOUTH ? bounds.maxZ == 1
                 : downhill == Direction.WEST ? bounds.minX == 0 : bounds.maxX == 1;
         RuntimeProbe.require(!touches, message);
     }
 
-    private static void prepare(ServerWorld world, BlockPos origin, Direction uphill, BlockState source,
+    private static void prepare(ServerLevel world, BlockPos origin, Direction uphill, BlockState source,
             boolean wide, boolean roofed) {
         Direction across = uphill.getClockWise();
         for (int distance = -3; distance <= 5; distance++) {

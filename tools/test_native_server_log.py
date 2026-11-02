@@ -1,4 +1,4 @@
-"""Negative controls for Forge 36 server completion and native settings."""
+"""Negative controls for Forge 37 server completion and native settings."""
 
 from pathlib import Path
 import shutil
@@ -74,7 +74,7 @@ class NativeRegistryNoticeTest(unittest.TestCase):
         self.assertEqual(len(self.check(self.valid, self.profile)), 5)
         self.assertEqual(self.check("A clean native reload", None), [])
 
-    def test_client_control_allows_exactly_two_render_thread_reads(self):
+    def test_client_reads_both_snapshots_after_successful_sky_remaps(self):
         profile = dict(self.profile, notice_thread="Render thread", notice_reads=2)
         one_read = self.valid.replace("[main/ERROR]", "[Render thread/ERROR]")
         self.assertEqual(len(self.check(one_read * 2, profile)), 5)

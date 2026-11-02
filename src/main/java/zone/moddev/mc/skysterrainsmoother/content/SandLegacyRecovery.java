@@ -2,9 +2,9 @@ package zone.moddev.mc.skysterrainsmoother.content;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
 import zone.moddev.mc.skysbuildingpieces.legacy.HistoricalFullBlocks;
 import zone.moddev.mc.skysbuildingpieces.legacy.HistoricalItems;
 import zone.moddev.mc.skysbuildingpieces.legacy.LegacyBridge;
@@ -24,17 +24,17 @@ public final class SandLegacyRecovery {
                 SandLegacyRecovery::recoverItems);
     }
 
-    private static boolean containsLegacyItems(CompoundNBT root) {
-        List<CompoundNBT> stacks = new ArrayList<>();
+    private static boolean containsLegacyItems(CompoundTag root) {
+        List<CompoundTag> stacks = new ArrayList<>();
         collect(root, stacks, 0);
         return !stacks.isEmpty();
     }
 
     /** Validate the whole tree before changing any stack, including inventories carried by an item. */
-    public static void recoverItems(CompoundNBT root) {
-        List<CompoundNBT> stacks = new ArrayList<>();
+    public static void recoverItems(CompoundTag root) {
+        List<CompoundTag> stacks = new ArrayList<>();
         collect(root, stacks, 0);
-        for (CompoundNBT stack : stacks) {
+        for (CompoundTag stack : stacks) {
             int metadata = stack.getInt("Damage");
             if (!stack.contains("Damage", 99) || metadata < 0 || metadata > 3
                     || !stack.contains("Count", 99) || stack.getInt("Count") < 1) {
@@ -43,27 +43,27 @@ public final class SandLegacyRecovery {
                         null);
             }
         }
-        for (CompoundNBT stack : stacks) {
+        for (CompoundTag stack : stacks) {
             stack.putString("id", (stack.getInt("Damage") & 2) == 0
                     ? LEGACY_ID : SkysTerrainSmoother.ID + ":red_sand_slab");
             stack.remove("Damage");
         }
     }
 
-    private static void collect(INBT value, List<CompoundNBT> stacks, int depth) {
+    private static void collect(Tag value, List<CompoundTag> stacks, int depth) {
         if (depth > 64) {
             throw new LegacyBridge.RecoveryAbort("Saved sand slab nesting exceeds 64 levels", null);
         }
-        if (value instanceof CompoundNBT) {
-            CompoundNBT compound = (CompoundNBT) value;
+        if (value instanceof CompoundTag) {
+            CompoundTag compound = (CompoundTag) value;
             if (LEGACY_ID.equals(compound.getString("id")) && compound.contains("Damage")) {
                 stacks.add(compound);
             }
             for (String key : compound.getAllKeys()) {
                 collect(compound.get(key), stacks, depth + 1);
             }
-        } else if (value instanceof ListNBT) {
-            for (INBT child : (ListNBT) value) {
+        } else if (value instanceof ListTag) {
+            for (Tag child : (ListTag) value) {
                 collect(child, stacks, depth + 1);
             }
         }

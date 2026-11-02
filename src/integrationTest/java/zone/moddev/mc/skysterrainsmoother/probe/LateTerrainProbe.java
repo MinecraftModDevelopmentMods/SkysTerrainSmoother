@@ -2,12 +2,12 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.*;
 import java.security.MessageDigest;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.common.MinecraftForge;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
@@ -23,7 +23,7 @@ final class LateTerrainProbe {
     private LateTerrainProbe() {
     }
 
-    static int run(ServerWorld world) {
+    static int run(ServerLevel world) {
         MaterialCatalogue catalogue = MaterialCatalogue.instance();
         BlockState clay = Blocks.TERRACOTTA.defaultBlockState();
         TerrainMaterial material = catalogue.source(clay);
@@ -39,7 +39,7 @@ final class LateTerrainProbe {
         int previousLevel = SkysTerrainSmoother.level;
 
         BlockPos floor = new BlockPos(30008, 220, 30008);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
 
         try {
             for (int level = 1; level <= 3; level++) {
@@ -124,11 +124,11 @@ final class LateTerrainProbe {
             SkysTerrainSmoother.level = previousLevel;
         }
 
-        System.out.println("TERRAIN_SMOOTHER_CLAY_OASIS_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLAY_OASIS_PASS checks=" + checks);
         return checks;
     }
 
-    private static void fixture(ServerWorld world, BlockPos floor, BlockState source) {
+    private static void fixture(ServerLevel world, BlockPos floor, BlockState source) {
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 for (int blockY = floor.getY() + 1; blockY < 256; blockY++) {
@@ -140,11 +140,11 @@ final class LateTerrainProbe {
         }
     }
 
-    private static void post(ServerWorld world, Chunk owner) {
+    private static void post(ServerLevel world, LevelChunk owner) {
         ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
     }
 
-    static int generationOrder(ServerWorld world) throws Exception {
+    static int generationOrder(ServerLevel world) throws Exception {
         int previousLevel = SkysTerrainSmoother.level;
 
         try {
@@ -155,7 +155,7 @@ final class LateTerrainProbe {
 
                 for (int order = 0; order < 2; order++) {
                     int origin = order == 0 ? 128 : 256;
-                    List<Chunk> chunks = new ArrayList<>();
+                    List<LevelChunk> chunks = new ArrayList<>();
 
                     for (int blockZ = 0; blockZ < 9; blockZ++) {
                         for (int blockX = 0; blockX < 9; blockX++) {
@@ -166,14 +166,14 @@ final class LateTerrainProbe {
                         for (int blockX = 0; blockX < 144; blockX++) {
                             int height = 200
                                     + Math.floorMod(blockX * 31 + blockZ * 17 + (blockX >> 3) * (blockZ >> 3), 3);
-                            Chunk chunk = chunks.get((blockX >> 4) + (blockZ >> 4) * 9);
+                            LevelChunk chunk = chunks.get((blockX >> 4) + (blockZ >> 4) * 9);
 
                             for (int blockY = 170; blockY < 256; blockY++) {
-                                net.minecraft.world.chunk.ChunkSection section = chunk
+                                net.minecraft.world.level.chunk.LevelChunkSection section = chunk
                                         .getSections()[blockY >> 4];
 
                                 if (section == null) {
-                                    chunk.getSections()[blockY >> 4] = section = new net.minecraft.world.chunk.ChunkSection(blockY & ~15);
+                                    chunk.getSections()[blockY >> 4] = section = new net.minecraft.world.level.chunk.LevelChunkSection(blockY & ~15);
                                 }
 
                                 section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.defaultBlockState());
@@ -184,13 +184,13 @@ final class LateTerrainProbe {
 
                         }
                     }
-                    for (Chunk chunk : chunks) {
+                    for (LevelChunk chunk : chunks) {
                     ProbeWorld.rebuildHeights(chunk);
                 }
                 if (order == 1) {
                         Collections.reverse(chunks);
                     }
-                    for (Chunk chunk : chunks) {
+                    for (LevelChunk chunk : chunks) {
                         SkysTerrainSmoother.engine.smooth(world, chunk, level);
                     }
                     // Introduce grass after the initial pass, including beneath clay caps, to model decoration changing
@@ -201,7 +201,7 @@ final class LateTerrainProbe {
                                 int height = 200
                                         + Math.floorMod(blockX * 31 + blockZ * 17 + (blockX >> 3) * (blockZ >> 3), 3);
                                 // Resolve by coordinate, not traversal order.
-                                Chunk chunk = world.getChunkSource().getChunkNow(origin + (blockX >> 4),
+                                LevelChunk chunk = world.getChunkSource().getChunkNow(origin + (blockX >> 4),
                                         128 + (blockZ >> 4));
 
                                 chunk.setBlockState(new BlockPos((origin << 4) + blockX, height, (128 << 4) + blockZ),
@@ -209,7 +209,7 @@ final class LateTerrainProbe {
                             }
                         }
                     }
-                    for (Chunk chunk : chunks) {
+                    for (LevelChunk chunk : chunks) {
                         post(world, chunk);
                     }
 
@@ -239,7 +239,7 @@ final class LateTerrainProbe {
                     hexDigest.append(String.format("%02X", value & 255));
                 }
 
-                System.out.println("TERRAIN_SMOOTHER_LATE_GENERATION_ORDER_PASS level=" + level + " chunks=81 sha256="
+                zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_LATE_GENERATION_ORDER_PASS level=" + level + " chunks=81 sha256="
                         + hexDigest);
             }
         } finally {

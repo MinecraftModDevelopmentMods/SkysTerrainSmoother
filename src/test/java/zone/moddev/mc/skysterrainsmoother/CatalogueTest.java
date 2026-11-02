@@ -1,15 +1,22 @@
 package zone.moddev.mc.skysterrainsmoother;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+
 import java.util.*;
-import net.minecraft.block.Blocks;
-import net.minecraft.world.biome.Biomes;
-import net.minecraft.util.registry.Bootstrap;
-import net.minecraft.block.*;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.*;
-import net.minecraft.util.math.*;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.material.Material;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.resources.*;
+import net.minecraft.core.*;
+import net.minecraft.world.level.BlockGetter;
 import org.junit.jupiter.api.*;
 import zone.moddev.mc.skysterrainsmoother.api.*;
 import zone.moddev.mc.skysterrainsmoother.internal.*;
@@ -39,18 +46,18 @@ class CatalogueTest {
             }
         }
 
-        final AxisAlignedBB boundingBox = new AxisAlignedBB(x0, 0, z0, x1, .5, z1);
+        final AABB boundingBox = new AABB(x0, 0, z0, x1, .5, z1);
 
         return new Block(Block.Properties.of(Material.STONE)) {
             @Override
-            public net.minecraft.util.math.shapes.VoxelShape getShape(BlockState state, IBlockReader world,
-                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
-                return net.minecraft.util.math.shapes.VoxelShapes.create(boundingBox);
+            public net.minecraft.world.phys.shapes.VoxelShape getShape(BlockState state, BlockGetter world,
+                    BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
+                return net.minecraft.world.phys.shapes.Shapes.create(boundingBox);
             }
 
             @Override
-            public net.minecraft.util.math.shapes.VoxelShape getCollisionShape(BlockState state, IBlockReader world,
-                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
+            public net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter world,
+                    BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
                 return getShape(state, world, position, context);
             }
         }.defaultBlockState();
@@ -129,11 +136,11 @@ class CatalogueTest {
         TerrainMaterial terrainMaterial = material("stone", Blocks.STONE.defaultBlockState(), piece(15), null, null);
 
         catalogue.register(terrainMaterial);
-        catalogue.addBiomeRule((id, biome) -> biome == net.minecraft.util.registry.WorldGenRegistries.BIOME.get(Biomes.PLAINS));
+        catalogue.addBiomeRule((id, biome) -> biome == net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS));
         catalogue.addAreaProtection((dimension, pos, biome) -> pos.getX() < 0);
-        assertTrue(catalogue.allows(terrainMaterial, net.minecraft.util.registry.WorldGenRegistries.BIOME.get(Biomes.PLAINS), 0, BlockPos.ZERO));
-        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.util.registry.WorldGenRegistries.BIOME.get(Biomes.DESERT), 0, BlockPos.ZERO));
-        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.util.registry.WorldGenRegistries.BIOME.get(Biomes.PLAINS), 0, new BlockPos(-1, 1, 1)));
+        assertTrue(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS), 0, BlockPos.ZERO));
+        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.DESERT), 0, BlockPos.ZERO));
+        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS), 0, new BlockPos(-1, 1, 1)));
     }
     @Test
     void wetOutputsAndHollowGeometryAreRejected() {
@@ -146,12 +153,12 @@ class CatalogueTest {
                 () -> catalogue.register(material("wet", Blocks.STONE.defaultBlockState(), wet, null, null)));
         Block hollow = new Block(Block.Properties.of(Material.STONE)) {
             @Override
-            public net.minecraft.util.math.shapes.VoxelShape getCollisionShape(BlockState state, IBlockReader world,
-                    BlockPos position, net.minecraft.util.math.shapes.ISelectionContext context) {
-                return net.minecraft.util.math.shapes.VoxelShapes.join(
-                        net.minecraft.util.math.shapes.VoxelShapes.create(new AxisAlignedBB(0, 0, 0, 1, .5, 1)),
-                        net.minecraft.util.math.shapes.VoxelShapes.create(new AxisAlignedBB(.25, .125, .25, .75, .375, .75)),
-                        net.minecraft.util.math.shapes.IBooleanFunction.ONLY_FIRST);
+            public net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter world,
+                    BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
+                return net.minecraft.world.phys.shapes.Shapes.join(
+                        net.minecraft.world.phys.shapes.Shapes.create(new AABB(0, 0, 0, 1, .5, 1)),
+                        net.minecraft.world.phys.shapes.Shapes.create(new AABB(.25, .125, .25, .75, .375, .75)),
+                        net.minecraft.world.phys.shapes.BooleanOp.ONLY_FIRST);
             }
         };
         assertThrows(IllegalArgumentException.class,

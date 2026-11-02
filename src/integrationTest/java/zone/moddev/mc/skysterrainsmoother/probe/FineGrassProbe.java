@@ -1,14 +1,14 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.Random;
-import net.minecraft.block.GrassBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.LightType;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.GrassBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysgrassslabs.block.GrassSpread;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -17,9 +17,9 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
 /** Real generation and ticking must leave the visible part of a grass support green. */
 final class FineGrassProbe {
-    static int run(ServerWorld world) {
+    static int run(ServerLevel world) {
         BlockPos floor = new BlockPos(4200, 210, 4200);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
         TerrainMaterial material = MaterialCatalogue.instance().source(Blocks.GRASS_BLOCK.defaultBlockState());
         Direction[] directions = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
         int checks = 0;
@@ -50,15 +50,15 @@ final class FineGrassProbe {
             checks += checkSupport(world, floor, corner, false, true);
         }
         checks += shrinkingSlab(world, material);
-        System.out.println("TERRAIN_FINE_GRASS_SUPPORT_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_FINE_GRASS_SUPPORT_PASS checks=" + checks);
         return checks;
     }
 
-    private static int checkSupport(ServerWorld world, BlockPos floor, BlockState piece,
+    private static int checkSupport(ServerLevel world, BlockPos floor, BlockState piece,
             boolean fullCover, boolean snow) {
         RuntimeProbe.require(world.getBlockState(floor).getBlock() == (fullCover ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                 "only a full footprint may dirtify the supporting grass");
-        ProbeWorld.light(world, LightType.SKY, floor.above(), 15);
+        ProbeWorld.light(world, LightLayer.SKY, floor.above(), 15);
         if (snow) {
             world.setBlock(floor.above().east(), Blocks.SNOW.defaultBlockState(), 2);
             RuntimeProbe.require(piece.getBlock().updateShape(piece, Direction.EAST,
@@ -75,7 +75,7 @@ final class FineGrassProbe {
         return snow ? 5 : 4;
     }
 
-    private static void prepare(ServerWorld world, BlockPos floor) {
+    private static void prepare(ServerLevel world, BlockPos floor) {
         for (int offsetZ = -3; offsetZ <= 3; offsetZ++) {
             for (int offsetX = -3; offsetX <= 3; offsetX++) {
                 BlockPos column = floor.offset(offsetX, 0, offsetZ);
@@ -88,9 +88,9 @@ final class FineGrassProbe {
         }
     }
 
-    private static int shrinkingSlab(ServerWorld world, TerrainMaterial material) {
+    private static int shrinkingSlab(ServerLevel world, TerrainMaterial material) {
         BlockPos floor = new BlockPos(4232, 210, 4232);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
         int previousLevel = SkysTerrainSmoother.level;
         int checks = 0;
         try {

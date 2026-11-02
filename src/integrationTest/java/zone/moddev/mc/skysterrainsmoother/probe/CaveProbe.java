@@ -1,16 +1,16 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.*;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.world.gen.feature.structure.StructureStart;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.util.math.MutableBoundingBox;
-import net.minecraft.block.RedstoneOreBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.block.RedStoneOreBlock;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -27,9 +27,9 @@ final class CaveProbe {
     private CaveProbe() {
     }
 
-    static int run(ServerWorld world) {
+    static int run(ServerLevel world) {
         BlockPos floor = new BlockPos(3000, 70, 3000);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
 
         clear(world, floor, 69, 255);
         fixture(world, floor, 6);
@@ -161,16 +161,22 @@ final class CaveProbe {
         }
 
         // Structure bounds and add-on vetoes apply to underground floors as well.
-        StructureStart previous = owner.getAllStarts().get(net.minecraft.world.gen.feature.structure.Structure.MINESHAFT);
-        StructureStart protectedStart = new StructureStart(net.minecraft.world.gen.feature.structure.Structure.MINESHAFT, owner.getPos().x, owner.getPos().z,
-                new MutableBoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
-                        floor.getX() + 2, 80, floor.getZ() + 2), 0, 1) {
+        StructureStart previous = owner.getAllStarts().get(net.minecraft.world.level.levelgen.feature.StructureFeature.MINESHAFT);
+        BoundingBox protectedBounds = new BoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
+                floor.getX() + 2, 80, floor.getZ() + 2);
+        StructureStart protectedStart = new StructureStart(
+                net.minecraft.world.level.levelgen.feature.StructureFeature.MINESHAFT, owner.getPos(), 0, 1L) {
             @Override
-            public void generatePieces(net.minecraft.util.registry.DynamicRegistries registries,
-                    net.minecraft.world.gen.ChunkGenerator generator,
-                    net.minecraft.world.gen.feature.template.TemplateManager templates, int chunkX, int chunkZ,
-                    net.minecraft.world.biome.Biome biome,
-                    net.minecraft.world.gen.feature.IFeatureConfig configuration) {
+            public void generatePieces(net.minecraft.core.RegistryAccess registries,
+                    net.minecraft.world.level.chunk.ChunkGenerator generator,
+                    net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager templates, net.minecraft.world.level.ChunkPos chunk,
+                    net.minecraft.world.level.biome.Biome biome,
+                    net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration configuration, net.minecraft.world.level.LevelHeightAccessor height) {
+            }
+
+            @Override
+            protected BoundingBox createBoundingBox() {
+                return protectedBounds;
             }
 
             @Override
@@ -178,7 +184,7 @@ final class CaveProbe {
                 return true;
             }
         };
-        owner.getAllStarts().put(net.minecraft.world.gen.feature.structure.Structure.MINESHAFT, protectedStart);
+        owner.getAllStarts().put(net.minecraft.world.level.levelgen.feature.StructureFeature.MINESHAFT, protectedStart);
         try {
             fixture(world, floor, 6);
             world.setBlock(floor.north().above(), Blocks.STONE.defaultBlockState(), 2);
@@ -187,9 +193,9 @@ final class CaveProbe {
             checks++;
         } finally {
             if (previous == null) {
-                owner.getAllStarts().remove(net.minecraft.world.gen.feature.structure.Structure.MINESHAFT);
+                owner.getAllStarts().remove(net.minecraft.world.level.levelgen.feature.StructureFeature.MINESHAFT);
             } else {
-                owner.getAllStarts().put(net.minecraft.world.gen.feature.structure.Structure.MINESHAFT, previous);
+                owner.getAllStarts().put(net.minecraft.world.level.levelgen.feature.StructureFeature.MINESHAFT, previous);
             }
         }
 
@@ -203,12 +209,12 @@ final class CaveProbe {
         checks += lateDecoration(world, floor, owner);
         checks += oreDecoration(world, floor, owner);
         checks += manyFloors(world);
-        System.out.println("TERRAIN_SMOOTHER_CAVE_MATERIALS_PASS mineralogy=" + mineralogy);
-        System.out.println("TERRAIN_SMOOTHER_CAVE_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CAVE_MATERIALS_PASS mineralogy=" + mineralogy);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CAVE_PASS checks=" + checks);
         return checks;
     }
 
-    private static int lateDecoration(ServerWorld world, BlockPos floor, Chunk owner) {
+    private static int lateDecoration(ServerLevel world, BlockPos floor, LevelChunk owner) {
         int checks = 0;
 
         for (int kind = 0; kind < 4; kind++) {
@@ -248,11 +254,11 @@ final class CaveProbe {
         return checks;
     }
 
-    private static int oreDecoration(ServerWorld world, BlockPos floor, Chunk owner) {
+    private static int oreDecoration(ServerLevel world, BlockPos floor, LevelChunk owner) {
         int checks = 0;
 
         for (BlockState ore : new BlockState[] { Blocks.COAL_ORE.defaultBlockState(), Blocks.IRON_ORE.defaultBlockState(),
-                Blocks.REDSTONE_ORE.defaultBlockState(), Blocks.REDSTONE_ORE.defaultBlockState().setValue(RedstoneOreBlock.LIT, true),
+                Blocks.REDSTONE_ORE.defaultBlockState(), Blocks.REDSTONE_ORE.defaultBlockState().setValue(RedStoneOreBlock.LIT, true),
                 RuntimeProbe.probeOre.defaultBlockState() }) {
             for (int level = 1; level <= 3; level++) {
                 fixture(world, floor, 6);
@@ -290,16 +296,16 @@ final class CaveProbe {
         RuntimeProbe.require(!world.isEmptyBlock(floor.above()),
                 "neighbouring retained ore cap still represents a higher logical floor");
         checks++;
-        System.out.println("TERRAIN_SMOOTHER_ORE_SUPPORT_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_ORE_SUPPORT_PASS checks=" + checks);
         return checks;
     }
 
-    private static int manyFloors(ServerWorld world) {
-        Chunk owner = world.getChunk(200, 200);
-        net.minecraft.world.chunk.ChunkSection[] sections = owner.getSections();
+    private static int manyFloors(ServerLevel world) {
+        LevelChunk owner = world.getChunk(200, 200);
+        net.minecraft.world.level.chunk.LevelChunkSection[] sections = owner.getSections();
 
         for (int section = 0; section < 16; section++) {
-            sections[section] = new net.minecraft.world.chunk.ChunkSection(section * 16);
+            sections[section] = new net.minecraft.world.level.chunk.LevelChunkSection(section * 16);
         }
         for (int blockZ = 0; blockZ < 16; blockZ++) {
             for (int blockX = 0; blockX < 16; blockX++) {
@@ -325,11 +331,11 @@ final class CaveProbe {
         int second = SkysTerrainSmoother.engine.smooth(world, owner, 1);
 
         RuntimeProbe.require(second == 0, "repeated floor scan never stacks new caps");
-        System.out.println("TERRAIN_SMOOTHER_CAVE_BUFFER_PASS placed=" + placed);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CAVE_BUFFER_PASS placed=" + placed);
         return 3;
     }
 
-    private static void clear(ServerWorld world, BlockPos floor, int minY, int maxY) {
+    private static void clear(ServerLevel world, BlockPos floor, int minY, int maxY) {
         for (int blockZ = -2; blockZ <= 2; blockZ++) {
             for (int blockX = -2; blockX <= 2; blockX++) {
                 for (int blockY = minY; blockY <= maxY; blockY++) {
@@ -339,7 +345,7 @@ final class CaveProbe {
         }
     }
 
-    private static void fixture(ServerWorld world, BlockPos floor, int roofOffset) {
+    private static void fixture(ServerLevel world, BlockPos floor, int roofOffset) {
         clear(world, floor, floor.getY(), floor.getY() + 8);
 
         for (int blockZ = -2; blockZ <= 2; blockZ++) {

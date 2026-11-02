@@ -8,14 +8,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import net.minecraft.block.Block;
-import net.minecraft.block.SnowBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -23,9 +23,9 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
 /** Snowy terraces and mixed uphill/downhill edges that still have room for a transition. */
 final class OpportunityProbe {
-    static int run(ServerWorld world) throws IOException {
+    static int run(ServerLevel world) throws IOException {
         BlockPos floor = new BlockPos(3720, 210, 3720);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
         int checks = 0;
 
         for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
@@ -67,7 +67,7 @@ final class OpportunityProbe {
                     for (int layers = 2; layers <= 8; layers++) {
                         prepare(world, floor, source);
                         world.setBlock(floor.relative(uphill).above(), source, 2);
-                        BlockState snow = Blocks.SNOW.defaultBlockState().setValue(SnowBlock.LAYERS, layers);
+                        BlockState snow = Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, layers);
                         world.setBlock(floor.above(), snow, 2);
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         RuntimeProbe.require(world.getBlockState(floor.above()).equals(snow),
@@ -102,12 +102,12 @@ final class OpportunityProbe {
             }
         }
         checks += snowyTerrace(world);
-        System.out.println("TERRAIN_SMOOTHER_OPPORTUNITIES_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_OPPORTUNITIES_PASS checks=" + checks);
         return checks;
     }
 
     /** A small block-only sample from the reported mountain; no player or world metadata is included. */
-    private static int snowyTerrace(ServerWorld world) throws IOException {
+    private static int snowyTerrace(ServerLevel world) throws IOException {
         JsonObject fixture;
         InputStream input = OpportunityProbe.class.getResourceAsStream("/fixtures/snowy_stone_terrace.json");
         RuntimeProbe.require(input != null, "the mountain regression fixture is packaged with the probe");
@@ -119,14 +119,14 @@ final class OpportunityProbe {
         BlockState[] palette = new BlockState[savedPalette.size()];
         for (int index = 0; index < palette.length; index++) {
             JsonObject entry = savedPalette.get(index).getAsJsonObject();
-            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.util.ResourceLocation(entry.get("block").getAsString()));
+            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.resources.ResourceLocation(entry.get("block").getAsString()));
             RuntimeProbe.require(block != null, "unknown block in the mountain regression fixture");
             RuntimeProbe.require(entry.get("meta").getAsInt() == 0, "Only default native states occur in this terrace fixture");
             palette[index] = block.defaultBlockState();
         }
 
         BlockPos origin = new BlockPos(3768, 210, 3768);
-        Chunk owner = world.getChunkAt(origin);
+        LevelChunk owner = world.getChunkAt(origin);
         int radius = fixture.get("radius").getAsInt();
         int minimumHeight = fixture.get("min_height").getAsInt();
         int maximumHeight = fixture.get("max_height").getAsInt();
@@ -166,7 +166,7 @@ final class OpportunityProbe {
         return Integer.numberOfTrailingZeros(firstEdge & secondEdge);
     }
 
-    private static void prepare(ServerWorld world, BlockPos floor, BlockState source) {
+    private static void prepare(ServerLevel world, BlockPos floor, BlockState source) {
         for (int offsetZ = -3; offsetZ <= 3; offsetZ++) {
             for (int offsetX = -3; offsetX <= 3; offsetX++) {
                 for (int height = 6; height >= -2; height--) {

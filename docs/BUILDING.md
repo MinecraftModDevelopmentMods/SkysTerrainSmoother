@@ -1,15 +1,15 @@
 # Building from source
 
-Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
-Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
-Minecraft 1.16.5 with ForgeGradle 7.0.34.
+Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 16.0.2+7 for production.
+Set `STS_JAVA16_HOME` to the Java 16 installation. This branch targets
+Minecraft 1.17.1 with ForgeGradle 7.0.34.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.116051 and Building Pieces
-0.3.8.116051.
+The source lock records locally qualified Grass Slabs 1.2.0.117011 and Building Pieces
+0.3.8.117011.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -30,7 +30,7 @@ Eclipse's ignored Buildship preferences retain the selected checkouts. A version
 override is saved only when explicitly supplied; normal generation clears any
 older override. Refresh the Gradle project in Eclipse after generating the runs.
 
-Use `genEclipseRuns eclipse` to prepare the Java 8 IDE setup. Ordinary launches
+Use `genEclipseRuns eclipse` to prepare the Java 16 IDE setup. Ordinary launches
 use the two pinned content jars and exclude unit tests and build-only runtime probes.
 Generation prepares those jars in the development mods folder without clearing
 its configuration or worlds. See [the release guide](RELEASING.md)

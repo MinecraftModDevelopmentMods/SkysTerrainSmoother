@@ -1,12 +1,12 @@
 package zone.moddev.mc.skysterrainsmoother;
 
 import java.util.Collections;
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.state.properties.SlabType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import zone.moddev.mc.skysterrainsmoother.content.SandContent;
@@ -38,10 +38,10 @@ class SandStateTest {
 
     @Test
     void nestedStacksKeepSlotsCountsAndUnrelatedData() {
-        CompoundNBT root = new CompoundNBT();
-        ListNBT contents = new ListNBT();
+        CompoundTag root = new CompoundTag();
+        ListTag contents = new ListTag();
         for (int metadata = 0; metadata < 4; metadata++) {
-            CompoundNBT stack = stack(metadata);
+            CompoundTag stack = stack(metadata);
             stack.putByte("Slot", (byte) metadata);
             contents.add(stack);
         }
@@ -49,7 +49,7 @@ class SandStateTest {
         root.putString("Unrelated", "keep");
         SandLegacyRecovery.recoverItems(root);
         for (int index = 0; index < 4; index++) {
-            CompoundNBT stack = contents.getCompound(index);
+            CompoundTag stack = contents.getCompound(index);
             assertEquals(index < 2 ? "skysterrainsmoother:sand_slab" : "skysterrainsmoother:red_sand_slab", stack.getString("id"));
             assertEquals(19, stack.getByte("Count"));
             assertEquals(index, stack.getByte("Slot"));
@@ -57,7 +57,7 @@ class SandStateTest {
             assertFalse(stack.contains("Damage"));
         }
         assertEquals("keep", root.getString("Unrelated"));
-        CompoundNBT once = root.copy();
+        CompoundTag once = root.copy();
         SandLegacyRecovery.recoverItems(root);
         assertEquals(once, root);
     }
@@ -65,12 +65,12 @@ class SandStateTest {
     @Test
     void invalidNestedStackAbortsBeforeChangingAnyStack() {
         for (int invalid : new int[] { -1, 4, 300 }) {
-            CompoundNBT root = new CompoundNBT();
-            ListNBT contents = new ListNBT();
+            CompoundTag root = new CompoundTag();
+            ListTag contents = new ListTag();
             contents.add(stack(2));
             contents.add(stack(invalid));
             root.put("Items", contents);
-            CompoundNBT original = root.copy();
+            CompoundTag original = root.copy();
             assertThrows(zone.moddev.mc.skysbuildingpieces.legacy.LegacyBridge.RecoveryAbort.class,
                     () -> SandLegacyRecovery.recoverItems(root));
             assertEquals(original, root);
@@ -79,19 +79,19 @@ class SandStateTest {
 
     @Test
     void unrelatedStacksAreUntouched() {
-        CompoundNBT stack = stack(7);
+        CompoundTag stack = stack(7);
         stack.putString("id", "anothermod:sand_slab");
-        CompoundNBT original = stack.copy();
+        CompoundTag original = stack.copy();
         SandLegacyRecovery.recoverItems(stack);
         assertEquals(original, stack);
     }
 
-    private static CompoundNBT stack(int metadata) {
-        CompoundNBT stack = new CompoundNBT();
+    private static CompoundTag stack(int metadata) {
+        CompoundTag stack = new CompoundTag();
         stack.putString("id", "skysterrainsmoother:sand_slab");
         stack.putByte("Count", (byte) 19);
         stack.putShort("Damage", (short) metadata);
-        CompoundNBT custom = new CompoundNBT();
+        CompoundTag custom = new CompoundTag();
         custom.putString("Name", "Named sand");
         stack.put("tag", custom);
         return stack;

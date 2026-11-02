@@ -1,10 +1,10 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.Block;
-import net.minecraft.state.Property;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -51,7 +51,7 @@ public final class MineralogyProbe {
         }
         // The locked legacy releases have no pumice, chert, gypsum or chalk slabs.
         require(count == 24, "all 24 available natural rock slabs are registered, got " + count);
-        System.out.println("TERRAIN_SMOOTHER_MINERALOGY_PASS materials=" + count + " finer_shapes=24 addon=false");
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_MINERALOGY_PASS materials=" + count + " finer_shapes=24 addon=false");
         return count;
     }
 

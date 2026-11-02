@@ -3,23 +3,23 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Properties;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.item.FallingBlockEntity;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.state.properties.SlabType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
+import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -47,7 +47,7 @@ public final class NativeBootstrap {
     }
 
     private void started(FMLServerStartedEvent event) {
-        ServerWorld world = event.getServer().getLevel(World.OVERWORLD);
+        ServerLevel world = event.getServer().getLevel(Level.OVERWORLD);
         require(setupComplete && MaterialCatalogue.instance().frozen(), "Native setup completed and froze");
         require(GrassSlabsApi.hasSmoothingOwner(), "Grass generation ownership was claimed");
         boolean lateRejected = false;
@@ -65,24 +65,24 @@ public final class NativeBootstrap {
                     == ((metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM), "Legacy sand orientation");
             require(!state.getValue(SandSlabBlock.WATERLOGGED), "Legacy sand begins dry");
             require(block.getStateDefinition().getPossibleStates().size() == 4, "No double sand state");
-            CompoundNBT oldStack = new CompoundNBT();
+            CompoundTag oldStack = new CompoundTag();
             oldStack.putString("id", "skysterrainsmoother:sand_slab");
             oldStack.putByte("Count", (byte) 17);
             oldStack.putShort("Damage", (short) metadata);
-            CompoundNBT custom = new CompoundNBT();
+            CompoundTag custom = new CompoundTag();
             custom.putString("Name", "Kept sand");
             oldStack.put("tag", custom);
             SandLegacyRecovery.recoverItems(oldStack);
             require(oldStack.getString("id").equals(block.getRegistryName().toString())
                     && oldStack.getByte("Count") == 17 && custom.equals(oldStack.getCompound("tag")),
                     "Raw sand stack retains count and custom data");
-            CompoundNBT once = oldStack.copy();
+            CompoundTag once = oldStack.copy();
             SandLegacyRecovery.recoverItems(oldStack);
             require(once.equals(oldStack), "Sand item recovery is idempotent");
             checks += 5;
             checks += falling(world, state, metadata);
         }
-        File root = event.getServer().getWorldPath(net.minecraft.world.storage.FolderName.ROOT).toFile();
+        File root = event.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
         Properties receipt = new Properties();
         receipt.setProperty("checks", Integer.toString(checks));
         receipt.setProperty("materials", Integer.toString(MaterialCatalogue.instance().size()));
@@ -91,11 +91,11 @@ public final class NativeBootstrap {
         } catch (java.io.IOException failure) {
             throw new IllegalStateException("Cannot write native check receipt", failure);
         }
-        System.out.println("TERRAIN_NATIVE_BOOTSTRAP_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_NATIVE_BOOTSTRAP_PASS checks=" + checks);
         event.getServer().halt(false);
     }
 
-    private static int falling(ServerWorld world, BlockState state, int metadata) {
+    private static int falling(ServerLevel world, BlockState state, int metadata) {
         BlockPos source = new BlockPos(80 + metadata * 4, 220, 80);
         world.getChunk(source);
         for (int height = 215; height <= 223; height++) {
@@ -105,7 +105,7 @@ public final class NativeBootstrap {
         world.setBlock(source, state, 2);
         ((SandSlabBlock) state.getBlock()).tick(state, world, source, new java.util.Random(1));
         java.util.List<FallingBlockEntity> entities = world.getEntitiesOfClass(FallingBlockEntity.class,
-                new AxisAlignedBB(source).inflate(1));
+                new AABB(source).inflate(1));
         require(entities.size() == 1, "Native falling entity created");
         FallingBlockEntity falling = entities.get(0);
         for (int tick = 0; tick < 100 && falling.isAlive(); tick++) {
@@ -115,14 +115,14 @@ public final class NativeBootstrap {
                 "Falling preserves native sand colour and orientation");
         world.setBlock(source, state.setValue(SandSlabBlock.WATERLOGGED, true), 2);
         ((SandSlabBlock) state.getBlock()).tick(world.getBlockState(source), world, source, new java.util.Random(1));
-        entities = world.getEntitiesOfClass(FallingBlockEntity.class, new AxisAlignedBB(source).inflate(1));
+        entities = world.getEntitiesOfClass(FallingBlockEntity.class, new AABB(source).inflate(1));
         entities.removeIf(entity -> !entity.isAlive());
         require(entities.size() == 1, "Wet sand begins falling");
         FallingBlockEntity wet = entities.get(0);
         require(!wet.getBlockState().getValue(SandSlabBlock.WATERLOGGED), "Falling sand carries no source water");
         wet.tick();
         require(world.getFluidState(source).getType() == Fluids.WATER, "Water remains at the source");
-        wet.remove();
+        wet.discard();
         return 5;
     }
 

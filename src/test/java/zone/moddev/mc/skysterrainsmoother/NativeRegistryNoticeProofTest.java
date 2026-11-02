@@ -16,11 +16,11 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.StringNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -44,6 +44,17 @@ class NativeRegistryNoticeProofTest {
                 }
             }
             assertEquals(9, names.size());
+            assertEquals(3, profile.getAsJsonObject("remapped").size());
+            for (java.util.Map.Entry<String, com.google.gson.JsonElement> registry
+                    : profile.getAsJsonObject("remapped").entrySet()) {
+                for (java.util.Map.Entry<String, com.google.gson.JsonElement> mapping
+                        : registry.getValue().getAsJsonObject().entrySet()) {
+                    assertTrue(mapping.getValue().getAsJsonObject().get("id").getAsInt() >= 0);
+                    assertTrue(mapping.getValue().getAsJsonObject().get("target").getAsString().startsWith("minecraft:"));
+                    names.add(mapping.getKey());
+                }
+            }
+            assertEquals(11, names.size());
             int records = 0;
 
             try (ZipFile archive = new ZipFile(profile.get("fixture").getAsString())) {
@@ -54,16 +65,28 @@ class NativeRegistryNoticeProofTest {
                     try (InputStream input = archive.getInputStream(member)) {
                         if (label.endsWith(".dat") || label.endsWith(".dat_old")) {
                             byte[] bytes = readAll(input);
-                            CompoundNBT root;
+                            CompoundTag root;
                             if (bytes.length >= 2 && (bytes[0] & 255) == 31 && (bytes[1] & 255) == 139) {
-                                root = CompressedStreamTools.readCompressed(new ByteArrayInputStream(bytes));
+                                root = NbtIo.readCompressed(new ByteArrayInputStream(bytes));
                             } else {
                                 // Older forced-chunk data is native, uncompressed NBT.
-                                root = CompressedStreamTools.read(new DataInputStream(new ByteArrayInputStream(bytes)));
+                                root = NbtIo.read(new DataInputStream(new ByteArrayInputStream(bytes)));
                             }
                             // Registry availability is not a saved block, entity or inventory use.
                             root.remove("FML");
                             root.remove("fml");
+                            if (label.equals("world/data/skysgrassslabs_legacy_registry.dat")) {
+                                assertEquals(java.util.Collections.singleton("Blocks"), root.getAllKeys());
+                                CompoundTag blocks = root.getCompound("Blocks");
+                                assertEquals(new java.util.HashSet<>(java.util.Arrays.asList(
+                                        "aliases", "blocked", "ids", "overrides", "dummied")), blocks.getAllKeys());
+                                for (Tag row : blocks.getList("ids", 10)) {
+                                    assertEquals(new java.util.HashSet<>(java.util.Arrays.asList("K", "V")),
+                                            ((CompoundTag) row).getAllKeys());
+                                }
+                                // This file contains registry availability, not placed blocks or inventories.
+                                root.remove("Blocks");
+                            }
                             inspect(root, names, label);
                             records++;
                         } else if (label.endsWith(".mca")) {
@@ -101,25 +124,25 @@ class NativeRegistryNoticeProofTest {
                 assertEquals(3, compression, "Unexpected fixture compression: " + label);
             }
             try (DataInputStream input = new DataInputStream(payload)) {
-                inspect(CompressedStreamTools.read(input), names, label + ":" + slot);
+                inspect(NbtIo.read(input), names, label + ":" + slot);
             }
             records++;
         }
         return records;
     }
 
-    private static void inspect(INBT value, Set<String> names, String label) {
-        if (value instanceof CompoundNBT) {
-            CompoundNBT compound = (CompoundNBT) value;
+    private static void inspect(Tag value, Set<String> names, String label) {
+        if (value instanceof CompoundTag) {
+            CompoundTag compound = (CompoundTag) value;
             for (String key : compound.getAllKeys()) {
                 assertFalse(names.contains(key), "Saved registry-name key in " + label + ": " + key);
                 inspect(compound.get(key), names, label + "/" + key);
             }
-        } else if (value instanceof ListNBT) {
-            for (INBT entry : (ListNBT) value) {
+        } else if (value instanceof ListTag) {
+            for (Tag entry : (ListTag) value) {
                 inspect(entry, names, label);
             }
-        } else if (value instanceof StringNBT) {
+        } else if (value instanceof StringTag) {
             assertFalse(names.contains(value.getAsString()), "Saved registry-name value in " + label);
         }
     }

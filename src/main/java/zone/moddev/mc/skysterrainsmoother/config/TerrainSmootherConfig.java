@@ -47,7 +47,7 @@ public final class TerrainSmootherConfig {
         migrateLegacyConfig(FMLPaths.CONFIGDIR.get());
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
         net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus()
-                .addListener((ModConfig.Loading event) -> {
+                .addListener((net.minecraftforge.fml.event.config.ModConfigEvent.Loading event) -> {
                     if (event.getConfig().getSpec() == SPEC) {
                         loadedValues = event.getConfig().getConfigData();
                     }

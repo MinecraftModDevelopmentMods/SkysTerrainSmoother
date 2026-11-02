@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import subprocess
 import zipfile
 from native_client_log import audit as audit_client, audit_server
@@ -46,13 +47,31 @@ def manifest_classpath(destination, files):
         archive.writestr("META-INF/MANIFEST.MF", "\r\n".join(lines))
 
 
+def argument_file(java, directory, phase, arguments):
+    # Java 16 argument files avoid Windows' command-line length limit. Quoting
+    # each argument also preserves paths containing spaces.
+    source = Path(__file__).resolve().parent.parent / "src/bootstrapTest/native-log4j2.xml"
+    logging = directory / "native-log4j2.xml"
+    if logging.exists() and digest(logging) != digest(source):
+        raise ValueError("The packaged logging configuration changed between loads")
+    shutil.copyfile(source, logging)
+    arguments = ["-Dlog4j.configurationFile=" + logging.as_uri(), *arguments]
+    target = directory / (phase + "-launch-arguments.txt")
+    target.write_text("\n".join(json.dumps(str(value), ensure_ascii=False)
+                                for value in arguments) + "\n", encoding="utf-8")
+    return [str(java), "@" + str(target)]
+
 def client_command(options, directory):
     runtime = options.runtime.resolve()
-    base = json.loads((runtime / "versions/1.16.5/1.16.5.json").read_text(encoding="utf-8"))
-    forge = json.loads((runtime / "versions/1.16.5-forge-36.2.34/1.16.5-forge-36.2.34.json")
-                       .read_text(encoding="utf-8"))
-    if base["id"] != "1.16.5" or forge["inheritsFrom"] != "1.16.5":
-        raise ValueError("This launcher requires the verified Forge 36 client metadata")
+    base = json.loads((runtime / "versions/1.17.1/1.17.1.json").read_text(encoding="utf-8"))
+    profiles = [runtime / "versions" / name / (name + ".json")
+                for name in ("1.17.1-forge-37.1.1", "forge-37.1.1")]
+    profile = next((path for path in profiles if path.is_file()), None)
+    if profile is None:
+        raise ValueError("The installed client has no Forge 37.1.1 profile")
+    forge = json.loads(profile.read_text(encoding="utf-8"))
+    if base["id"] != "1.17.1" or forge["inheritsFrom"] != "1.17.1":
+        raise ValueError("This launcher requires the verified Forge 37 client metadata")
     libraries = {}
     for layer in (base, forge):
         for library in layer["libraries"]:
@@ -60,42 +79,59 @@ def client_command(options, directory):
                 libraries[":".join(library["name"].split(":")[:2])] = library
     classpath = []
     for library in libraries.values():
-        artifact = library["downloads"]["artifact"]
+        artifact = (library.get("downloads") or {}).get("artifact")
+        if artifact is None:
+            continue
         path = runtime / "libraries" / artifact["path"]
         if digest(path, "sha1") != artifact["sha1"].upper():
             raise ValueError("Client library checksum changed: " + library["name"])
         classpath.append(path)
-    client = runtime / "versions/1.16.5/1.16.5.jar"
+    client = runtime / "versions/1.17.1/1.17.1.jar"
     if digest(client, "sha1") != base["downloads"]["client"]["sha1"].upper():
         raise ValueError("Official client checksum changed")
     classpath.append(client)
-    classpath_jar = directory / "launch-classpath.jar"
-    manifest_classpath(classpath_jar, classpath)
-    replacements = {
-        "auth_player_name": "TerrainSmootherChecks", "version_name": forge["id"],
-        "game_directory": str(directory), "assets_root": str(options.assets.resolve()),
-        "assets_index_name": base["assetIndex"]["id"], "auth_uuid": "1" * 32,
-        "auth_access_token": "0", "user_type": "mojang", "version_type": "release",
+    assets = options.assets.resolve()
+    index = assets / "indexes" / (base["assetIndex"]["id"] + ".json")
+    if digest(index, "sha1") != base["assetIndex"]["sha1"].upper():
+        raise ValueError("The official client asset index is missing or damaged")
+    natives = (options.natives or runtime.parent / (runtime.name + "-natives")).resolve()
+    if not natives.is_dir() or not any(natives.glob("*.dll")):
+        raise ValueError("Client native libraries are incomplete")
+    substitutions = {
+        "library_directory": (runtime / "libraries").as_posix(),
+        "classpath_separator": os.pathsep,
+        "version_name": base["id"],
     }
-    arguments = []
-    for layer in (base, forge):
-        for argument in layer["arguments"]["game"]:
-            if isinstance(argument, dict):
-                if not allowed(argument.get("rules")):
-                    continue
-                argument = argument["value"]
-            for value in argument if isinstance(argument, list) else [argument]:
-                for key, replacement in replacements.items():
-                    value = value.replace("${" + key + "}", replacement)
-                if "${" in value:
-                    raise ValueError("Unresolved native launch argument: " + value)
-                arguments.append(value)
-    natives = runtime / "natives/1.16.5-forge-36.2.34"
-    if not natives.is_dir() or not (options.assets / "indexes/1.16.json").is_file():
-        raise ValueError("Client natives or assets are incomplete")
-    return [str(options.java), "-Xmx3g", "-Djava.library.path=" + str(natives),
-            "-Dskysterrainsmoother.integrationPhase=" + options.phase,
-            "-cp", str(classpath_jar), forge["mainClass"], *arguments]
+    arguments = ["-Xmx3g", "-Djava.net.preferIPv4Stack=true",
+                 "-Djava.library.path=" + str(natives),
+                 "-Dskysterrainsmoother.integrationPhase=" + options.phase]
+    for argument in forge["arguments"]["jvm"]:
+        for key, value in substitutions.items():
+            argument = argument.replace("${" + key + "}", value)
+        if "${" in argument:
+            raise ValueError("Unresolved native JVM argument: " + argument)
+        arguments.append(argument)
+    arguments.extend(("-cp", os.pathsep.join(str(path) for path in classpath), forge["mainClass"]))
+    arguments.extend(forge["arguments"]["game"])
+    arguments.extend(("--username", "TerrainSmootherChecks", "--version", forge["id"],
+                      "--gameDir", str(directory), "--assetsDir", str(assets),
+                      "--assetIndex", base["assetIndex"]["id"], "--uuid", "1" * 32,
+                      "--accessToken", "0", "--userType", "legacy", "--versionType", "release"))
+    return argument_file(options.java, directory, options.phase, arguments)
+
+def server_command(options, directory):
+    runtime = options.runtime.resolve()
+    filename = "win_args.txt" if os.name == "nt" else "unix_args.txt"
+    source = runtime / "libraries/net/minecraftforge/forge/1.17.1-37.1.1" / filename
+    arguments = ["-Xmx3g", "-Djava.net.preferIPv4Stack=true",
+                 "-Dskysterrainsmoother.integrationPhase=" + options.phase]
+    for argument in shlex.split(source.read_text(encoding="utf-8")):
+        argument = argument.replace("libraries/", (runtime / "libraries").as_posix() + "/")
+        argument = argument.replace("-DlibraryDirectory=libraries",
+                                    "-DlibraryDirectory=" + (runtime / "libraries").as_posix())
+        arguments.append(argument)
+    arguments.append("--nogui")
+    return argument_file(options.java, directory, options.phase, arguments)
 
 
 def prepare(options, directory):
@@ -139,6 +175,7 @@ def prepare(options, directory):
         expected = (fixture / "SHA256SUMS").read_text(encoding="utf-8").split()[0]
         if digest(archive_path) != expected:
             raise ValueError("The sealed source fixture changed")
+        shutil.copyfile(archive_path, directory / "source-world.zip")
         world = directory / ("world" if options.mode == "server" else "saves/terrain-smoother-world")
         with zipfile.ZipFile(archive_path) as archive:
             for name in archive.namelist():
@@ -178,6 +215,7 @@ def main():
     parser.add_argument("--mode", choices=("server", "client"), required=True)
     parser.add_argument("--phase", required=True)
     parser.add_argument("--assets", type=Path)
+    parser.add_argument("--natives", type=Path)
     parser.add_argument("--fixture", type=Path)
     parser.add_argument("--extra-mod", type=Path, action="append", default=[])
     parser.add_argument("--fresh", action="store_true")
@@ -210,9 +248,7 @@ def main():
             raise ValueError("Client checks need the verified asset directory")
         command = client_command(options, directory)
     else:
-        forge = options.runtime.resolve() / "forge-1.16.5-36.2.34.jar"
-        command = [str(options.java), "-Xmx3g", "-Dskysterrainsmoother.integrationPhase=" + options.phase,
-                   "-jar", str(forge), "--nogui"]
+        command = server_command(options, directory)
     if options.generation_only:
         command.insert(1, "-Dskysterrainsmoother.generationOnly=true")
         command.insert(1, "-Dskysterrainsmoother.expectedLevel=" + str(options.level or 3))
@@ -230,6 +266,7 @@ def main():
     if options.fixture:
         expected = json.loads((directory / "source-inputs.json").read_text(encoding="utf-8"))
         if (digest(options.fixture / "world.zip") != expected["world_sha256"]
+                or digest(directory / "source-world.zip") != expected["world_sha256"]
                 or digest(options.fixture / "source-family-fixture.json") != expected["manifest_sha256"]):
             raise ValueError("A source fixture changed during its disposable upgrade")
     print("PACKAGED_CHECK_PASS", options.mode, options.phase, directory.name)

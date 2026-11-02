@@ -1,20 +1,20 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.DoublePlantBlock;
-import net.minecraft.state.properties.DoubleBlockHalf;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import zone.moddev.mc.skysgrassslabs.init.ModBlocks;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Adjacent decorators can put plants in a fresh owner before its own Pre event. */
 final class FoliageProbe {
-    static int run(ServerWorld world) {
+    static int run(ServerLevel world) {
         BlockPos floor = new BlockPos(3528, 210, 3528);
-        Chunk owner = world.getChunkAt(floor);
+        LevelChunk owner = world.getChunkAt(floor);
         int checks = 0;
 
         for (int level = 1; level <= 3; level++) {
@@ -57,11 +57,11 @@ final class FoliageProbe {
             checks++;
         }
 
-        System.out.println("TERRAIN_SMOOTHER_FOLIAGE_PASS checks=" + checks);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_FOLIAGE_PASS checks=" + checks);
         return checks;
     }
 
-    private static void prepare(ServerWorld world, BlockPos floor) {
+    private static void prepare(ServerLevel world, BlockPos floor) {
         for (int offsetZ = -2; offsetZ <= 2; offsetZ++) {
             for (int offsetX = -2; offsetX <= 2; offsetX++) {
                 BlockPos support = floor.offset(offsetX, 0, offsetZ);

@@ -1,17 +1,17 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.OreBlock;
-import net.minecraft.block.RedstoneOreBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.OreBlock;
+import net.minecraft.world.level.block.RedStoneOreBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.SectionPos;
-import net.minecraft.world.LightType;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.NibbleArray;
+import net.minecraft.tags.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.world.ChunkEvent;
@@ -20,33 +20,34 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Native events and controlled fixture writes, used only by the runtime checks. */
 final class ProbeWorld {
-    static void clear(World world, BlockPos position) {
+    static void clear(Level world, BlockPos position) {
         // Fixture resets remove fluids too; World.removeBlock deliberately preserves them.
         world.setBlock(position, Blocks.AIR.defaultBlockState(), 2);
     }
 
-    static boolean generate(World world, BlockPos origin) {
+    static boolean generate(Level world, BlockPos origin) {
         return SkysTerrainSmoother.engine.generate(world, origin.getX() >> 4, origin.getZ() >> 4);
     }
 
-    static void queue(World world, int chunkX, int chunkZ) {
+    static void queue(Level world, int chunkX, int chunkZ) {
         MinecraftForge.EVENT_BUS.post(new ChunkEvent.Load(world.getChunk(chunkX, chunkZ)));
     }
 
-    static void repair(World world, BlockPos origin) {
+    static void repair(Level world, BlockPos origin) {
         queue(world, origin.getX() >> 4, origin.getZ() >> 4);
         MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world));
     }
 
-    static void light(World world, LightType type, BlockPos position, int value) {
-        NibbleArray data = new NibbleArray();
+    static void light(Level world, LightLayer type, BlockPos position, int value) {
+        DataLayer data = new DataLayer();
         java.util.Arrays.fill(data.getData(), (byte) (value | value << 4));
         world.getChunkSource().getLightEngine().queueSectionData(type, SectionPos.of(position), data, true);
-        net.minecraft.world.server.ServerWorld serverWorld = (net.minecraft.world.server.ServerWorld) world;
-        net.minecraft.world.server.ServerWorldLightManager light = serverWorld.getChunkSource().getLightEngine();
+        net.minecraft.server.level.ServerLevel serverWorld = (net.minecraft.server.level.ServerLevel) world;
+        net.minecraft.server.level.ThreadedLevelLightEngine light = serverWorld.getChunkSource().getLightEngine();
         java.util.concurrent.CompletableFuture<?> barrier = light.lightChunk(world.getChunkAt(position), true);
         long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
         serverWorld.getServer().managedBlock(() -> {
+            serverWorld.getChunkSource().pollTask();
             light.tryScheduleUpdate();
             return barrier.isDone() || System.nanoTime() >= deadline;
         });
@@ -54,17 +55,17 @@ final class ProbeWorld {
         barrier.join();
     }
 
-    static void rebuildHeights(net.minecraft.world.chunk.IChunk chunk) {
-        net.minecraft.world.gen.Heightmap.primeHeightmaps(chunk,
-                java.util.EnumSet.allOf(net.minecraft.world.gen.Heightmap.Type.class));
+    static void rebuildHeights(net.minecraft.world.level.chunk.ChunkAccess chunk) {
+        net.minecraft.world.level.levelgen.Heightmap.primeHeightmaps(chunk,
+                java.util.EnumSet.allOf(net.minecraft.world.level.levelgen.Heightmap.Types.class));
     }
 
     static boolean oreSupport(BlockState state) {
-        if (state.hasTileEntity() || state.getMaterial().isLiquid()) {
+        if (state.hasBlockEntity() || state.getMaterial().isLiquid()) {
             return false;
         }
-        ITag<net.minecraft.block.Block> ores = BlockTags.getAllTags().getTag(new ResourceLocation("forge", "ores"));
-        return state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedstoneOreBlock
+        Tag<net.minecraft.world.level.block.Block> ores = BlockTags.getAllTags().getTag(new ResourceLocation("forge", "ores"));
+        return state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedStoneOreBlock
                 || ores != null && ores.contains(state.getBlock());
     }
 

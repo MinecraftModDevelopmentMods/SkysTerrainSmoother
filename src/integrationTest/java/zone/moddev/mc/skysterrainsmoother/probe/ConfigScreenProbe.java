@@ -4,9 +4,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.resources.language.I18n;
 import zone.moddev.mc.skysgrassslabs.config.SkysGrassSlabsConfig;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
@@ -41,7 +41,7 @@ final class ConfigScreenProbe {
         if (modIndex == 2) {
             minecraft.setScreen(parent);
             RuntimeProbe.require(tooltips == 5, "All five settings were exercised");
-            System.out.println("SKY_CONFIG_SCREENS_PASS factories=2 widgets=5 restart_safe=true");
+            zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 widgets=5 restart_safe=true");
             return true;
         }
         String modId = modIndex == 0 ? "skysgrassslabs" : "skysterrainsmoother";
@@ -82,11 +82,11 @@ final class ConfigScreenProbe {
             for (int index = 0; index < keys.length; index++) {
                 changed &= !buttons(pending).get(index).getMessage().getString().equals(original.get(index));
             }
-            if (!changed) {
+            if (!changed || !configuredValuesMatchDisk(modId)) {
                 settleTicks = 0;
                 return false;
             }
-            if (++settleTicks < 5) return false;
+            if (++settleTicks < 20) return false;
             screen = ModMenuProbe.open(minecraft, modId, parent);
             for (int index = 0; index < keys.length; index++) {
                 Button button = buttons(screen).get(index);
@@ -109,7 +109,11 @@ final class ConfigScreenProbe {
                     return false;
                 }
             }
-            if (++settleTicks < 5) return false;
+            if (!configuredValuesMatchDisk(modId)) {
+                settleTicks = 0;
+                return false;
+            }
+            if (++settleTicks < 20) return false;
             RuntimeProbe.require(SkysGrassSlabsConfig.generateGrassSlabs() == activeGrass
                             && TerrainSmootherConfig.enabled() == activeTerrain && TerrainSmootherConfig.level() == activeLevel,
                     "Saving choices leaves this session unchanged");
@@ -125,26 +129,56 @@ final class ConfigScreenProbe {
                 : new zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherConfigScreen(parent);
     }
 
+    private static boolean configuredValuesMatchDisk(String modId) {
+        String[] values = modId.equals("skysgrassslabs")
+                ? new String[] {
+                    Boolean.toString(SkysGrassSlabsConfig.configuredGrassGeneration()),
+                    Boolean.toString(SkysGrassSlabsConfig.configuredLegacyReplacement())
+                }
+                : new String[] {
+                    Boolean.toString(TerrainSmootherConfig.configuredEnabled()),
+                    Integer.toString(TerrainSmootherConfig.configuredLevel()),
+                    Boolean.toString(TerrainSmootherConfig.configuredMineralogy())
+                };
+        try {
+            String contents = java.nio.file.Files.readString(java.nio.file.Paths.get(
+                    "config", modId + "-common.toml"), java.nio.charset.StandardCharsets.UTF_8);
+            for (int index = 0; index < keys.length; index++) {
+                java.util.regex.Matcher value = java.util.regex.Pattern.compile(
+                        "(?m)^\\h*" + java.util.regex.Pattern.quote(keys[index])
+                                + "\\h*=\\h*(true|false|[1-3])\\h*$").matcher(contents);
+                if (!value.find() || !value.group(1).equals(values[index]) || value.find()) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Cannot read the saved test configuration for " + modId, failure);
+        }
+    }
+
     static void render(Minecraft minecraft, Screen screen, int mouseX, int mouseY) {
         minecraft.getMainRenderTarget().bindWrite(true);
-        net.minecraft.client.MainWindow window = minecraft.getWindow();
+        com.mojang.blaze3d.platform.Window window = minecraft.getWindow();
 
         com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.ON_OSX);
-        com.mojang.blaze3d.systems.RenderSystem.matrixMode(5889);
-        com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
-        com.mojang.blaze3d.systems.RenderSystem.ortho(0,
-                window.getWidth() / window.getGuiScale(),
-                window.getHeight() / window.getGuiScale(), 0, 1000, 3000);
-        com.mojang.blaze3d.systems.RenderSystem.matrixMode(5888);
-        com.mojang.blaze3d.systems.RenderSystem.loadIdentity();
-        com.mojang.blaze3d.systems.RenderSystem.translatef(0, 0, -2000);
-        net.minecraft.client.renderer.RenderHelper.setupFor3DItems();
-        screen.render(new com.mojang.blaze3d.matrix.MatrixStack(), mouseX, mouseY, 0);
+        float farPlane = net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane();
+        com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
+                com.mojang.math.Matrix4f.orthographic(0,
+                        (float) (window.getWidth() / window.getGuiScale()), 0,
+                        (float) (window.getHeight() / window.getGuiScale()), 1000, farPlane));
+        com.mojang.blaze3d.vertex.PoseStack modelView =
+                com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
+        modelView.setIdentity();
+        modelView.translate(0, 0, 1000 - farPlane);
+        com.mojang.blaze3d.systems.RenderSystem.applyModelViewMatrix();
+        com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+        screen.render(new com.mojang.blaze3d.vertex.PoseStack(), mouseX, mouseY, 0);
     }
 
     private static List<Button> buttons(Screen screen) {
         List<Button> result = new ArrayList<>();
-        for (net.minecraft.client.gui.IGuiEventListener child : screen.children()) {
+        for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
             if (child instanceof Button) {
                 result.add((Button) child);
             }
@@ -156,8 +190,7 @@ final class ConfigScreenProbe {
         String phase = System.getProperty("skysterrainsmoother.integrationPhase", "client");
         String savedName = phase + "-" + screenshotNumber++ + "-" + filename;
         java.util.concurrent.CountDownLatch saved = new java.util.concurrent.CountDownLatch(1);
-        net.minecraft.util.ScreenShotHelper.grab(minecraft.gameDirectory, savedName,
-                minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight(),
+        net.minecraft.client.Screenshot.grab(minecraft.gameDirectory, savedName,
                 minecraft.getMainRenderTarget(), message -> saved.countDown());
         try {
             RuntimeProbe.require(saved.await(10, java.util.concurrent.TimeUnit.SECONDS), "Screen capture finished");

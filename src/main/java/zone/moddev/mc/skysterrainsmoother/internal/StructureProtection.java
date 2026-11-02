@@ -6,18 +6,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MutableBoundingBox;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.feature.structure.StructureStart;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 
 /** Read known structure bounds without asking the generator for another chunk. */
 final class StructureProtection {
-    private final List<MutableBoundingBox> bounds = new ArrayList<>();
+    private final List<BoundingBox> bounds = new ArrayList<>();
     private boolean unresolved;
 
-    static StructureProtection read(IChunk owner, Function<ChunkPos, IChunk> loadedChunk) {
+    static StructureProtection read(ChunkAccess owner, Function<ChunkPos, ChunkAccess> loadedChunk) {
         StructureProtection result = new StructureProtection();
         Set<Long> visited = new HashSet<>();
         visited.add(owner.getPos().toLong());
@@ -27,7 +27,7 @@ final class StructureProtection {
                 if (!visited.add(reference)) {
                     continue;
                 }
-                IChunk startChunk = loadedChunk.apply(new ChunkPos(reference));
+                ChunkAccess startChunk = loadedChunk.apply(new ChunkPos(reference));
                 if (startChunk == null) {
                     // The reference may point beyond the loaded generation halo.
                     // Leave this chunk alone instead of loading it to find out.
@@ -45,7 +45,7 @@ final class StructureProtection {
     }
 
     boolean contains(BlockPos position) {
-        for (MutableBoundingBox box : bounds) {
+        for (BoundingBox box : bounds) {
             if (box.isInside(position)) {
                 return true;
             }
@@ -53,10 +53,12 @@ final class StructureProtection {
         return false;
     }
 
-    private void addStarts(IChunk chunk) {
+    private void addStarts(ChunkAccess chunk) {
         for (StructureStart start : chunk.getAllStarts().values()) {
             if (start != null && start.isValid()) {
-                bounds.add(new MutableBoundingBox(start.getBoundingBox()));
+                BoundingBox box = start.getBoundingBox();
+                bounds.add(new BoundingBox(box.minX(), box.minY(), box.minZ(),
+                        box.maxX(), box.maxY(), box.maxZ()));
             }
         }
     }

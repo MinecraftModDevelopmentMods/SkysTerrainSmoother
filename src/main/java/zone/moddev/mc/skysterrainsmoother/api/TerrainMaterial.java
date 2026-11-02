@@ -3,8 +3,8 @@ package zone.moddev.mc.skysterrainsmoother.api;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.resources.ResourceLocation;
 
 /** Immutable exact-state mapping. Direction order is north, east, south, west. */
 public final class TerrainMaterial {

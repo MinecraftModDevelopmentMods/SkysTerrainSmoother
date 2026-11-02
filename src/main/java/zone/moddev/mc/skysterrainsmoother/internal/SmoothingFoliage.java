@@ -1,16 +1,16 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.DoublePlantBlock;
-import net.minecraft.block.SnowBlock;
-import net.minecraft.world.gen.Heightmap;
-import net.minecraft.state.properties.DoubleBlockHalf;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 
 /** Small native plants may give way to a transition in a newly generated chunk. */
 final class SmoothingFoliage {
@@ -31,13 +31,13 @@ final class SmoothingFoliage {
     }
 
     private static boolean isThinSnow(BlockState state) {
-        return state.getBlock() == Blocks.SNOW && state.getValue(SnowBlock.LAYERS) == 1;
+        return state.getBlock() == Blocks.SNOW && state.getValue(SnowLayerBlock.LAYERS) == 1;
     }
 
-    static int surfaceHeight(IChunk chunk, int localX, int localZ, int startX, int startZ) {
+    static int surfaceHeight(ChunkAccess chunk, int localX, int localZ, int startX, int startZ) {
         // Full chunks retain the live heightmap, not the generation-only map.
-        Heightmap.Type heightmap = chunk.getStatus() == ChunkStatus.FULL
-                ? Heightmap.Type.WORLD_SURFACE : Heightmap.Type.WORLD_SURFACE_WG;
+        Heightmap.Types heightmap = chunk.getStatus() == ChunkStatus.FULL
+                ? Heightmap.Types.WORLD_SURFACE : Heightmap.Types.WORLD_SURFACE_WG;
         int surfaceY = chunk.getHeight(heightmap, localX, localZ);
         while (surfaceY >= 0) {
             BlockState state = chunk.getBlockState(new BlockPos(startX + localX, surfaceY, startZ + localZ));
@@ -49,13 +49,13 @@ final class SmoothingFoliage {
         return surfaceY;
     }
 
-    static boolean canReplace(IWorld world, IChunk owner, BlockPos position) {
+    static boolean canReplace(LevelAccessor world, ChunkAccess owner, BlockPos position) {
         BlockState state = owner.getBlockState(position);
-        if (state.hasTileEntity() || owner.getBlockEntity(position) != null
+        if (state.hasBlockEntity() || owner.getBlockEntity(position) != null
                 || !state.getFluidState().isEmpty()) {
             return false;
         }
-        if (state.isAir(world, position) || isThinSnow(state)) {
+        if (state.isAir() || isThinSnow(state)) {
             return true;
         }
         if (!isPlant(state)) {

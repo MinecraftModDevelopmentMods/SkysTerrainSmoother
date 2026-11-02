@@ -1,4 +1,4 @@
-"""Check Forge 36 completion, native settings and unexpected errors."""
+"""Check Forge 37 completion, native settings and unexpected errors."""
 
 import argparse
 import gzip
@@ -29,7 +29,7 @@ def audit_complete_logs(directory):
 
 
 def classify(log, unchanged_defaults, profile=None):
-    """The Forge-only 1.16 client control completes without severe notices."""
+    """The Forge-only 1.17 client control completes without severe notices."""
     lines = log.splitlines()
     startup = next((index for index, line in enumerate(lines)
                     if "Preparing start region for dimension " in line), -1)
@@ -44,7 +44,7 @@ def classify(log, unchanged_defaults, profile=None):
 
 def audit(directory, phase, control=False):
     directory = Path(directory)
-    audit_complete_logs(directory)
+    checked_logs = audit_complete_logs(directory)
     log = (directory / "logs/latest.log").read_text(encoding="utf-8")
     defaults = Path(__file__).resolve().parent.parent / "src/bootstrapTest/defaultconfigs"
     servers = list((directory / "saves").glob("*/serverconfig/forge-server.toml"))
@@ -56,7 +56,7 @@ def audit(directory, phase, control=False):
     if not unchanged:
         raise ValueError("Native Forge settings differ from the controlled defaults")
     receipt = classify(log, unchanged, profile_for(directory))
-    required = (("FORGE36_CLIENT_CONTROL_PASS joined=true sky_mods=false",) if control else
+    required = (("FORGE37_CLIENT_CONTROL_PASS joined=true sky_mods=false",) if control else
                 ("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
                  "SKY_CONFIG_SCREENS_PASS", "TERRAIN_FINE_GRASS_MODELS_PASS"))
     if any(marker not in log for marker in required):
@@ -66,6 +66,7 @@ def audit(directory, phase, control=False):
     if list((directory / "crash-reports").glob("*")):
         raise ValueError("Native client produced a crash report")
     receipt["phase"] = phase
+    receipt["complete_log_files"] = checked_logs
     receipt["control_without_sky_mods"] = control
     (directory / (phase + "-log-audit.json")).write_text(
         json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
@@ -73,7 +74,7 @@ def audit(directory, phase, control=False):
 
 
 def classify_server(log, debug, unchanged_defaults, profile=None):
-    """The Forge-only 1.16 server control completes without severe notices."""
+    """The Forge-only 1.17 server control completes without severe notices."""
     lines = log.splitlines()
     startup = any('Preparing level ' in line or 'Preparing start region for dimension ' in line
                   for line in lines)
@@ -87,7 +88,7 @@ def classify_server(log, debug, unchanged_defaults, profile=None):
 
 def audit_server(directory, phase):
     directory = Path(directory)
-    audit_complete_logs(directory)
+    checked_logs = audit_complete_logs(directory)
     defaults = Path(__file__).resolve().parent.parent / 'src/bootstrapTest/defaultconfigs'
     expected = defaults / 'defaultconfigs/forge-server.toml'
     actual = directory / 'world/serverconfig/forge-server.toml'
@@ -98,6 +99,7 @@ def audit_server(directory, phase):
     if list((directory / 'crash-reports').glob('*')):
         raise ValueError('Native server produced a crash report')
     receipt['phase'] = phase
+    receipt['complete_log_files'] = checked_logs
     (directory / (phase + '-server-log-audit.json')).write_text(
         json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return receipt
@@ -112,4 +114,4 @@ if __name__ == "__main__":
     options = parser.parse_args()
     result = (audit_server(options.directory, options.phase) if options.server
               else audit(options.directory, options.phase, options.control))
-    print("FORGE36_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE36_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))
+    print("FORGE37_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE37_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))

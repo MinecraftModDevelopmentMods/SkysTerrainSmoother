@@ -22,7 +22,8 @@ class MineralogyLaunchContractTest {
         assertFalse(build.contains("runtimeOnly "));
         assertFalse(build.contains("into sourceSets.main"));
         assertTrue(text("build.gradle").contains(
-                "key=\"MC_VERSION\" value=\"${MC_VERSION}\""));
+                "--main cpw.mods.bootstraplauncher.BootstrapLauncher"));
+        assertTrue(text("build.gradle").contains("--fml.mcVersion ${project.minecraft_version}"));
     }
 
     @Test

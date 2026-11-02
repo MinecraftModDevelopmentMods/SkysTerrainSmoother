@@ -3,10 +3,10 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraftforge.fml.client.gui.screen.ModListScreen;
-import net.minecraftforge.fml.client.gui.widget.ModListWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraftforge.fmlclient.gui.screen.ModListScreen;
+import net.minecraftforge.fmlclient.gui.widget.ModListWidget;
 import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
 /** Uses Forge's actual Mods list and Config button, without desktop automation. */
