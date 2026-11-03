@@ -27,6 +27,9 @@ public final class SandContent {
 
     @SubscribeEvent
     public static void blocks(RegistryEvent.Register<Block> event) {
+        // Recovery contributors share lookup tables. Registry events run after the
+        // parallel catalogue constructors, so the sand mappings cannot race them.
+        SandLegacyRecovery.register();
         // Native blocks acquire their intrusive holders during the open registry event.
         register();
         event.getRegistry().registerAll(slab, redSlab);

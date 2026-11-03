@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 import zone.moddev.mc.skysterrainsmoother.content.SandContent;
-import zone.moddev.mc.skysterrainsmoother.content.SandLegacyRecovery;
 import zone.moddev.mc.skysterrainsmoother.internal.BuiltInMaterials;
 import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 import zone.moddev.mc.skysterrainsmoother.internal.SmoothingEngine;
@@ -35,7 +34,6 @@ public final class SkysTerrainSmoother {
     public SkysTerrainSmoother() {
         TerrainSmootherConfig.register();
         GrassSlabsApi.claimSmoothing(ID, TerrainSmootherConfig::enabled);
-        SandLegacyRecovery.register();
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::complete);
         MinecraftForge.EVENT_BUS.register(engine);
