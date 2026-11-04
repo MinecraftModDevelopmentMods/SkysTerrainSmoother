@@ -10,8 +10,8 @@ Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.120011 and Building Pieces
-0.3.8.120011.
+The source lock records locally qualified Grass Slabs 1.2.0.120012 and Building Pieces
+0.3.8.120012.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -38,40 +38,11 @@ Generation prepares those jars in the development mods folder without clearing
 its configuration or worlds. See [the release guide](RELEASING.md)
 for publication.
 
-## Testing with Mineralogy
+## Mineralogy
 
-Run `gradlew genEclipseRuns eclipse`, then refresh the Eclipse project. Select
-`runMineralogyClient` under Java Application in Run Configurations. The matching
-`runMineralogyServer` profile is available for a dedicated server. From a terminal,
-use `gradlew runMineralogyClient` or `gradlew runMineralogyServer`.
-
-These profiles use a separate `run-mineralogy` folder and load Mineralogy plus
-its OreSpawn dependency.
-Ordinary client and server profiles keep their existing mod sets and worlds.
-Runtime probes and unit tests are excluded from these manual profiles.
-
-The expected main and mapped development jars and their checksums are listed in
-`gradle/mineralogy-runtime.properties`. The default paths use sibling checkouts;
-for a different layout, pass `-PmineralogyRuntimeJar=<jar>` and
-`-PorespawnRuntimeJar=<jar>` when generating the profiles. Missing optional jars
-do not prevent an ordinary build; `prepareMineralogyDevelopmentRun` explains
-what is needed before the combined profile can run. The jars are copied, not
-modified. Development runs use the exact mapped jars; packaged games use the unchanged
-main jars.
-
-If a sibling build has moved on, keep the qualified jars under
-`.gradle/qualification-dependencies/` with their original filenames.
-The profiles prefer those copies, but still require the locked checksums.
-An explicit runtime-jar property takes precedence over either location.
-
-New configurations use smoothing level 3. An existing saved level is kept, so
-choose level 3 in Mods > Config and restart if that test folder already has a
-different setting. With Building Pieces 0.3.8, Mineralogy rocks use the core's
-steps at level 2 and corners at level 3, without a separate add-on.
-
-`gradlew integrationMineralogyTest` checks fresh-world and reload behaviour in
-a disposable build folder. `integrationMineralogyClientProcess` checks client
-resources there. Neither task opens the manual profile's saved worlds.
+The available Forge 47.4.10 Mineralogy and OreSpawn jars cannot run on this
+early NeoForge loader. Ordinary development runs leave them out. Use the
+Forge version of this mod for Minecraft 1.20.1 worlds that need those jars.
 
 ## Recipe-book resources
 

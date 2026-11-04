@@ -15,9 +15,9 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.120011", metadata.getProperty("mod_version"));
+        assertEquals("0.1.0.120012", metadata.getProperty("mod_version"));
         assertEquals("1.20.1", metadata.getProperty("minecraft_version"));
-        assertEquals("47.4.10", metadata.getProperty("forge_version"));
+        assertEquals("47.1.106", metadata.getProperty("forge_version"));
         assertEquals("1.20.1", metadata.getProperty("mapping_version"));
         assertEquals("20230612.114412", metadata.getProperty("mcp_version"));
         assertEquals("17.0.1+12", metadata.getProperty("java_toolchain_version"));

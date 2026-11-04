@@ -37,9 +37,9 @@ blocks in a row make six slabs, and two slabs side by side make a full block.
 Like sand blocks, the slabs fall when unsupported. Sand uses slabs at every
 smoothing level.
 
-Mineralogy is supported without another add-on. When it's installed, the
-smoother uses its natural rock slabs and the matching steps and corners
-included in Building Pieces. Disabled native slab types are skipped.
+For Mineralogy's natural rock slabs, steps and corners on Minecraft 1.20.1,
+use the Forge build. The Mineralogy jars tested on Forge require a later
+Forge loader than this NeoForge build provides.
 
 Ores, gravel, wood and decorative stone aren't smoothing materials.
 
@@ -48,13 +48,14 @@ For BOP grass and soils, add the
 
 ## Installation and settings
 
-For **Minecraft 1.20.1**, use **Forge 47.4.10** and **Java 17**, with:
+For **Minecraft 1.20.1**, use **NeoForge 47.1.106** and **Java 17**, with:
 
-- Sky's Grass Slabs **1.2.0.120011**.
-- Sky's Building Pieces **0.3.8.120011**.
-- Sky's Terrain Smoother **0.1.0.120011**.
+- Sky's Grass Slabs **1.2.0.120012**.
+- Sky's Building Pieces **0.3.8.120012**.
+- Sky's Terrain Smoother **0.1.0.120012**.
 
-Install all three main jars on both the client and server.
+Install all three main jars on both the client and server. Worlds using the
+Forge Mineralogy build should stay on Forge 47.4.10 for Minecraft 1.20.1.
 
 The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
