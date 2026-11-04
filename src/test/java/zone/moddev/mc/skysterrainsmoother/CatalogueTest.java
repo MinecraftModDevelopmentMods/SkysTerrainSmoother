@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.material.Material;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.resources.*;
 import net.minecraft.core.*;
@@ -49,7 +49,7 @@ class CatalogueTest {
 
         final AABB boundingBox = new AABB(x0, 0, z0, x1, .5, z1);
 
-        return new Block(Block.Properties.of(Material.STONE)) {
+        return new Block(Block.Properties.of().mapColor(MapColor.STONE)) {
             @Override
             public net.minecraft.world.phys.shapes.VoxelShape getShape(BlockState state, BlockGetter world,
                     BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
@@ -158,7 +158,7 @@ class CatalogueTest {
         assertFalse(wet.getFluidState().isEmpty());
         assertThrows(IllegalArgumentException.class,
                 () -> catalogue.register(material("wet", Blocks.STONE.defaultBlockState(), wet, null, null)));
-        Block hollow = new Block(Block.Properties.of(Material.STONE)) {
+        Block hollow = new Block(Block.Properties.of().mapColor(MapColor.STONE)) {
             @Override
             public net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter world,
                     BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {

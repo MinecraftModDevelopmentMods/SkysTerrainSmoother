@@ -450,6 +450,51 @@
         "path": "src/test/resources/fixtures/forward-1.18.2-family/forge-45-registry-notices.json",
         "sha256": "DE0A4AA6641388EC49A8F9991BF98BE4CCE4D763E7DD76A70BBAE44197C41FB0"
       }
+    },
+    "FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74": {
+      "sha256": "FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74",
+      "fixture": "src/test/resources/fixtures/forward-1.19.4-family/world.zip",
+      "manifest_sha256": "919167212001D9786ED83318545586909A4757A2C46F57282A1B51F3D8B469AC",
+      "source_artifacts": [
+        {
+          "name": "SkysTerrainSmoother-0.1.0.119041.jar",
+          "sha256": "88EDD053B5A44391FE12FA9642EAABBB685DD3B17FAB845D36C7EE159AD595DA"
+        },
+        {
+          "name": "SkysGrassSlabs-1.2.0.119041.jar",
+          "sha256": "3A97C2D7E1A2E1D9C33D513BE08F9B2D3611AC914185DED8C8B9138D76EF5B82"
+        },
+        {
+          "name": "SkysBuildingPieces-0.3.8.119041.jar",
+          "sha256": "A1055C3DD776D24619635D1F30700D6E2A51CBA19ECF2AEE6894E2DBBC6C6DB7"
+        }
+      ],
+      "inspected_nbt_records": 833,
+      "saved_uses": 0,
+      "non_biome_saved_uses": 0,
+      "mappings": {
+        "minecraft:item": {
+          "minecraft:pottery_shard_archer": 2128,
+          "minecraft:pottery_shard_arms_up": 2130,
+          "minecraft:pottery_shard_prize": 2129,
+          "minecraft:pottery_shard_skull": 2131
+        },
+        "minecraft:sound_event": {
+          "minecraft:item.brush.brush_sand_completed": 1226,
+          "minecraft:item.brush.brushing": 1225,
+          "minecraft:music.overworld.jungle_and_forest": 1363
+        }
+      },
+      "native_biome_contract": {
+        "path": "src/test/resources/fixtures/forward-1.19.4-family/native-source-biomes.json",
+        "sha256": "87AE12A9A824208BEB795B21696B22528302BA59943B371DCB6CF08A0588CE35",
+        "checked_cells": 1261056,
+        "renamed_cells": 0
+      },
+      "forge47_registry_proof": {
+        "path": "src/test/resources/fixtures/forward-1.19.4-family/forge-47-registry-notices.json",
+        "sha256": "02112B2AAE086E91E53DFF89F79B73B6CDBFEC3CF267DA700481538942A9890B"
+      }
     }
   },
   "native_biome_control": {

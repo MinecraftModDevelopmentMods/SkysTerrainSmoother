@@ -344,7 +344,7 @@ final class CaveProbe {
         net.minecraft.world.level.chunk.LevelChunkSection[] sections = owner.getSections();
 
         for (int section = 0; section < sections.length; section++) {
-            sections[section] = ProbeWorld.emptySection(world, owner, section);
+            sections[section] = ProbeWorld.emptySection(world);
         }
         for (int blockZ = 0; blockZ < 16; blockZ++) {
             for (int blockX = 0; blockX < 16; blockX++) {

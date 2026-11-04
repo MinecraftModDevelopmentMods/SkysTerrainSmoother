@@ -3,7 +3,6 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowyDirtBlock;
@@ -359,8 +358,8 @@ public final class SmoothingEngine {
                     previous = lower;
 
                     // Ignore thin natural cover when finding a floor, but never tunnel through occupied terrain.
-                    if (above.getMaterial() != Material.AIR && !SmoothingFoliage.isCover(above)
-                            || lower.getMaterial() == Material.AIR) {
+                    if (!above.isAir() && !SmoothingFoliage.isCover(above)
+                            || lower.isAir()) {
                         continue;
                     }
 
@@ -537,7 +536,7 @@ public final class SmoothingEngine {
                 edges |= 1 << direction;
                 continue;
             }
-            if (atLip.getMaterial() == Material.AIR || SmoothingFoliage.isPlant(atLip)
+            if (atLip.isAir() || SmoothingFoliage.isPlant(atLip)
                     || atLip.getBlock() == Blocks.SNOW) {
                 BlockPos lowerFloor = beside.below();
                 BlockState below = neighbour.getBlockState(lowerFloor);
@@ -561,7 +560,7 @@ public final class SmoothingEngine {
             BlockPos pos = support.above(height);
             BlockState state = owner.getBlockState(pos);
 
-            if (state.getMaterial() != Material.AIR || !state.isAir()
+            if (!state.isAir()
                     || owner.getBlockEntity(pos) != null) {
                 return false;
             }
@@ -579,7 +578,7 @@ public final class SmoothingEngine {
 
         // The experience-dropping block class also covers non-ores such as sculk.
         boolean isOre = fullCollision(state) && !state.hasBlockEntity()
-                && !state.getMaterial().isLiquid() && state.is(Tags.Blocks.ORES);
+                && !state.liquid() && state.is(Tags.Blocks.ORES);
 
         oreSupports.put(state, isOre);
         return isOre;

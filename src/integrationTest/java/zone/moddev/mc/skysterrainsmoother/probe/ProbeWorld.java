@@ -26,7 +26,7 @@ final class ProbeWorld {
     }
 
     static void queue(Level world, int chunkX, int chunkZ) {
-        MinecraftForge.EVENT_BUS.post(new ChunkEvent.Load(world.getChunk(chunkX, chunkZ)));
+        MinecraftForge.EVENT_BUS.post(new ChunkEvent.Load(world.getChunk(chunkX, chunkZ), false));
     }
 
     static void repair(Level world, BlockPos origin) {
@@ -37,7 +37,7 @@ final class ProbeWorld {
     static void light(Level world, LightLayer type, BlockPos position, int value) {
         DataLayer data = new DataLayer();
         java.util.Arrays.fill(data.getData(), (byte) (value | value << 4));
-        world.getChunkSource().getLightEngine().queueSectionData(type, SectionPos.of(position), data, true);
+        world.getChunkSource().getLightEngine().queueSectionData(type, SectionPos.of(position), data);
         net.minecraft.server.level.ServerLevel serverWorld = (net.minecraft.server.level.ServerLevel) world;
         net.minecraft.server.level.ThreadedLevelLightEngine light = serverWorld.getChunkSource().getLightEngine();
         java.util.concurrent.CompletableFuture<?> barrier = light.lightChunk(world.getChunkAt(position), true);
@@ -57,15 +57,14 @@ final class ProbeWorld {
     }
 
     static boolean oreSupport(BlockState state) {
-        if (state.hasBlockEntity() || state.getMaterial().isLiquid()) {
+        if (state.hasBlockEntity() || state.liquid()) {
             return false;
         }
         return state.is(net.minecraftforge.common.Tags.Blocks.ORES);
     }
 
-    static net.minecraft.world.level.chunk.LevelChunkSection emptySection(Level world,
-            net.minecraft.world.level.chunk.LevelChunk chunk, int index) {
-        return new net.minecraft.world.level.chunk.LevelChunkSection(chunk.getMinSection() + index,
+    static net.minecraft.world.level.chunk.LevelChunkSection emptySection(Level world) {
+        return new net.minecraft.world.level.chunk.LevelChunkSection(
                 world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME));
     }
 

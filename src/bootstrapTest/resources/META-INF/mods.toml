@@ -9,6 +9,6 @@ description="Build-only native lifecycle checks."
 [[dependencies.terrainbootstrap]]
 modId="skysterrainsmoother"
 mandatory=true
-versionRange="[0.1.0.119041,)"
+versionRange="[0.1.0.120011,)"
 ordering="AFTER"
 side="BOTH"

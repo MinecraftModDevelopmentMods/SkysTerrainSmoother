@@ -69,7 +69,7 @@ public final class RuntimeProbe {
     public void registerProbeOre(net.minecraftforge.registries.RegisterEvent event) {
         ResourceLocation id = new ResourceLocation("terrainsmootherprobe", "ore_support");
         event.register(net.minecraftforge.registries.ForgeRegistries.Keys.BLOCKS, registry -> {
-            probeOre = new Block(Block.Properties.of(net.minecraft.world.level.material.Material.STONE));
+            probeOre = new Block(Block.Properties.of().mapColor(net.minecraft.world.level.material.MapColor.STONE));
             registry.register(id, probeOre);
         });
         event.register(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS, registry ->
@@ -621,7 +621,9 @@ public final class RuntimeProbe {
                         if (chunk == null) {
                             continue;
                         }
-                        for (LevelChunkSection section : chunk.getSections()) {
+                        for (int sectionIndex = 0; sectionIndex < chunk.getSectionsCount(); sectionIndex++) {
+                            LevelChunkSection section = chunk.getSection(sectionIndex);
+                            int sectionBottom = chunk.getSectionYFromSectionIndex(sectionIndex) << 4;
                             if (section != null) {
                                 for (int blockY = 0; blockY < 16; blockY++) {
                                     for (int localZ = 0; localZ < 16; localZ++) {
@@ -631,7 +633,7 @@ public final class RuntimeProbe {
 
                                             if (terrainMaterial != null) {
                                                 BlockPos piece = new BlockPos((blockX << 4) + localX,
-                                                        section.bottomBlockY() + blockY, (blockZ << 4) + localZ);
+                                                        sectionBottom + blockY, (blockZ << 4) + localZ);
                                                 BlockState support = chunk.getBlockState(piece.below());
 
                                                 require(MaterialCatalogue.instance().source(support) == terrainMaterial
@@ -749,7 +751,7 @@ public final class RuntimeProbe {
                             LevelChunkSection section = chunk.getSections()[chunk.getSectionIndex(blockY)];
 
                             if (section == null) {
-                                chunk.getSections()[chunk.getSectionIndex(blockY)] = section = ProbeWorld.emptySection(world, chunk, chunk.getSectionIndex(blockY));
+                                chunk.getSections()[chunk.getSectionIndex(blockY)] = section = ProbeWorld.emptySection(world);
                             }
 
                             section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.defaultBlockState());

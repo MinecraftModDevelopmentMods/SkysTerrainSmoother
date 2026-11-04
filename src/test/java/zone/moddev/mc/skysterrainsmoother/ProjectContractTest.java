@@ -15,11 +15,11 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.119041", metadata.getProperty("mod_version"));
-        assertEquals("1.19.4", metadata.getProperty("minecraft_version"));
-        assertEquals("45.4.0", metadata.getProperty("forge_version"));
-        assertEquals("1.19.4", metadata.getProperty("mapping_version"));
-        assertEquals("20230314.122934", metadata.getProperty("mcp_version"));
+        assertEquals("0.1.0.120011", metadata.getProperty("mod_version"));
+        assertEquals("1.20.1", metadata.getProperty("minecraft_version"));
+        assertEquals("47.4.10", metadata.getProperty("forge_version"));
+        assertEquals("1.20.1", metadata.getProperty("mapping_version"));
+        assertEquals("20230612.114412", metadata.getProperty("mcp_version"));
         assertEquals("17.0.1+12", metadata.getProperty("java_toolchain_version"));
         assertEquals("17", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
@@ -27,9 +27,9 @@ class ProjectContractTest {
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(13, pack.get("pack_format").getAsInt(), sourceSet);
-            assertEquals(13, pack.get("forge:resource_pack_format").getAsInt(), sourceSet);
-            assertEquals(12, pack.get("forge:data_pack_format").getAsInt(), sourceSet);
+            assertEquals(15, pack.get("pack_format").getAsInt(), sourceSet);
+            assertEquals(15, pack.get("forge:resource_pack_format").getAsInt(), sourceSet);
+            assertEquals(15, pack.get("forge:data_pack_format").getAsInt(), sourceSet);
         }
     }
 

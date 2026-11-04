@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.client;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
@@ -51,15 +51,15 @@ public final class TerrainSmootherConfigScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
-        renderBackground(poseStack);
-        drawCenteredString(poseStack, font, title, width / 2, 25, 0xFFFFFF);
-        super.render(poseStack, mouseX, mouseY, partialTicks);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        renderBackground(graphics);
+        graphics.drawCenteredString(font, title, width / 2, 25, 0xFFFFFF);
+        super.render(graphics, mouseX, mouseY, partialTicks);
         String hovered = enabledButton.isMouseOver(mouseX, mouseY) ? ENABLED_KEY
                 : levelButton.isMouseOver(mouseX, mouseY) ? LEVEL_KEY
                 : mineralogyButton.isMouseOver(mouseX, mouseY) ? MINERALOGY_KEY : null;
         if (hovered != null) {
-            renderTooltip(poseStack, font.split(Component.translatable(hovered + ".tooltip"), 280),
+            graphics.renderTooltip(font, font.split(Component.translatable(hovered + ".tooltip"), 280),
                     mouseX, mouseY);
         }
     }

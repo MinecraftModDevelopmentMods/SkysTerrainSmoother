@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -85,7 +86,7 @@ final class SandProbe {
             RuntimeProbe.require(use(player, position, Direction.UP, .5) == InteractionResult.SUCCESS
                     && world.getBlockState(position).equals(slab.fullState()), "Matching halves become ordinary sand");
             RuntimeProbe.require(held.isEmpty(), "Joining consumes exactly two slab items");
-            CraftingContainer grid = new CraftingContainer(new AbstractContainerMenu(null, 0) {
+            CraftingContainer grid = new TransientCraftingContainer(new AbstractContainerMenu(null, 0) {
                 @Override
                 public ItemStack quickMoveStack(Player player, int slot) {
                     return ItemStack.EMPTY;

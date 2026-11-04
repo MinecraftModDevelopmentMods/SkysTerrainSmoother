@@ -173,7 +173,7 @@ final class LateTerrainProbe {
                                         .getSections()[chunk.getSectionIndex(blockY)];
 
                                 if (section == null) {
-                                    chunk.getSections()[chunk.getSectionIndex(blockY)] = section = ProbeWorld.emptySection(world, chunk, chunk.getSectionIndex(blockY));
+                                    chunk.getSections()[chunk.getSectionIndex(blockY)] = section = ProbeWorld.emptySection(world);
                                 }
 
                                 section.setBlockState(blockX & 15, blockY & 15, blockZ & 15, Blocks.AIR.defaultBlockState());

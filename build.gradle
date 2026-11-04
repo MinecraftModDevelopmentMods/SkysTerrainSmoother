@@ -36,15 +36,15 @@ def mavenizerLicense = mavenizerToolsDirectory.file('LICENSE-MAVENIZER.txt')
 def mavenizerReadme = mavenizerToolsDirectory.file('README.md')
 def mavenizerFixtureChecksums = [
         (mavenizerCompatibilityJar.asFile):
-                '341B3FB10ABA6EA7DC612FBE519DC290A1C81867AED5DD320ACD783688AC49DE',
+                '416DCA4797BC55826F0DDCF03FDC405F1990FC15C2133FA27A1F143BF7976177',
         (mavenizerRuleManifest.asFile):
-                '33A3217261EBB8F37D45F50BD2F8CE70B221C014A5C15F4C5F8F9091AD6D1EC8',
+                '8945511DFF53B8F1A91EE44B14AF9EC7DB34C373617EA37A608C6958BFEEB22E',
         (mavenizerSourcePatch.asFile):
                 'D856190DEF5574716C5E4F4379912C451B1F5952B0B111576651A98EECF58544',
         (mavenizerLicense.asFile):
                 '20C17D8B8C48A600800DFD14F95D5CB9FF47066A9641DDEAB48DC54AEC96E331',
         (mavenizerReadme.asFile):
-                '88806D79B0FD4479FA07CCFF30A44A6D90F1BF822665EFBFCCCBD5C99F65FBB3'
+                '177C1DDEDEF9704B9FDC8EA24B8DCDF4DDCC826DD0E253E7872A00DB2EA34518'
 ]
 
 // ForgeGradle invokes Mavenizer while configuring the project. Verify the
@@ -115,8 +115,8 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs119/SkysGrassSlabs'))
-def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces119/SkysBuildingPieces'))
+def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs1201/SkysGrassSlabs'))
+def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces1201/SkysBuildingPieces'))
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
 
@@ -275,7 +275,7 @@ minecraft {
                             "${mod_id}%%${buildDir}/forge-run-mod-classes/main"
             if (name.toLowerCase(Locale.ROOT).contains('client') &&
                     providers.gradleProperty('forgeClientAssets').isPresent()) {
-                environment 'assetIndex', '3'
+                environment 'assetIndex', '5'
                 environment 'assetDirectory', providers.gradleProperty('forgeClientAssets').get()
                 if (providers.gradleProperty('forgeClientNatives').isPresent()) {
                     environment 'nativesDirectory', providers.gradleProperty('forgeClientNatives').get()
@@ -407,7 +407,9 @@ def integrationTestModJar = tasks.register('integrationTestModJar', Jar) {
     archiveFileName = 'skysterrainsmoother-integration-test.jar'
     destinationDirectory = layout.buildDirectory.dir('integration-test-mod')
     from integrationTestClasses
-    from 'src/integrationTest/resources'
+    from('src/integrationTest/resources') {
+        exclude 'log4j2.xml'
+    }
 }
 
 def packagedIntegrationTestModJar = renamer.classes(integrationTestModJar) {
@@ -452,7 +454,7 @@ def prepareIntegrationTest = tasks.register('prepareIntegrationTest') {
         new File(runDirectory, 'server.properties').setText('''\
 level-name=world
 level-seed=skys-terrain-smoother-integration
-level-type=default
+level-type=minecraft:normal
 online-mode=false
 server-ip=127.0.0.1
 server-port=0
@@ -621,12 +623,12 @@ def releaseFiles = provider {
 tasks.register('verifyReleaseMetadata') {
     group = 'verification'
     doLast {
-        if (project.minecraft_version != '1.19.4' || project.forge_version != '45.4.0' ||
-                project.mapping_channel != 'official' || project.mapping_version != '1.19.4' ||
+        if (project.minecraft_version != '1.20.1' || project.forge_version != '47.4.10' ||
+                project.mapping_channel != 'official' || project.mapping_version != '1.20.1' ||
                 project.loader_name != 'forge' || project.loader_code != '1' ||
                 project.java_version != '17' || project.java_toolchain_version != '17.0.1+12' ||
                 project.mod_id != 'skysterrainsmoother') {
-            throw new GradleException('Unexpected 1.19.4 release metadata')
+            throw new GradleException('Unexpected 1.20.1 release metadata')
         }
     }
 }

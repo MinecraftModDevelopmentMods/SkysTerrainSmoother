@@ -28,7 +28,7 @@ public final class MinecraftTestBootstrap {
             Class<?> versionInfo = Class.forName("net.minecraftforge.fml.loading.VersionInfo");
             Object forgeVersion = versionInfo
                     .getConstructor(String.class, String.class, String.class, String.class)
-                    .newInstance("45.4.0", "1.19.4", "20230314.122934", "net.minecraftforge");
+                    .newInstance("47.4.10", "1.20.1", "20230612.114412", "net.minecraftforge");
             set(loader, "versionInfo", forgeVersion);
             SharedConstants.tryDetectVersion();
             // Plain JUnit has no ModLauncher transformation for the networking bootstrap.
@@ -45,7 +45,7 @@ public final class MinecraftTestBootstrap {
                     net.minecraftforge.registries.ForgeRegistries.ITEMS).unfreeze();
             initialized = true;
         } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Unable to initialize the Forge 45 test runtime",
+            throw new IllegalStateException("Unable to initialize the Forge 47 test runtime",
                     exception);
         }
     }

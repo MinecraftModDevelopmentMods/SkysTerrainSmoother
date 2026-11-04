@@ -37,14 +37,17 @@ def profile_for(directory):
                 or data["native_renamed_cells"] != proof["renamed_cells"]
                 or profile["saved_uses"] != proof["renamed_cells"]):
             raise ValueError("The complete biome proof does not match this fixture")
-    forge45 = profile.get("forge45_registry_proof")
-    if forge45 is not None:
-        path = root / forge45["path"]
+    for target, receipt_key in (("Forge 45.4.0", "forge45_registry_proof"),
+                                ("Forge 47.4.10", "forge47_registry_proof")):
+        registry_proof = profile.get(receipt_key)
+        if registry_proof is None:
+            continue
+        path = root / registry_proof["path"]
         receipt = json.loads(path.read_text(encoding="utf-8"))
         unused = {name for registry, names in profile["mappings"].items()
                   if registry != "minecraft:worldgen/biome" for name in names}
-        if (hashlib.sha256(path.read_bytes()).hexdigest().upper() != forge45["sha256"]
-                or receipt["target"] != "Forge 45.4.0"
+        if (hashlib.sha256(path.read_bytes()).hexdigest().upper() != registry_proof["sha256"]
+                or receipt["target"] != target
                 or receipt["source_world_sha256"] != profile["sha256"]
                 or receipt["snapshot_entries"] != profile["mappings"]
                 or receipt["unused_non_biome_ids"] != dict.fromkeys(unused, 0)
@@ -54,7 +57,7 @@ def profile_for(directory):
                 or receipt["checked_biome_cells"] != proof["checked_cells"]
                 or receipt["native_renamed_cells"] != proof["renamed_cells"]
                 or not 0 <= receipt["noticed_biome_cells"] <= proof["checked_cells"]):
-            raise ValueError("The Forge 45 registry notice proof does not match the saved fixture")
+            raise ValueError("The " + target + " registry notice proof does not match the saved fixture")
     if source.get("mode") == "client":
         control = policy["native_client_notice_contract"]
         if (control["target"] != "Forge 40.3.0" or not control["completed_native_world"]

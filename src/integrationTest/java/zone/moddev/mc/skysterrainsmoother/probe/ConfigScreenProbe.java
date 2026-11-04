@@ -167,14 +167,17 @@ final class ConfigScreenProbe {
         float farPlane = net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane();
         com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
                 new org.joml.Matrix4f().setOrtho(0, (float) (window.getWidth() / window.getGuiScale()),
-                        (float) (window.getHeight() / window.getGuiScale()), 0, 1000, farPlane));
+                        (float) (window.getHeight() / window.getGuiScale()), 0, 1000, farPlane),
+                com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
         com.mojang.blaze3d.vertex.PoseStack modelView =
                 com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
         modelView.setIdentity();
         modelView.translate(0, 0, 1000 - farPlane);
         com.mojang.blaze3d.systems.RenderSystem.applyModelViewMatrix();
         com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
-        screen.render(new com.mojang.blaze3d.vertex.PoseStack(), mouseX, mouseY, 0);
+        var graphics = new net.minecraft.client.gui.GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
+        screen.render(graphics, mouseX, mouseY, 0);
+        graphics.flush();
     }
 
     private static List<Button> buttons(Screen screen) {

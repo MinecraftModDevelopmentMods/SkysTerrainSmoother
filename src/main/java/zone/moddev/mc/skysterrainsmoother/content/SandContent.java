@@ -4,7 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
-import net.minecraftforge.event.CreativeModeTabEvent;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -39,8 +39,8 @@ public final class SandContent {
     }
 
     @SubscribeEvent
-    public static void buildCreativeTab(CreativeModeTabEvent.BuildContents event) {
-        if (event.getTab() == CreativeModeTabs.BUILDING_BLOCKS) {
+    public static void buildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (CreativeModeTabs.BUILDING_BLOCKS.equals(event.getTabKey())) {
             event.accept(slab);
             event.accept(redSlab);
         }
