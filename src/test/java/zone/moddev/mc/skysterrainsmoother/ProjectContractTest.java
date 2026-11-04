@@ -15,21 +15,21 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.120011", metadata.getProperty("mod_version"));
-        assertEquals("1.20.1", metadata.getProperty("minecraft_version"));
-        assertEquals("47.4.10", metadata.getProperty("forge_version"));
-        assertEquals("1.20.1", metadata.getProperty("mapping_version"));
-        assertEquals("20230612.114412", metadata.getProperty("mcp_version"));
-        assertEquals("17.0.1+12", metadata.getProperty("java_toolchain_version"));
-        assertEquals("17", metadata.getProperty("gradle_java_version"));
+        assertEquals("0.1.0.120061", metadata.getProperty("mod_version"));
+        assertEquals("1.20.6", metadata.getProperty("minecraft_version"));
+        assertEquals("50.2.0", metadata.getProperty("forge_version"));
+        assertEquals("1.20.6", metadata.getProperty("mapping_version"));
+        assertEquals("20240429.135109", metadata.getProperty("mcp_version"));
+        assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
+        assertEquals("21", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
         assertTrue(Files.isRegularFile(Paths.get("src/main/resources/META-INF/mods.toml")));
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(15, pack.get("pack_format").getAsInt(), sourceSet);
-            assertEquals(15, pack.get("forge:resource_pack_format").getAsInt(), sourceSet);
-            assertEquals(15, pack.get("forge:data_pack_format").getAsInt(), sourceSet);
+            assertEquals(32, pack.get("pack_format").getAsInt(), sourceSet);
+            assertEquals(32, pack.get("forge:resource_pack_format").getAsInt(), sourceSet);
+            assertEquals(41, pack.get("forge:data_pack_format").getAsInt(), sourceSet);
         }
     }
 
@@ -66,12 +66,12 @@ class ProjectContractTest {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
             assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
             assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
-            assertEquals("skysterrainsmoother:" + sand + "_slab", cut.getAsJsonObject("result").get("item").getAsString());
+            assertEquals("skysterrainsmoother:" + sand + "_slab", cut.getAsJsonObject("result").get("id").getAsString());
             assertEquals(6, cut.getAsJsonObject("result").get("count").getAsInt());
             JsonObject combine = json(recipes.resolve(sand + "_from_slabs.json"));
             assertEquals("SS", combine.getAsJsonArray("pattern").get(0).getAsString());
             assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
-            assertEquals("minecraft:" + sand, combine.getAsJsonObject("result").get("item").getAsString());
+            assertEquals("minecraft:" + sand, combine.getAsJsonObject("result").get("id").getAsString());
             assertFalse(combine.getAsJsonObject("result").has("count"));
         }
     }

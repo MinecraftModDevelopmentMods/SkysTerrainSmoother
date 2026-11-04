@@ -23,24 +23,24 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.0.120011";
+    public static final String VERSION = "0.1.0.120061";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
     public static boolean mineralogy = true;
     public static int level = 3;
 
-    public SkysTerrainSmoother() {
-        TerrainSmootherConfig.register();
+    public SkysTerrainSmoother(FMLJavaModLoadingContext context) {
+        TerrainSmootherConfig.register(context);
         GrassSlabsApi.claimSmoothing(ID, TerrainSmootherConfig::enabled);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::complete);
-        TerrainSmoothingFeature.register(FMLJavaModLoadingContext.get().getModEventBus());
+        context.getModEventBus().addListener(this::setup);
+        context.getModEventBus().addListener(this::complete);
+        TerrainSmoothingFeature.register(context.getModEventBus());
         MinecraftForge.EVENT_BUS.register(engine);
         MinecraftForge.EVENT_BUS.addListener(this::beforeServer);
         MinecraftForge.EVENT_BUS.addListener(this::stopped);
         DistExecutor.runWhenOn(Dist.CLIENT,
-                () -> zone.moddev.mc.skysterrainsmoother.client.ClientProxy::register);
+                () -> () -> zone.moddev.mc.skysterrainsmoother.client.ClientProxy.register(context));
     }
 
     private void setup(FMLCommonSetupEvent event) {

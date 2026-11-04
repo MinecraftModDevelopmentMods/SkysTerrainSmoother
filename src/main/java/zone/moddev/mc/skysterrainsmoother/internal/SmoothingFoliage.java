@@ -10,13 +10,13 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 
 /** Small native plants may give way to a transition in a newly generated chunk. */
 final class SmoothingFoliage {
     static boolean isPlant(BlockState state) {
         Block block = state.getBlock();
-        return block == Blocks.GRASS || block == Blocks.FERN || block == Blocks.DEAD_BUSH
+        return block == Blocks.SHORT_GRASS || block == Blocks.FERN || block == Blocks.DEAD_BUSH
                 || block == Blocks.DANDELION || block == Blocks.POPPY || block == Blocks.BLUE_ORCHID
                 || block == Blocks.ALLIUM || block == Blocks.AZURE_BLUET || block == Blocks.RED_TULIP
                 || block == Blocks.ORANGE_TULIP || block == Blocks.WHITE_TULIP || block == Blocks.PINK_TULIP

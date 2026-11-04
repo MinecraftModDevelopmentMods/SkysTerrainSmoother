@@ -53,11 +53,11 @@ jobs:
           java-version: ${{ steps.target.outputs.java_setup_version }}
 
       - name: Pin production Java
-        if: steps.target.outputs.java_version == '17'
+        if: steps.target.outputs.java_version == '21'
         run: |
-          echo "SGS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SGS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java for Gradle
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -96,11 +96,7 @@ jobs:
           set -euo pipefail
           chmod +x dependencies/*/gradlew
           (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          grass="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
-          dependency="$GITHUB_WORKSPACE/dependencies/grass"
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace \
-            "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
-            "-PgrassSlabsDeobfJar=$dependency/build/libs-dev/SkysGrassSlabs-$grass-deobf.jar")
+          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
 
 
       - name: Initialize CodeQL

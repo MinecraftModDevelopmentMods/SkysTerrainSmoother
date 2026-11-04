@@ -31,8 +31,8 @@ class NativeRegistryNoticeProofTest {
     void permittedRegistryNoticesMatchSavedNamesAndUses() throws Exception {
         JsonObject profiles = new JsonParser().parse(new String(
                 Files.readAllBytes(Paths.get("tools/native-log-profiles.json")), StandardCharsets.UTF_8))
-                .getAsJsonObject().getAsJsonObject("profiles");
-        assertEquals(6, profiles.size());
+                .getAsJsonObject().getAsJsonObject("forge50_profiles");
+        assertEquals(7, profiles.size());
 
         for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry : profiles.entrySet()) {
             JsonObject profile = entry.getValue().getAsJsonObject();
@@ -68,13 +68,11 @@ class NativeRegistryNoticeProofTest {
             assertEquals(profile.get("sha256"), contract.get("source_world_sha256"));
             assertEquals(biome.get("checked_cells"), contract.get("checked_cells"));
             assertEquals(0, contract.get("native_renamed_cells").getAsInt());
-            boolean forge47 = profile.has("forge47_registry_proof");
-            assertNotEquals(forge47, profile.has("forge45_registry_proof"));
-            JsonObject binding = profile.getAsJsonObject(forge47 ? "forge47_registry_proof" : "forge45_registry_proof");
+            JsonObject binding = profile.getAsJsonObject("forge50_registry_proof");
             byte[] proofBytes = Files.readAllBytes(Paths.get(binding.get("path").getAsString()));
             assertEquals(binding.get("sha256").getAsString(), checksum(proofBytes));
             JsonObject proof = new JsonParser().parse(new String(proofBytes, StandardCharsets.UTF_8)).getAsJsonObject();
-            assertEquals(forge47 ? "Forge 47.4.10" : "Forge 45.4.0", proof.get("target").getAsString());
+            assertEquals("Forge 50.2.0", proof.get("target").getAsString());
             assertEquals(mappings, proof.getAsJsonObject("snapshot_entries"));
             assertEquals(profile.get("sha256"), proof.get("source_world_sha256"));
             assertEquals(biome.get("sha256"), proof.get("native_biome_contract_sha256"));
@@ -95,7 +93,7 @@ class NativeRegistryNoticeProofTest {
                             byte[] bytes = readAll(input);
                             CompoundTag root;
                             if (bytes.length >= 2 && (bytes[0] & 255) == 31 && (bytes[1] & 255) == 139) {
-                                root = NbtIo.readCompressed(new ByteArrayInputStream(bytes));
+                                root = NbtIo.readCompressed(new ByteArrayInputStream(bytes), net.minecraft.nbt.NbtAccounter.unlimitedHeap());
                             } else {
                                 // Older forced-chunk data is native, uncompressed NBT.
                                 root = NbtIo.read(new DataInputStream(new ByteArrayInputStream(bytes)));

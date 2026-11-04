@@ -61,12 +61,12 @@ final class FineGrassProbe {
         ProbeWorld.light(world, LightLayer.SKY, floor.above(), 15);
         if (snow) {
             world.setBlock(floor.above().east(), Blocks.SNOW.defaultBlockState(), 2);
-            RuntimeProbe.require(piece.getBlock().updateShape(piece, Direction.EAST,
+            RuntimeProbe.require(piece.updateShape(Direction.EAST,
                     world.getBlockState(floor.above().east()), world, floor.above(), floor.above().east()).getValue(GrassBlock.SNOWY),
                     "snow keeps the same grass-support rule");
         }
         GrassSlabsApi.repairSupport(world, floor.above());
-        piece.getBlock().tick(piece, world, floor.above(), RandomSource.create(1));
+        piece.tick(world, floor.above(), RandomSource.create(1));
         RuntimeProbe.require(world.getBlockState(floor).getBlock() == (fullCover ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                 "neighbour and random-tick repair preserve exposed grass");
         world.setBlock(floor, Blocks.DIRT.defaultBlockState(), 2);

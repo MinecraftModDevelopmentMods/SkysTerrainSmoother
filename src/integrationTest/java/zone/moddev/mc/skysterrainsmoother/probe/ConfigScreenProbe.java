@@ -169,9 +169,9 @@ final class ConfigScreenProbe {
                 new org.joml.Matrix4f().setOrtho(0, (float) (window.getWidth() / window.getGuiScale()),
                         (float) (window.getHeight() / window.getGuiScale()), 0, 1000, farPlane),
                 com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
-        com.mojang.blaze3d.vertex.PoseStack modelView =
+        org.joml.Matrix4fStack modelView =
                 com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
-        modelView.setIdentity();
+        modelView.identity();
         modelView.translate(0, 0, 1000 - farPlane);
         com.mojang.blaze3d.systems.RenderSystem.applyModelViewMatrix();
         com.mojang.blaze3d.platform.Lighting.setupFor3DItems();

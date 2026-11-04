@@ -42,9 +42,9 @@ public final class BuiltInMaterials {
         }
         TerrainSmootherConfig.activateSettingsForThisRun();
         vanilla("grass", Blocks.GRASS_BLOCK.defaultBlockState(), true,
-                ModBlocks.GRASS_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.GRASS_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
-                ModBlocks.DIRT_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.DIRT_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
         vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
         vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);

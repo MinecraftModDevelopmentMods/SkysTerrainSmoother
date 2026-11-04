@@ -9,7 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.electronwill.nightconfig.core.CommentedConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.loading.FMLPaths;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -43,10 +43,10 @@ public final class TerrainSmootherConfig {
     private TerrainSmootherConfig() {
     }
 
-    public static void register() {
+    public static void register(FMLJavaModLoadingContext context) {
         migrateLegacyConfig(FMLPaths.CONFIGDIR.get());
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
-        net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus()
+        context.registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
+        context.getModEventBus()
                 .addListener((net.minecraftforge.fml.event.config.ModConfigEvent.Loading event) -> {
                     if (event.getConfig().getSpec() == SPEC) {
                         loadedValues = event.getConfig().getConfigData();

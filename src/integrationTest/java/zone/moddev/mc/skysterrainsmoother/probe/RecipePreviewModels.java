@@ -22,8 +22,9 @@ final class RecipePreviewModels {
         int recipes = 0;
         int previews = 0;
 
-        for (Recipe<?> recipe : minecraft.getConnection().getRecipeManager().getRecipes()) {
-            ResourceLocation id = recipe.getId();
+        for (var holder : minecraft.getConnection().getRecipeManager().getRecipes()) {
+            Recipe<?> recipe = holder.value();
+            ResourceLocation id = holder.id();
 
             if (id == null || !OWNERS.contains(id.getNamespace()) || recipe.isSpecial()) {
                 continue;

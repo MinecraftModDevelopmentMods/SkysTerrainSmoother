@@ -14,8 +14,7 @@ def profile_for(directory):
     source = json.loads(manifest.read_text(encoding="utf-8"))
     root = Path(__file__).resolve().parent.parent
     policy = json.loads((root / "tools/native-log-profiles.json").read_text(encoding="utf-8"))
-    profiles = policy["profiles"]
-    profile = profiles.get(source.get("world_sha256"))
+    profile = policy["forge50_profiles"].get(source.get("world_sha256"))
     if profile is None:
         return None
     fixture = root / profile["fixture"]
@@ -38,7 +37,8 @@ def profile_for(directory):
                 or profile["saved_uses"] != proof["renamed_cells"]):
             raise ValueError("The complete biome proof does not match this fixture")
     for target, receipt_key in (("Forge 45.4.0", "forge45_registry_proof"),
-                                ("Forge 47.4.10", "forge47_registry_proof")):
+                                ("Forge 47.4.10", "forge47_registry_proof"),
+                                ("Forge 50.2.0", "forge50_registry_proof")):
         registry_proof = profile.get(receipt_key)
         if registry_proof is None:
             continue
@@ -52,7 +52,7 @@ def profile_for(directory):
                 or receipt["snapshot_entries"] != profile["mappings"]
                 or receipt["unused_non_biome_ids"] != dict.fromkeys(unused, 0)
                 or receipt["inspected_nbt_records"] != profile["inspected_nbt_records"]
-                or receipt["inspected_string_values"] <= 0
+                or receipt.get("inspected_string_values", receipt.get("inspected_nbt_values", 0)) <= 0
                 or proof is None or receipt["native_biome_contract_sha256"] != proof["sha256"]
                 or receipt["checked_biome_cells"] != proof["checked_cells"]
                 or receipt["native_renamed_cells"] != proof["renamed_cells"]

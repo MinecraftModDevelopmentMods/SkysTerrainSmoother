@@ -22,8 +22,8 @@ class MineralogyLaunchContractTest {
         assertFalse(build.contains("runtimeOnly "));
         assertFalse(build.contains("into sourceSets.main"));
         assertTrue(text("build.gradle").contains(
-                "--main cpw.mods.bootstraplauncher.BootstrapLauncher"));
-        assertTrue(text("build.gradle").contains("--fml.mcVersion ${project.minecraft_version}"));
+                "--main net.minecraftforge.bootstrap.ForgeBootstrap"));
+        assertTrue(text("build.gradle").contains("forge-${project.minecraft_version}-${project.forge_version}-metadata.zip"));
     }
 
     @Test

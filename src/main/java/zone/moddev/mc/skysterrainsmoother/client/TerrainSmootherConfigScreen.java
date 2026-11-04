@@ -52,7 +52,7 @@ public final class TerrainSmootherConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTicks);
         graphics.drawCenteredString(font, title, width / 2, 25, 0xFFFFFF);
         super.render(graphics, mouseX, mouseY, partialTicks);
         String hovered = enabledButton.isMouseOver(mouseX, mouseY) ? ENABLED_KEY

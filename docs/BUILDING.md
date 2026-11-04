@@ -1,17 +1,17 @@
 # Building from source
 
-Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 17.0.1+12 for production.
-Set `STS_JAVA17_HOME` to the Java 17 installation. This branch targets
-Minecraft 1.20.1 with ForgeGradle 7.0.34.
+Use the Gradle 9.6.1 wrapper with Java 21 and Temurin 21.0.7+6 for production.
+Set `STS_JAVA21_HOME` to the Java 21 installation. This branch targets
+Minecraft 1.20.6 with ForgeGradle 7.0.34.
 ForgeGradle's Mavenizer also uses Java 25 to prepare the Forge dependency.
-The mod itself compiles and runs on Java 17.
+The mod itself compiles and runs on Java 21.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.120011 and Building Pieces
-0.3.8.120011.
+The source lock records locally qualified Grass Slabs 1.2.0.120061 and Building Pieces
+0.3.8.120061.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -22,9 +22,7 @@ Then run:
 gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums verifyEclipseProductionClasspath
 ```
 
-Development dependencies use deobfuscated jars. Packaged games use the normal
-main jars; dependency classes and assets are not bundled. CI builds the exact
-pinned commits rather than moving branches.
+Development and packaged games use the same jars. The build keeps dependency classes and assets out of the mod jar. CI builds the pinned commits.
 
 A local-only `buildingPiecesCoreVersion` override can test another core
 candidate. It requires an explicit core directory and is rejected in CI.
@@ -32,7 +30,7 @@ Eclipse's ignored Buildship preferences retain the selected checkouts. A version
 override is saved only when explicitly supplied; normal generation clears any
 older override. Refresh the Gradle project in Eclipse after generating the runs.
 
-Use `genEclipseRuns eclipse` to prepare the Java 17 IDE setup. Ordinary launches
+Use `genEclipseRuns eclipse` to prepare the Java 21 IDE setup. Ordinary launches
 use the two pinned content jars and exclude unit tests and build-only runtime probes.
 Generation prepares those jars in the development mods folder without clearing
 its configuration or worlds. See [the release guide](RELEASING.md)
@@ -50,14 +48,13 @@ its OreSpawn dependency.
 Ordinary client and server profiles keep their existing mod sets and worlds.
 Runtime probes and unit tests are excluded from these manual profiles.
 
-The expected main and mapped development jars and their checksums are listed in
+The expected jars and their checksums are listed in
 `gradle/mineralogy-runtime.properties`. The default paths use sibling checkouts;
 for a different layout, pass `-PmineralogyRuntimeJar=<jar>` and
 `-PorespawnRuntimeJar=<jar>` when generating the profiles. Missing optional jars
 do not prevent an ordinary build; `prepareMineralogyDevelopmentRun` explains
 what is needed before the combined profile can run. The jars are copied, not
-modified. Development runs use the exact mapped jars; packaged games use the unchanged
-main jars.
+modified. Development and packaged runs use the same jars.
 
 If a sibling build has moved on, keep the qualified jars under
 `.gradle/qualification-dependencies/` with their original filenames.

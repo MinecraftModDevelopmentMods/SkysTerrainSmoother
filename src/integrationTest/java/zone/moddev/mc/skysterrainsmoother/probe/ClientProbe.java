@@ -58,7 +58,7 @@ public final class ClientProbe extends ProbeProxy {
                         checkModel(minecraft, state);
                     }
                 }
-                for (net.minecraft.world.level.block.state.BlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB
+                for (net.minecraft.world.level.block.state.BlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get()
                         .getStateDefinition().getPossibleStates()) {
                     checkModel(minecraft, state);
                 }
@@ -85,8 +85,8 @@ public final class ClientProbe extends ProbeProxy {
         if (System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             integrated = true;
             if (new File(minecraft.gameDirectory, "saves/terrain-smoother-world/level.dat").isFile()) {
-                minecraft.createWorldOpenFlows().loadLevel(new net.minecraft.client.gui.screens.TitleScreen(),
-                        "terrain-smoother-world");
+                minecraft.createWorldOpenFlows().openWorld("terrain-smoother-world",
+                        () -> minecraft.setScreen(new net.minecraft.client.gui.screens.TitleScreen()));
             } else {
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
                         "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE, false,
@@ -94,7 +94,7 @@ public final class ClientProbe extends ProbeProxy {
                         net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
                 minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
                         new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
-                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions);
+                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions, minecraft.screen);
             }
         } else {
             minecraft.stop();
@@ -150,7 +150,7 @@ public final class ClientProbe extends ProbeProxy {
         }
         RuntimeProbe.require(count > 0, "Grass pieces reached the colour checks");
         RuntimeProbe.require(client.getBlockColors().getColor(
-                        zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.defaultBlockState(), client.level, sample, 0)
+                        zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get().defaultBlockState(), client.level, sample, 0)
                         == expected, "Grass slabs retain the actual client biome tint");
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_TINT_PASS palettes=" + count);
     }
