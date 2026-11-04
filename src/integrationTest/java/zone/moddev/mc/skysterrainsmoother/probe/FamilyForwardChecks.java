@@ -197,6 +197,7 @@ final class FamilyForwardChecks {
                 JsonObject saved = element.getAsJsonObject();
                 BlockPos position = position(saved);
                 BlockState expected = net.minecraft.nbt.NbtUtils.readBlockState(
+                        world.holderLookup(net.minecraft.core.registries.Registries.BLOCK),
                         TagParser.parseTag(saved.get("state").getAsString()));
                 BlockState actual = world.getBlockState(position);
 

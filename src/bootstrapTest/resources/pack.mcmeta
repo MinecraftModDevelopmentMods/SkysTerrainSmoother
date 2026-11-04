@@ -1,8 +1,8 @@
 {
-  "pack": {
-    "pack_format": 9,
-    "description": "Build-only runtime checks",
-    "forge:resource_pack_format": 8,
-    "forge:data_pack_format": 9
-  }
+    "pack": {
+        "pack_format": 13,
+        "description": "Build-only runtime checks",
+        "forge:resource_pack_format": 13,
+        "forge:data_pack_format": 12
+    }
 }

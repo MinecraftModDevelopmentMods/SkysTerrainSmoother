@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import java.util.Random;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
@@ -87,7 +87,7 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
     }
 
     @Override
-    public void tick(BlockState state, ServerLevel world, BlockPos position, Random random) {
+    public void tick(BlockState state, ServerLevel world, BlockPos position, RandomSource random) {
         if (world.isClientSide || !world.getBlockState(position).equals(state) || position.getY() < world.getMinBuildHeight()
                 || !isFree(world.getBlockState(position.below()))) {
             return;

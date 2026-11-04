@@ -1,73 +1,58 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
+import com.mojang.serialization.Codec;
 import java.util.List;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.common.world.BiomeModifier;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Runs once in the owning chunk, before plants can occupy its transition cells. */
-@Mod.EventBusSubscriber(modid = SkysTerrainSmoother.ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class TerrainSmoothingFeature extends Feature<NoneFeatureConfiguration> {
-    public static final TerrainSmoothingFeature INSTANCE = create();
-    private static ConfiguredFeature<?, ?> configured;
+    private static final String ID = "terrain_smoothing";
+    private static final DeferredRegister<Feature<?>> FEATURES =
+            DeferredRegister.create(ForgeRegistries.FEATURES, SkysTerrainSmoother.ID);
+    private static final DeferredRegister<Codec<? extends BiomeModifier>> BIOME_MODIFIERS =
+            DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, SkysTerrainSmoother.ID);
+    private static final RegistryObject<TerrainSmoothingFeature> SMOOTHING =
+            FEATURES.register(ID, TerrainSmoothingFeature::new);
     private static Holder<PlacedFeature> placed;
 
-    public TerrainSmoothingFeature() {
+    static {
+        BIOME_MODIFIERS.register(ID, () -> TerrainSmoothingBiomeModifier.CODEC);
+    }
+
+    private TerrainSmoothingFeature() {
         super(NoneFeatureConfiguration.CODEC);
     }
 
-    private static TerrainSmoothingFeature create() {
-        TerrainSmoothingFeature feature = new TerrainSmoothingFeature();
-        feature.setRegistryName(new ResourceLocation(SkysTerrainSmoother.ID, "terrain_smoothing"));
-        return feature;
-    }
-
-    @SubscribeEvent
-    public static void register(RegistryEvent.Register<Feature<?>> event) {
-        event.getRegistry().register(INSTANCE);
+    public static void register(IEventBus modBus) {
+        FEATURES.register(modBus);
+        BIOME_MODIFIERS.register(modBus);
     }
 
     public static synchronized void install() {
-        if (configured != null) {
+        if (placed != null) {
             return;
         }
-        ResourceLocation id = new ResourceLocation(SkysTerrainSmoother.ID, "terrain_smoothing");
-        configured = new ConfiguredFeature<>(INSTANCE, NoneFeatureConfiguration.INSTANCE);
-        Holder<ConfiguredFeature<?, ?>> configuration = BuiltinRegistries.register(
-                BuiltinRegistries.CONFIGURED_FEATURE, id, configured);
-        placed = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-                new PlacedFeature(configuration, java.util.Collections.emptyList()));
+        Holder<ConfiguredFeature<?, ?>> configured = Holder.direct(
+                new ConfiguredFeature<>(SMOOTHING.get(), NoneFeatureConfiguration.INSTANCE));
+        placed = Holder.direct(new PlacedFeature(configured, List.of()));
     }
 
-    public static void onBiomeLoading(BiomeLoadingEvent event) {
-        if (placed == null || event.getCategory() == Biome.BiomeCategory.NETHER
-                || event.getCategory() == Biome.BiomeCategory.THEEND) {
-            return;
-        }
-        List<Holder<PlacedFeature>> vegetation = event.getGeneration().getFeatures(
-                GenerationStep.Decoration.VEGETAL_DECORATION);
-        for (Holder<PlacedFeature> feature : vegetation) {
-            if (feature.value() == placed.value()) {
-                return;
-            }
-        }
-        vegetation.add(0, placed);
+    static Holder<PlacedFeature> placedFeature() {
+        return placed;
     }
 
     @Override

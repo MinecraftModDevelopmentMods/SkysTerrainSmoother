@@ -2,7 +2,7 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import net.minecraft.util.RandomSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,7 +27,7 @@ final class FineGrassModelProbe {
                     String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
                     for (BakedQuad quad : allFaces(model, state)) {
                         if (quad.getDirection().getAxis() == net.minecraft.core.Direction.Axis.Y
-                                || !quad.getSprite().getName().toString().equals(sideTexture)) {
+                                || !quad.getSprite().contents().name().toString().equals(sideTexture)) {
                             continue;
                         }
                         int stride = com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK.getIntegerSize();
@@ -77,9 +77,9 @@ final class FineGrassModelProbe {
 
     private static List<BakedQuad> allFaces(BakedModel model, BlockState state) {
         // Boundary faces live in direction-specific lists; inset faces are unculled.
-        List<BakedQuad> faces = new ArrayList<>(model.getQuads(state, null, new Random(0)));
+        List<BakedQuad> faces = new ArrayList<>(model.getQuads(state, null, RandomSource.create(0)));
         for (Direction direction : Direction.values()) {
-            faces.addAll(model.getQuads(state, direction, new Random(0)));
+            faces.addAll(model.getQuads(state, direction, RandomSource.create(0)));
         }
         return faces;
     }

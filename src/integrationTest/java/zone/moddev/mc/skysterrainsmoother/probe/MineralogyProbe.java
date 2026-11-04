@@ -37,7 +37,7 @@ public final class MineralogyProbe {
             for (int direction = 0; direction < 4; direction++) {
                 require(material.step(direction) != null && material.corner(direction) != null,
                         "built-in steps and corners exist in every direction");
-                require(material.step(direction).getBlock().getRegistryName().toString()
+                require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(material.step(direction).getBlock()).toString()
                                 .startsWith("skysbuildingpieces:mineralogy_"),
                         "the core owns the rock pieces");
             }

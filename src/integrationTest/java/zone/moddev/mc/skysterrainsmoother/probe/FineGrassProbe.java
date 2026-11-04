@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import java.util.Random;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
@@ -66,7 +66,7 @@ final class FineGrassProbe {
                     "snow keeps the same grass-support rule");
         }
         GrassSlabsApi.repairSupport(world, floor.above());
-        piece.getBlock().tick(piece, world, floor.above(), new Random(1));
+        piece.getBlock().tick(piece, world, floor.above(), RandomSource.create(1));
         RuntimeProbe.require(world.getBlockState(floor).getBlock() == (fullCover ? Blocks.DIRT : Blocks.GRASS_BLOCK),
                 "neighbour and random-tick repair preserve exposed grass");
         world.setBlock(floor, Blocks.DIRT.defaultBlockState(), 2);

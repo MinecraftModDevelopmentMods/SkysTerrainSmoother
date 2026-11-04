@@ -85,20 +85,16 @@ public final class ClientProbe extends ProbeProxy {
         if (System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             integrated = true;
             if (new File(minecraft.gameDirectory, "saves/terrain-smoother-world/level.dat").isFile()) {
-                minecraft.loadLevel("terrain-smoother-world");
+                minecraft.createWorldOpenFlows().loadLevel(new net.minecraft.client.gui.screens.TitleScreen(),
+                        "terrain-smoother-world");
             } else {
-                net.minecraft.core.RegistryAccess.Writable registries =
-                        net.minecraft.core.RegistryAccess.builtinCopy();
-                net.minecraft.world.level.levelgen.WorldGenSettings defaults =
-                        net.minecraft.world.level.levelgen.WorldGenSettings.makeDefault(registries);
-                net.minecraft.world.level.levelgen.WorldGenSettings generator =
-                        new net.minecraft.world.level.levelgen.WorldGenSettings(4815162342L, false, false,
-                                defaults.dimensions());
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
                         "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE, false,
                         net.minecraft.world.Difficulty.NORMAL, true, new net.minecraft.world.level.GameRules(),
-                        net.minecraft.world.level.DataPackConfig.DEFAULT);
-                minecraft.createLevel("terrain-smoother-world", settings, registries, generator);
+                        net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
+                minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
+                        new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
+                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions);
             }
         } else {
             minecraft.stop();
@@ -111,14 +107,14 @@ public final class ClientProbe extends ProbeProxy {
             return;
         }
         net.minecraft.client.gui.screens.Screen screen = client.screen;
-        if (screen == null || !(screen.getTitle() instanceof net.minecraft.network.chat.TranslatableComponent)
-                || !((net.minecraft.network.chat.TranslatableComponent) screen.getTitle()).getKey()
-                        .equals("selectWorld.backupQuestion.experimental")) {
+        if (screen == null || !(screen.getTitle().getContents()
+                instanceof net.minecraft.network.chat.contents.TranslatableContents title)
+                || !title.getKey().equals("selectWorld.backupQuestion.experimental")) {
             return;
         }
         net.minecraft.network.chat.Component proceed;
         if (screen instanceof net.minecraft.client.gui.screens.BackupConfirmScreen) {
-            proceed = new net.minecraft.network.chat.TranslatableComponent("selectWorld.backupJoinSkipButton");
+            proceed = net.minecraft.network.chat.Component.translatable("selectWorld.backupJoinSkipButton");
         } else if (screen instanceof net.minecraft.client.gui.screens.ConfirmScreen) {
             proceed = net.minecraft.network.chat.CommonComponents.GUI_PROCEED;
         } else {
@@ -170,8 +166,8 @@ public final class ClientProbe extends ProbeProxy {
                 net.minecraft.core.Direction.DOWN, net.minecraft.core.Direction.UP,
                 net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.SOUTH,
                 net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.EAST }) {
-            for (net.minecraft.client.renderer.block.model.BakedQuad quad : model.getQuads(state, face, new java.util.Random(0))) {
-                RuntimeProbe.require(!quad.getSprite().getName().toString().contains("missingno"), "missing texture " + state);
+            for (net.minecraft.client.renderer.block.model.BakedQuad quad : model.getQuads(state, face, net.minecraft.util.RandomSource.create(0))) {
+                RuntimeProbe.require(!quad.getSprite().contents().name().toString().contains("missingno"), "missing texture " + state);
             }
         }
     }

@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /** Immutable exact-state mapping. Direction order is north, east, south, west. */
 public final class TerrainMaterial {
@@ -36,7 +37,7 @@ public final class TerrainMaterial {
                 throw new IllegalArgumentException("A source cannot be null");
             }
 
-            ResourceLocation name = source.getBlock().getRegistryName();
+            ResourceLocation name = ForgeRegistries.BLOCKS.getKey(source.getBlock());
 
             if (name != null && name.getNamespace().equals("mineralogy")) {
                 mineral = true;

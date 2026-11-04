@@ -73,7 +73,7 @@ public final class NativeBootstrap {
             custom.putString("Name", "Kept sand");
             oldStack.put("tag", custom);
             SandLegacyRecovery.recoverItems(oldStack);
-            require(oldStack.getString("id").equals(block.getRegistryName().toString())
+            require(oldStack.getString("id").equals(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(block).toString())
                     && oldStack.getByte("Count") == 17 && custom.equals(oldStack.getCompound("tag")),
                     "Raw sand stack retains count and custom data");
             CompoundTag once = oldStack.copy();
@@ -104,7 +104,7 @@ public final class NativeBootstrap {
         }
         world.setBlock(source.below(5), Blocks.STONE.defaultBlockState(), 2);
         world.setBlock(source, state, 2);
-        ((SandSlabBlock) state.getBlock()).tick(state, world, source, new java.util.Random(1));
+        ((SandSlabBlock) state.getBlock()).tick(state, world, source, net.minecraft.util.RandomSource.create(1));
         java.util.List<FallingBlockEntity> entities = world.getEntitiesOfClass(FallingBlockEntity.class,
                 new AABB(source).inflate(1));
         require(entities.size() == 1, "Native falling entity created");
@@ -115,7 +115,7 @@ public final class NativeBootstrap {
         require(!falling.isAlive() && world.getBlockState(source.below(4)).equals(state),
                 "Falling preserves native sand colour and orientation");
         world.setBlock(source, state.setValue(SandSlabBlock.WATERLOGGED, true), 2);
-        ((SandSlabBlock) state.getBlock()).tick(world.getBlockState(source), world, source, new java.util.Random(1));
+        ((SandSlabBlock) state.getBlock()).tick(world.getBlockState(source), world, source, net.minecraft.util.RandomSource.create(1));
         entities = world.getEntitiesOfClass(FallingBlockEntity.class, new AABB(source).inflate(1));
         entities.removeIf(entity -> !entity.isAlive());
         require(entities.size() == 1, "Wet sand begins falling");

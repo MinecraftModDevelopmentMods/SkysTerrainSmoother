@@ -221,7 +221,7 @@ final class LateTerrainProbe {
                                 BlockState state = world.getBlockState(
                                         new BlockPos((origin << 4) + blockX, blockY, (128 << 4) + blockZ));
 
-                                digest.update((state.getBlock().getRegistryName() + "/"
+                                digest.update((net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(state.getBlock()) + "/"
                                         + state.toString() + "\n").getBytes("UTF-8"));
                             }
                         }

@@ -20,7 +20,8 @@ class NamedForwardFixtureTest {
             "1.14.4,1976,D71FE9E2820C4CCEDE75B1642BDBA64EBC8AE654F51F3BF1FD82409BF1044562",
             "1.15.2,2230,B812D07B20C34EE058D155EC8592FFE8AB36DB386FF04A3687BBE9419A81BA5F",
             "1.16.5,2586,079666DA120BFC8B0EDABE50633253712F5EE6EC7D80FD4C7F5DC37D8211E4FA",
-            "1.17.1,2730,81650A520DF40A440112FE7CD334FC3ACDE6E4B7909C5CA7B0427DEABA20B7EF"
+            "1.17.1,2730,81650A520DF40A440112FE7CD334FC3ACDE6E4B7909C5CA7B0427DEABA20B7EF",
+            "1.18.2,2975,F75AF93379CACBCD0D6A89E4FFBF2D4A0679DE8747F5D51F1AF60747FE4CC2C5"
     })
     void precedingVersionSaveUsesQualifiedJarsAndContainsWetSand(String version, int dataVersion,
             String sealedChecksum) throws Exception {
@@ -38,6 +39,16 @@ class NamedForwardFixtureTest {
         assertEquals(source.get("manifest_sha256").getAsString(), digest(root.resolve("source-family-fixture.json")));
         assertEquals(source.get("native_states_sha256").getAsString(), digest(root.resolve("native-source-states.json")));
         assertEquals(8, json(root.resolve("source-family-fixture.json")).getAsJsonArray("native_sand_states").size());
+        if (version.equals("1.18.2")) {
+            Path biomeContract = root.resolve("native-source-biomes.json");
+            assertEquals(source.get("native_biomes_sha256").getAsString(), digest(biomeContract));
+            JsonObject biomes = json(biomeContract);
+            assertEquals(checksum, biomes.get("source_world_sha256").getAsString());
+            assertEquals(-16, biomes.get("minimum_quart_y").getAsInt());
+            assertEquals(96, biomes.get("quart_height").getAsInt());
+            assertEquals(821, biomes.getAsJsonArray("chunks").size());
+            assertEquals(1261056, biomes.get("checked_cells").getAsInt());
+        }
 
         Set<String> artifacts = new HashSet<>();
 
@@ -56,6 +67,10 @@ class NamedForwardFixtureTest {
             "35D6C37E24C3F02FC2BCABF7833FEF44B8A79586507DB5E8C6B26274C2739434",
             "5A5EC232E9EB05B870315F7080B2F2B66003F2D66755607135E559B1D1E0D506",
             "40ACD56C59F50C9C5DC484781B7FEA180E1C45FAB5470735CA27983E14258240"
+        } : version.equals("1.18.2") ? new String[] {
+            "D74CE5C1E1F58A3A679A26E836F3CFEEEEB3897D7A51C407980B6252D47C4433",
+            "357E8792542EEC84E4D3DEF3E91193559B826574DC23DB8A5081A69ABF112CE7",
+            "82709CF16A7282DB5562BE5FCC2F417D0F103620EAE86DBDE9E0CBD760B51B5A"
         } : new String[] {
             "C506D0489231E6663952880F4554B769361DF0FEBE10E05EF18F264DF9D49A3C",
             "C975A9BC836DBFC9B4A01E2D1DCB350F8201AB12BFBA8A0D9CFE1D0609A2A568",

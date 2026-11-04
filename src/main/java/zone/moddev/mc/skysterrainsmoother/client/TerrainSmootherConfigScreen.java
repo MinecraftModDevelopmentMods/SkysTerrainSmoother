@@ -3,10 +3,8 @@ package zone.moddev.mc.skysterrainsmoother.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.resources.language.I18n;
-import net.minecraft.network.chat.TextComponent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
@@ -24,7 +22,7 @@ public final class TerrainSmootherConfigScreen extends Screen {
     private Button mineralogyButton;
 
     public TerrainSmootherConfigScreen(Screen parent) {
-        super(new TextComponent(SkysTerrainSmoother.NAME));
+        super(Component.literal(SkysTerrainSmoother.NAME));
         this.parent = parent;
         enabled = TerrainSmootherConfig.configuredEnabled();
         smoothingLevel = TerrainSmootherConfig.configuredLevel();
@@ -34,23 +32,22 @@ public final class TerrainSmootherConfigScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 150;
-        enabledButton = addRenderableWidget(new Button(left, 65, 300, 20, toggleLabel(ENABLED_KEY, enabled), button -> {
+        enabledButton = addRenderableWidget(Button.builder(toggleLabel(ENABLED_KEY, enabled), button -> {
             enabled = !enabled;
             button.setMessage(toggleLabel(ENABLED_KEY, enabled));
-        }));
-        levelButton = addRenderableWidget(new Button(left, 95, 300, 20, levelLabel(), button -> {
+        }).bounds(left, 65, 300, 20).build());
+        levelButton = addRenderableWidget(Button.builder(levelLabel(), button -> {
             smoothingLevel = smoothingLevel % 3 + 1;
             button.setMessage(levelLabel());
-        }));
-        mineralogyButton = addRenderableWidget(new Button(left, 125, 300, 20,
-                toggleLabel(MINERALOGY_KEY, mineralogy), button -> {
-                    mineralogy = !mineralogy;
-                    button.setMessage(toggleLabel(MINERALOGY_KEY, mineralogy));
-                }));
-        addRenderableWidget(new Button(width / 2 - 100, height - 35, 200, 20, new TranslatableComponent("gui.done"), button -> {
+        }).bounds(left, 95, 300, 20).build());
+        mineralogyButton = addRenderableWidget(Button.builder(toggleLabel(MINERALOGY_KEY, mineralogy), button -> {
+            mineralogy = !mineralogy;
+            button.setMessage(toggleLabel(MINERALOGY_KEY, mineralogy));
+        }).bounds(left, 125, 300, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> {
             TerrainSmootherConfig.saveForNextStart(enabled, smoothingLevel, mineralogy);
             minecraft.setScreen(parent);
-        }));
+        }).bounds(width / 2 - 100, height - 35, 200, 20).build());
     }
 
     @Override
@@ -62,7 +59,7 @@ public final class TerrainSmootherConfigScreen extends Screen {
                 : levelButton.isMouseOver(mouseX, mouseY) ? LEVEL_KEY
                 : mineralogyButton.isMouseOver(mouseX, mouseY) ? MINERALOGY_KEY : null;
         if (hovered != null) {
-            renderTooltip(poseStack, font.split(new TranslatableComponent(hovered + ".tooltip"), 280),
+            renderTooltip(poseStack, font.split(Component.translatable(hovered + ".tooltip"), 280),
                     mouseX, mouseY);
         }
     }
@@ -73,10 +70,10 @@ public final class TerrainSmootherConfigScreen extends Screen {
     }
 
     private Component levelLabel() {
-        return new TextComponent(I18n.get(LEVEL_KEY) + ": " + smoothingLevel);
+        return Component.literal(I18n.get(LEVEL_KEY) + ": " + smoothingLevel);
     }
 
     private static Component toggleLabel(String key, boolean enabled) {
-        return new TextComponent(I18n.get(key) + ": " + I18n.get(enabled ? "options.on" : "options.off"));
+        return Component.literal(I18n.get(key) + ": " + I18n.get(enabled ? "options.on" : "options.off"));
     }
 }

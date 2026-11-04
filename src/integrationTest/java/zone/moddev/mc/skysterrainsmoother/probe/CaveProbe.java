@@ -164,8 +164,10 @@ final class CaveProbe {
         var previousStarts = new java.util.HashMap<>(owner.getAllStarts());
         BoundingBox protectedBounds = new BoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
                 floor.getX() + 2, 80, floor.getZ() + 2);
-        StructureStart protectedStart = protectedStart(owner, protectedBounds);
-        owner.setStartForFeature(net.minecraft.data.worldgen.StructureFeatures.MINESHAFT.value(), protectedStart);
+        var mineshaft = world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT);
+        StructureStart protectedStart = protectedStart(owner, mineshaft, protectedBounds);
+        owner.setStartForStructure(mineshaft, protectedStart);
         try {
             fixture(world, floor, 6);
             world.setBlock(floor.north().above(), Blocks.STONE.defaultBlockState(), 2);
@@ -218,7 +220,7 @@ final class CaveProbe {
                 world.setBlock(floor.above(), Blocks.GLASS.defaultBlockState(), 2);
             }
 
-            MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+            MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
             RuntimeProbe.require(
                     kind == 1
                             ? world.getBlockState(floor.above())
@@ -249,7 +251,7 @@ final class CaveProbe {
                 world.setBlock(floor, ore, 2);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
                 ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
-                MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+                MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
                 RuntimeProbe.require(world.getBlockState(floor.above()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
                 RuntimeProbe.require(world.getBlockState(floor).equals(ore), "ore support is never overwritten");
@@ -262,7 +264,7 @@ final class CaveProbe {
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         world.setBlock(floor, Blocks.COAL_ORE.defaultBlockState(), 2);
         world.setBlock(floor.above(2), Blocks.BRICKS.defaultBlockState(), 2);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+        MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
         RuntimeProbe.require(world.isEmptyBlock(floor.above()) && world.getBlockState(floor).getBlock() == Blocks.COAL_ORE,
                 "ore preservation does not override cave headroom protection");
         checks++;
@@ -278,7 +280,8 @@ final class CaveProbe {
         return checks;
     }
 
-    private static StructureStart protectedStart(LevelChunk owner, BoundingBox bounds) {
+    private static StructureStart protectedStart(LevelChunk owner,
+            net.minecraft.world.level.levelgen.structure.Structure structure, BoundingBox bounds) {
         net.minecraft.world.level.levelgen.structure.StructurePiece piece =
                 new net.minecraft.world.level.levelgen.structure.StructurePiece(
                         net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.MINE_SHAFT_ROOM,
@@ -291,12 +294,13 @@ final class CaveProbe {
 
                     @Override
                     public void postProcess(net.minecraft.world.level.WorldGenLevel world,
-                            net.minecraft.world.level.StructureFeatureManager structures,
-                            net.minecraft.world.level.chunk.ChunkGenerator generator, java.util.Random random, BoundingBox clip,
+                            net.minecraft.world.level.StructureManager structures,
+                            net.minecraft.world.level.chunk.ChunkGenerator generator,
+                            net.minecraft.util.RandomSource random, BoundingBox clip,
                             net.minecraft.world.level.ChunkPos chunk, BlockPos position) {
                     }
                 };
-        return new StructureStart(net.minecraft.data.worldgen.StructureFeatures.MINESHAFT.value(),
+        return new StructureStart(structure,
                 owner.getPos(), 0,
                 new net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer(java.util.List.of(piece)));
     }

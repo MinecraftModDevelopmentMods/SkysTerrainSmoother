@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.119041 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.19.4.
+- Use the matching Grass Slabs and Building Pieces versions.
+
 ## 0.1.0.118021 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.18.2.

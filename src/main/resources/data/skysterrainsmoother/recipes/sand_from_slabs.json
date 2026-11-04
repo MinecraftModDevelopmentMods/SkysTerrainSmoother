@@ -1,5 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "building",
   "group": "skysterrainsmoother/full_blocks",
   "pattern": [
     "SS"

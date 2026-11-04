@@ -3,16 +3,12 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.world.level.block.OreBlock;
-import net.minecraft.world.level.block.RedStoneOreBlock;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.TagKey;
-import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.BooleanOp;
@@ -27,6 +23,8 @@ import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
@@ -114,11 +112,10 @@ public final class SmoothingEngine {
     }
 
     @SubscribeEvent
-    public void loaded(net.minecraftforge.event.world.ChunkEvent.Load event) {
-        if (!(event.getWorld() instanceof Level)) {
+    public void loaded(ChunkEvent.Load event) {
+        if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        Level world = (Level) event.getWorld();
         if (world.isClientSide || !isOverworld(world)) {
             return;
         }
@@ -140,8 +137,8 @@ public final class SmoothingEngine {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void endWorldTick(TickEvent.WorldTickEvent event) {
-        Level world = event.world;
+    public void endWorldTick(TickEvent.LevelTickEvent event) {
+        Level world = event.level;
         if (event.phase != TickEvent.Phase.END || world.isClientSide
                 || !isOverworld(world)) {
             return;
@@ -171,11 +168,10 @@ public final class SmoothingEngine {
     }
 
     @SubscribeEvent
-    public void unload(net.minecraftforge.event.world.ChunkEvent.Unload event) {
-        if (!(event.getWorld() instanceof Level)) {
+    public void unload(ChunkEvent.Unload event) {
+        if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        Level world = (Level) event.getWorld();
         if (world.isClientSide || !isOverworld(world)) {
             return;
         }
@@ -581,15 +577,9 @@ public final class SmoothingEngine {
             return cached;
         }
 
-        boolean isOre = false;
-
-        if (fullCollision(state) && !state.hasBlockEntity() && !state.getMaterial().isLiquid()) {
-            isOre = state.getBlock() instanceof OreBlock || state.getBlock() instanceof RedStoneOreBlock;
-
-            if (!isOre) {
-                isOre = state.is(TagKey.create(Registry.BLOCK_REGISTRY, new ResourceLocation("forge", "ores")));
-            }
-        }
+        // The experience-dropping block class also covers non-ores such as sculk.
+        boolean isOre = fullCollision(state) && !state.hasBlockEntity()
+                && !state.getMaterial().isLiquid() && state.is(Tags.Blocks.ORES);
 
         oreSupports.put(state, isOre);
         return isOre;

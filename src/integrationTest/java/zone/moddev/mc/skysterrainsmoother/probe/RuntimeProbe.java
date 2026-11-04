@@ -59,23 +59,22 @@ public final class RuntimeProbe {
 
     public RuntimeProbe() {
         net.minecraftforge.eventbus.api.IEventBus modBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus();
-        modBus.addGenericListener(Block.class, this::blocks);
-        modBus.addGenericListener(net.minecraft.world.item.Item.class, this::items);
+        modBus.addListener(this::registerProbeOre);
         modBus.addListener(this::init);
         MinecraftForge.EVENT_BUS.register(this);
         net.minecraftforge.fml.DistExecutor.runWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,
                 () -> () -> new ClientProbe().init());
     }
 
-    public void blocks(net.minecraftforge.event.RegistryEvent.Register<Block> event) {
-        probeOre = new Block(Block.Properties.of(net.minecraft.world.level.material.Material.STONE))
-                .setRegistryName("terrainsmootherprobe", "ore_support");
-        event.getRegistry().register(probeOre);
-    }
-
-    public void items(net.minecraftforge.event.RegistryEvent.Register<net.minecraft.world.item.Item> event) {
-        event.getRegistry()
-                .register(new net.minecraft.world.item.BlockItem(probeOre, new net.minecraft.world.item.Item.Properties()).setRegistryName(probeOre.getRegistryName()));
+    public void registerProbeOre(net.minecraftforge.registries.RegisterEvent event) {
+        ResourceLocation id = new ResourceLocation("terrainsmootherprobe", "ore_support");
+        event.register(net.minecraftforge.registries.ForgeRegistries.Keys.BLOCKS, registry -> {
+            probeOre = new Block(Block.Properties.of(net.minecraft.world.level.material.Material.STONE));
+            registry.register(id, probeOre);
+        });
+        event.register(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS, registry ->
+                registry.register(id, new net.minecraft.world.item.BlockItem(
+                        probeOre, new net.minecraft.world.item.Item.Properties())));
     }
 
     public void init(FMLCommonSetupEvent event) {
@@ -112,23 +111,26 @@ public final class RuntimeProbe {
     private void checkFeatureRegistration() {
         int eligible = 0;
         int excluded = 0;
+        var smoothing = net.minecraftforge.registries.ForgeRegistries.FEATURES.getValue(
+                new ResourceLocation("skysterrainsmoother", "terrain_smoothing"));
+        require(smoothing instanceof TerrainSmoothingFeature, "The registered terrain smoothing feature is missing");
         int vegetation = net.minecraft.world.level.levelgen.GenerationStep.Decoration.VEGETAL_DECORATION.ordinal();
-        for (net.minecraft.world.level.biome.Biome biome : server.registryAccess()
-                .registryOrThrow(net.minecraft.core.Registry.BIOME_REGISTRY)) {
+        var biomes = server.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME);
+        for (var biome : biomes.holders().toList()) {
             List<net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature>> stages =
-                    biome.getGenerationSettings().features();
+                    biome.value().getGenerationSettings().features();
             net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature> features =
                     vegetation < stages.size() ? stages.get(vegetation) : net.minecraft.core.HolderSet.direct(Collections.emptyList());
             long occurrences = features.stream().filter(feature -> feature.value().getFeatures()
-                    .anyMatch(configured -> configured.feature() == TerrainSmoothingFeature.INSTANCE)).count();
-            boolean excludedBiome = net.minecraft.world.level.biome.Biome.getBiomeCategory(net.minecraft.core.Holder.direct(biome)) == net.minecraft.world.level.biome.Biome.BiomeCategory.NETHER
-                    || net.minecraft.world.level.biome.Biome.getBiomeCategory(net.minecraft.core.Holder.direct(biome)) == net.minecraft.world.level.biome.Biome.BiomeCategory.THEEND;
+                    .anyMatch(configured -> configured.feature() == smoothing)).count();
+            boolean excludedBiome = biome.is(net.minecraft.tags.BiomeTags.IS_NETHER)
+                    || biome.is(net.minecraft.tags.BiomeTags.IS_END);
             if (excludedBiome) {
                 require(occurrences == 0, "Nether and End biomes exclude terrain smoothing");
                 excluded++;
             } else {
                 require(occurrences == 1 && features.get(0).value().getFeatures()
-                        .anyMatch(configured -> configured.feature() == TerrainSmoothingFeature.INSTANCE),
+                        .anyMatch(configured -> configured.feature() == smoothing),
                         "Terrain smoothing occurs once, at the start of vegetation decoration");
                 eligible++;
             }
@@ -176,7 +178,7 @@ public final class RuntimeProbe {
 
 
             if (!gameplayComplete) {
-                server.getCommands().performCommand(server.createCommandSourceStack(), "gamerule randomTickSpeed 0");
+            server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "gamerule randomTickSpeed 0");
                 require(GrassSlabsApi.hasSmoothingOwner(), "ownership claimed before Grass Slabs startup");
                 require(SkysTerrainSmoother.engine.indexedChunks() > 0 == phase().equals("reload"),
                         "saved-chunk index lifecycle");
@@ -524,7 +526,7 @@ public final class RuntimeProbe {
                 boolean completeTop = Geometry.completeTop(piece.mask(grass));
 
                 require(piece.isValidBonemealTarget(world, position, grass, false) == completeTop
-                        && piece.isBonemealSuccess(world, new Random(1), position, grass) == completeTop,
+                        && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1), position, grass) == completeTop,
                         "bonemeal requires a complete upper supporting face");
                 require(!piece.isValidBonemealTarget(world, position, dirt, false), "dirt forms do not accept grass bonemeal");
                 world.setBlock(position.north().below(), Blocks.STONE.defaultBlockState(), 2);
@@ -554,7 +556,7 @@ public final class RuntimeProbe {
                 world.setBlock(position.above(), Blocks.STONE.defaultBlockState(), 2);
                 ProbeWorld.light(world, LightLayer.SKY, position.above(), 0);
                 ProbeWorld.light(world, LightLayer.BLOCK, position.above(), 0);
-                grass.getBlock().tick(grass, world, position, new Random(1));
+                grass.getBlock().tick(grass, world, position, net.minecraft.util.RandomSource.create(1));
                 require(world.getBlockState(position).equals(dirt), "covered decay keeps orientation");
                 checks += 10;
             }
@@ -647,7 +649,7 @@ public final class RuntimeProbe {
                                                     }
                                                 }
                                                 if (new ResourceLocation("biomesoplenty:lush_desert")
-                                                        .equals(world.getBiome(piece).value().getRegistryName())) {
+                                                        .equals(world.getBiome(piece).unwrapKey().orElseThrow().location())) {
                                                     if (terrainMaterial.id
                                                             .equals(new ResourceLocation("minecraft:hardened_clay"))) {
                                                         lushClay++;
@@ -785,7 +787,7 @@ public final class RuntimeProbe {
                             BlockState state = world
                                     .getBlockState(new BlockPos((origin << 4) + blockX, blockY, (128 << 4) + blockZ));
 
-                            digest.update((state.getBlock().getRegistryName() + "/"
+                            digest.update((net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(state.getBlock()) + "/"
                                     + state.toString() + "\n").getBytes("UTF-8"));
                         }
                     }

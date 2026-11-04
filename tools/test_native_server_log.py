@@ -71,13 +71,13 @@ class NativeRegistryNoticeTest(unittest.TestCase):
         self.valid += prefix + "There are unidentified mappings in this world - we are going to attempt to process anyway\n"
 
     def test_exact_native_notices_and_a_clean_reload_pass(self):
-        self.assertEqual(len(self.check(self.valid, self.profile)), 5)
+        self.assertEqual(len(self.check(self.valid, self.profile)), 6)
         self.assertEqual(self.check("A clean native reload", None), [])
 
     def test_target_client_requires_one_exact_snapshot_read(self):
         profile = dict(self.profile, notice_thread="Render thread", notice_reads=1)
         one_read = self.valid.replace("[main/ERROR]", "[Render thread/ERROR]")
-        self.assertEqual(len(self.check(one_read, profile)), 5)
+        self.assertEqual(len(self.check(one_read, profile)), 6)
         for text in (one_read * 2, one_read * 3, self.valid,
                      one_read.replace(self.entity_notice, self.entity_notice + "0")):
             with self.subTest(text=text[:80]), self.assertRaises(ValueError):
@@ -125,8 +125,10 @@ class NativeServerFilesTest(unittest.TestCase):
         self.assertEqual(audit_server(self.directory, 'test')['native_server_config_notices'], 0)
 
     def test_changed_defaults_fail(self):
-        self.config.write_text(self.config.read_text().replace('fixAdvancementLoading = true',
-                                                              'fixAdvancementLoading = false'))
+        original = self.config.read_text(encoding='utf-8')
+        changed = original.replace('fullBoundingBoxLadders = false', 'fullBoundingBoxLadders = true')
+        self.assertNotEqual(original, changed)
+        self.config.write_text(changed, encoding='utf-8')
         with self.assertRaises(ValueError):
             audit_server(self.directory, 'test')
 

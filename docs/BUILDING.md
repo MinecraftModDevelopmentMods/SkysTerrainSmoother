@@ -2,14 +2,16 @@
 
 Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 17.0.1+12 for production.
 Set `STS_JAVA17_HOME` to the Java 17 installation. This branch targets
-Minecraft 1.18.2 with ForgeGradle 7.0.34.
+Minecraft 1.19.4 with ForgeGradle 7.0.34.
+ForgeGradle's Mavenizer also uses Java 25 to prepare the Forge dependency.
+The mod itself compiles and runs on Java 17.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.118021 and Building Pieces
-0.3.8.118021.
+The source lock records locally qualified Grass Slabs 1.2.0.119041 and Building Pieces
+0.3.8.119041.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and

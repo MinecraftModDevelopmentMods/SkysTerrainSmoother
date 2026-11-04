@@ -4,7 +4,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.state.properties.SlabType;
@@ -19,7 +18,7 @@ public final class SandSlabItem extends BlockItem {
     private final SandSlabBlock slab;
 
     public SandSlabItem(SandSlabBlock slab) {
-        super(slab, new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS));
+        super(slab, new Item.Properties());
         this.slab = slab;
     }
 

@@ -18,7 +18,8 @@ class SandStateTest {
     @BeforeAll
     static void boot() {
         MinecraftTestBootstrap.registerVanilla();
-        SandContent.register();
+        SandContent.slab = new SandSlabBlock(false);
+        SandContent.redSlab = new SandSlabBlock(true);
     }
 
     @Test

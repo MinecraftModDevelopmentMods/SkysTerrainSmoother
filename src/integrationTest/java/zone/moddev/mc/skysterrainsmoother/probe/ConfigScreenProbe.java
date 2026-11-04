@@ -62,7 +62,7 @@ final class ConfigScreenProbe {
             String key = "config." + modId + "." + keys[choiceIndex];
             RuntimeProbe.require(!I18n.get(key).equals(key) && !I18n.get(key + ".tooltip").equals(key + ".tooltip"),
                     "Readable label and tooltip for " + key);
-            render(minecraft, screen, button.x + 5, button.y + 5);
+            render(minecraft, screen, button.getX() + 5, button.getY() + 5);
             screenshot(minecraft, modId + "-" + keys[choiceIndex] + "-tooltip.png");
             button.onPress();
             RuntimeProbe.require(!button.getMessage().getString().equals(original.get(choiceIndex)), "The pending choice changes");
@@ -166,9 +166,8 @@ final class ConfigScreenProbe {
         com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.ON_OSX);
         float farPlane = net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane();
         com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
-                com.mojang.math.Matrix4f.orthographic(0,
-                        (float) (window.getWidth() / window.getGuiScale()), 0,
-                        (float) (window.getHeight() / window.getGuiScale()), 1000, farPlane));
+                new org.joml.Matrix4f().setOrtho(0, (float) (window.getWidth() / window.getGuiScale()),
+                        (float) (window.getHeight() / window.getGuiScale()), 0, 1000, farPlane));
         com.mojang.blaze3d.vertex.PoseStack modelView =
                 com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
         modelView.setIdentity();

@@ -1,7 +1,8 @@
 package zone.moddev.mc.skysterrainsmoother;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -134,13 +135,16 @@ class CatalogueTest {
     void biomeRestrictionsAndProtectedAreasAreOnlyVetoes() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
         TerrainMaterial terrainMaterial = material("stone", Blocks.STONE.defaultBlockState(), piece(15), null, null);
+        var biomes = VanillaRegistries.createLookup().lookupOrThrow(Registries.BIOME);
+        var plains = biomes.getOrThrow(Biomes.PLAINS).value();
+        var desert = biomes.getOrThrow(Biomes.DESERT).value();
 
         catalogue.register(terrainMaterial);
-        catalogue.addBiomeRule((id, biome) -> biome == net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS));
+        catalogue.addBiomeRule((id, biome) -> biome == plains);
         catalogue.addAreaProtection((dimension, pos, biome) -> pos.getX() < 0);
-        assertTrue(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS), 0, BlockPos.ZERO));
-        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.DESERT), 0, BlockPos.ZERO));
-        assertFalse(catalogue.allows(terrainMaterial, net.minecraft.data.BuiltinRegistries.BIOME.get(Biomes.PLAINS), 0, new BlockPos(-1, 1, 1)));
+        assertTrue(catalogue.allows(terrainMaterial, plains, 0, BlockPos.ZERO));
+        assertFalse(catalogue.allows(terrainMaterial, desert, 0, BlockPos.ZERO));
+        assertFalse(catalogue.allows(terrainMaterial, plains, 0, new BlockPos(-1, 1, 1)));
     }
     @Test
     void wetOutputsAndHollowGeometryAreRejected() {
@@ -149,6 +153,9 @@ class CatalogueTest {
                 new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false);
         BlockState wet = sand.defaultBlockState().setValue(
                 zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.WATERLOGGED, true);
+        // The native registry fills this cache for registered block states.
+        wet.initCache();
+        assertFalse(wet.getFluidState().isEmpty());
         assertThrows(IllegalArgumentException.class,
                 () -> catalogue.register(material("wet", Blocks.STONE.defaultBlockState(), wet, null, null)));
         Block hollow = new Block(Block.Properties.of(Material.STONE)) {
