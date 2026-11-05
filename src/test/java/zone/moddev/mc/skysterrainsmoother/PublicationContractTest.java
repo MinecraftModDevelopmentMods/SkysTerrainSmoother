@@ -60,7 +60,10 @@ class PublicationContractTest {
         assertTrue(ciWorkflow.contains("  push:"));
         assertTrue(ciWorkflow.contains("  pull_request:"));
         assertTrue(ciWorkflow.contains("if-no-files-found: error"));
-        assertTrue(ciWorkflow.contains("integrationTest"));
+        assertTrue(ciWorkflow.contains("preparePackagedIntegrationProbe"));
+        assertTrue(ciWorkflow.contains("tools/run_development_checks.py"));
+        assertTrue(ciWorkflow.contains("--phase fresh --fresh"));
+        assertTrue(ciWorkflow.contains("--phase reload"));
         assertTrue(ciWorkflow.contains("--offline"));
     }
 

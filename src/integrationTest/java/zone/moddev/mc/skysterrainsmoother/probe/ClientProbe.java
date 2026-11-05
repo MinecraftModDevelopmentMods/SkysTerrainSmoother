@@ -2,30 +2,44 @@ package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.io.*;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 public final class ClientProbe extends ProbeProxy {
     private boolean ran;
     private boolean integrated;
     private boolean resourcesChecked;
     private int settledWorldTicks;
+    private long leaveAfter;
 
     @Override
     public void init() {
-        MinecraftForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
     }
 
     @SubscribeEvent
-    public void tick(TickEvent.ClientTickEvent event) {
+    public void tick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
 
         org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().getWindow());
 
-        if (event.phase != TickEvent.Phase.END) {
+        if (leaveAfter != 0) {
+            if (System.nanoTime() >= leaveAfter) {
+                RuntimeProbe.require(minecraft.isPaused() && minecraft.level != null,
+                        "The disposable world is paused before leaving");
+                // Leave through the same save path as the pause menu.
+                minecraft.level.disconnect();
+                minecraft.disconnect(new net.minecraft.client.gui.screens.GenericMessageScreen(
+                        net.minecraft.network.chat.Component.translatable("menu.savingLevel")));
+                RuntimeProbe.require(minecraft.level == null, "The client left the disposable world");
+                zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info(
+                        "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS");
+                minecraft.stop();
+            }
             return;
         }
+
         if (ran) {
             if (integrated) confirmDisposableWorld(minecraft);
             if (integrated && ClientStatus.complete && minecraft.level != null && minecraft.player != null
@@ -35,8 +49,10 @@ public final class ClientProbe extends ProbeProxy {
                 RecipePreviewModels.check(minecraft);
                 checkBiomeTints(minecraft);
                 zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS");
-                minecraft.stop();
                 integrated = false;
+                // Pause world ticks long enough for the local connection to finish sending chunk data.
+                minecraft.setScreen(new net.minecraft.client.gui.screens.PauseScreen(true));
+                leaveAfter = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
             }
 
             return;
@@ -58,7 +74,7 @@ public final class ClientProbe extends ProbeProxy {
                         checkModel(minecraft, state);
                     }
                 }
-                for (net.minecraft.world.level.block.state.BlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB
+                for (net.minecraft.world.level.block.state.BlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get()
                         .getStateDefinition().getPossibleStates()) {
                     checkModel(minecraft, state);
                 }
@@ -85,8 +101,8 @@ public final class ClientProbe extends ProbeProxy {
         if (System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             integrated = true;
             if (new File(minecraft.gameDirectory, "saves/terrain-smoother-world/level.dat").isFile()) {
-                minecraft.createWorldOpenFlows().loadLevel(new net.minecraft.client.gui.screens.TitleScreen(),
-                        "terrain-smoother-world");
+                minecraft.createWorldOpenFlows().openWorld("terrain-smoother-world",
+                        () -> minecraft.setScreen(new net.minecraft.client.gui.screens.TitleScreen()));
             } else {
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
                         "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE, false,
@@ -94,7 +110,7 @@ public final class ClientProbe extends ProbeProxy {
                         net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
                 minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
                         new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
-                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions);
+                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions, minecraft.screen);
             }
         } else {
             minecraft.stop();
@@ -150,7 +166,7 @@ public final class ClientProbe extends ProbeProxy {
         }
         RuntimeProbe.require(count > 0, "Grass pieces reached the colour checks");
         RuntimeProbe.require(client.getBlockColors().getColor(
-                        zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.defaultBlockState(), client.level, sample, 0)
+                        zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get().defaultBlockState(), client.level, sample, 0)
                         == expected, "Grass slabs retain the actual client biome tint");
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_TINT_PASS palettes=" + count);
     }

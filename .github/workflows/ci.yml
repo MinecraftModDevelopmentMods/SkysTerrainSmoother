@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  cold-forge-bootstrap:
+  cold-neoforge-bootstrap:
     name: Cold NeoForge bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -26,29 +26,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Install pinned Java 25 ForgeGradle Mavenizer runtime
+      - name: Install pinned Java 21 Gradle runtime
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: '25.0.3+9.0.LTS'
-
-      - name: Install pinned Java 8 compilation toolchain
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '8.0.502+7'
-
-      - name: Install pinned Java 17 Gradle runtime
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '17.0.1+12'
-
-      - name: Pin production Java for the dependency builds
-        run: |
-          echo "SGS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          java-version: '21.0.7+6.0.LTS'
 
       - name: Read pinned dependency sources
         id: content
@@ -81,7 +63,7 @@ jobs:
           dependency="$GITHUB_WORKSPACE/dependencies/grass"
           (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace \
             "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
-            "-PgrassSlabsDeobfJar=$dependency/build/libs-dev/SkysGrassSlabs-$grass-deobf.jar")
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
 
 
       - name: Bootstrap NeoForge from an empty cache
@@ -95,29 +77,31 @@ jobs:
           mkdir -p "$GRADLE_USER_HOME"
           chmod +x ./gradlew
           gradle_args=(
-            classes test -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
+            classes test assemble verifyReleaseArtifacts writeReleaseChecksums -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
             --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_17_X64,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
           ./gradlew "${gradle_args[@]}"
+          cp build/release/SHA256SUMS "$RUNNER_TEMP/terrain-cold-SHA256SUMS"
 
       - name: Verify same-cache bootstrap offline
         shell: bash
         env:
           GRADLE_USER_HOME: ${{ runner.temp }}/skysterrainsmoother-cold-gradle
-          ORESPAWN_MAVENIZER_OFFLINE: "true"
         run: |
           set -euo pipefail
           gradle_args=(
-            classes test -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
+            classes test assemble verifyReleaseArtifacts writeReleaseChecksums -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces
             --rerun-tasks --offline --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_17_X64,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
+          ./gradlew clean --offline --no-daemon --no-build-cache
           ./gradlew "${gradle_args[@]}"
+          cmp build/release/SHA256SUMS "$RUNNER_TEMP/terrain-cold-SHA256SUMS"
 
   build:
     name: Build, test, and audit
@@ -142,30 +126,11 @@ jobs:
           echo "gradle_java_version=$(value gradle_java_toolchain_version)" >> "$GITHUB_OUTPUT"
           echo "artifact_prefix=SkysTerrainSmoother-$(value mod_version)" >> "$GITHUB_OUTPUT"
 
-      - name: Install ForgeGradle Mavenizer Java
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '25.0.3+9.0.LTS'
-
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: ${{ steps.target.outputs.java_setup_version }}
-
-      - name: Pin production Java
-        if: steps.target.outputs.java_version == '17'
-        run: |
-          echo "SGS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA17_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-
-      - name: Install Java for Gradle
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: ${{ steps.target.outputs.gradle_java_version }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
@@ -202,7 +167,7 @@ jobs:
           dependency="$GITHUB_WORKSPACE/dependencies/grass"
           (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace \
             "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
-            "-PgrassSlabsDeobfJar=$dependency/build/libs-dev/SkysGrassSlabs-$grass-deobf.jar")
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
 
 
       - name: Make the wrapper executable
@@ -210,12 +175,28 @@ jobs:
 
       - name: Build, test, and audit release artifacts
         run: >-
-          ./gradlew clean check integrationTest build javadoc verifyReleaseArtifacts writeReleaseChecksums
+          ./gradlew clean check build javadoc preparePackagedIntegrationProbe verifyReleaseArtifacts writeReleaseChecksums
           verifyEclipseProductionClasspath -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
 
       - name: Replay artifact checks offline
         run: >-
           ./gradlew assemble verifyReleaseArtifacts writeReleaseChecksums -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --offline --no-daemon --stacktrace
+
+      - name: Check fresh generation and reload in NeoGradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version() { sed -n "s/^$1.version=//p" gradle/content-dependencies.properties; }
+          common=(
+            --mode server --directory build/ci-generation-run
+            --probe build/integration-test-mod/skysterrainsmoother-integration-test.jar
+            --extra-mod "dependencies/grass/build/libs/SkysGrassSlabs-$(version grass).jar"
+            --extra-mod "dependencies/pieces/build/libs/SkysBuildingPieces-$(version pieces).jar"
+            --gradle-argument=-PgrassSlabsDirectory=dependencies/grass
+            --gradle-argument=-PbuildingPiecesDirectory=dependencies/pieces
+          )
+          python3 tools/run_development_checks.py "${common[@]}" --phase fresh --fresh
+          python3 tools/run_development_checks.py "${common[@]}" --phase reload
 
       - name: Upload audited release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -224,9 +205,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.120012.jar
-            build/libs/SkysTerrainSmoother-0.1.0.120012-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.120012-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.0.120062.jar
+            build/libs/SkysTerrainSmoother-0.1.0.120062-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.0.120062-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 

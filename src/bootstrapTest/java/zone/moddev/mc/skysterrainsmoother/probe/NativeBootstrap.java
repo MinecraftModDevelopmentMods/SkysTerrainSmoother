@@ -16,11 +16,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.bus.api.IEventBus;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi;
@@ -34,9 +34,9 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 public final class NativeBootstrap {
     private boolean setupComplete;
 
-    public NativeBootstrap() {
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        MinecraftForge.EVENT_BUS.addListener(this::started);
+    public NativeBootstrap(IEventBus modBus) {
+        modBus.addListener(this::setup);
+        NeoForge.EVENT_BUS.addListener(this::started);
     }
 
     private void setup(FMLCommonSetupEvent event) {
@@ -73,7 +73,7 @@ public final class NativeBootstrap {
             custom.putString("Name", "Kept sand");
             oldStack.put("tag", custom);
             SandLegacyRecovery.recoverItems(oldStack);
-            require(oldStack.getString("id").equals(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(block).toString())
+            require(oldStack.getString("id").equals(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString())
                     && oldStack.getByte("Count") == 17 && custom.equals(oldStack.getCompound("tag")),
                     "Raw sand stack retains count and custom data");
             CompoundTag once = oldStack.copy();

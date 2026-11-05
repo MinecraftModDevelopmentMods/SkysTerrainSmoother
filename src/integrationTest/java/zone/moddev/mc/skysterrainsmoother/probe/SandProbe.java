@@ -24,15 +24,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraft.server.level.ServerPlayer;
 import zone.moddev.mc.skysterrainsmoother.content.SandContent;
 import zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock;
 
 /** Exercise the registered sand items, native falling entities and real recipe manager. */
 final class SandProbe {
     static int run(ServerLevel world) {
-        FakePlayer player = FakePlayerFactory.get(world, new GameProfile(
+        ServerPlayer player = ProbeItems.player(world, new GameProfile(
                 UUID.fromString("14581a55-6ff1-4c98-834f-3f41057e395b"), "SandProbe"));
         player.getAbilities().instabuild = false;
         int checks = 0;
@@ -100,7 +99,7 @@ final class SandProbe {
             grid.setItem(0, new ItemStack(slab));
             grid.setItem(1, new ItemStack(slab));
             ItemStack result = world.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid, world)
-                    .orElseThrow(() -> new AssertionError("Sand recombination recipe missing")).assemble(grid, world.registryAccess());
+                    .orElseThrow(() -> new AssertionError("Sand recombination recipe missing")).value().assemble(grid, world.registryAccess());
             RuntimeProbe.require(ItemStack.matches(new ItemStack(slab.fullState().getBlock()), result),
                     "Two sand slabs craft the matching full block");
             checks += 5;
@@ -109,7 +108,7 @@ final class SandProbe {
         return checks;
     }
 
-    private static InteractionResult use(FakePlayer player, BlockPos position, Direction face, double height) {
+    private static InteractionResult use(ServerPlayer player, BlockPos position, Direction face, double height) {
         return player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND,
                 new BlockHitResult(new Vec3(position.getX() + .5, position.getY() + height,
                         position.getZ() + .5), face, position, false)));

@@ -4,10 +4,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.ModLoadingStage;
-import zone.moddev.mc.skysterrainsmoother.internal.BuiltInMaterials;
 import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 
 /** Version 1 API for registration during initialization. Player settings take priority. */
@@ -29,13 +25,9 @@ public final class TerrainSmoothingApi {
     }
 
     private static void requireInitialization() {
-        ModContainer container = ModLoadingContext.get().getActiveContainer();
-        ModLoadingStage stage = container == null ? null : container.getCurrentState();
-        if (stage != ModLoadingStage.COMMON_SETUP && stage != ModLoadingStage.SIDED_SETUP
-                && stage != ModLoadingStage.ENQUEUE_IMC && stage != ModLoadingStage.PROCESS_IMC) {
+        if (!CATALOGUE.registrationOpen()) {
             throw new IllegalStateException("Terrain extensions must register during initialization");
         }
-        BuiltInMaterials.ensureRegistered();
     }
 
     /** Register exact full-block states and their pieces during initialization, before the catalogue freezes. */

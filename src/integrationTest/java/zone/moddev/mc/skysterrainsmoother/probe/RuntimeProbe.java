@@ -20,15 +20,15 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.*;
-import net.minecraftforge.fml.common.*;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.common.*;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Geometry;
@@ -48,7 +48,7 @@ public final class RuntimeProbe {
     private boolean ran;
     private boolean gameplayComplete;
     private int completedGameplay;
-    private FakePlayer trackedPlayer;
+    private ServerPlayer trackedPlayer;
     private long trackingStarted;
     private long generationBefore;
     private int generationCenterX;
@@ -57,22 +57,22 @@ public final class RuntimeProbe {
     private boolean forwardPrepared;
     private int forwardWaitTicks;
 
-    public RuntimeProbe() {
-        net.minecraftforge.eventbus.api.IEventBus modBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus();
+    public RuntimeProbe(net.neoforged.bus.api.IEventBus modBus) {
         modBus.addListener(this::registerProbeOre);
         modBus.addListener(this::init);
-        MinecraftForge.EVENT_BUS.register(this);
-        net.minecraftforge.fml.DistExecutor.runWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,
-                () -> () -> new ClientProbe().init());
+        NeoForge.EVENT_BUS.register(this);
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            new ClientProbe().init();
+        }
     }
 
-    public void registerProbeOre(net.minecraftforge.registries.RegisterEvent event) {
+    public void registerProbeOre(net.neoforged.neoforge.registries.RegisterEvent event) {
         ResourceLocation id = new ResourceLocation("terrainsmootherprobe", "ore_support");
-        event.register(net.minecraftforge.registries.ForgeRegistries.Keys.BLOCKS, registry -> {
+        event.register(net.minecraft.core.registries.Registries.BLOCK, registry -> {
             probeOre = new Block(Block.Properties.of().mapColor(net.minecraft.world.level.material.MapColor.STONE));
             registry.register(id, probeOre);
         });
-        event.register(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS, registry ->
+        event.register(net.minecraft.core.registries.Registries.ITEM, registry ->
                 registry.register(id, new net.minecraft.world.item.BlockItem(
                         probeOre, new net.minecraft.world.item.Item.Properties())));
     }
@@ -111,7 +111,7 @@ public final class RuntimeProbe {
     private void checkFeatureRegistration() {
         int eligible = 0;
         int excluded = 0;
-        var smoothing = net.minecraftforge.registries.ForgeRegistries.FEATURES.getValue(
+        var smoothing = net.minecraft.core.registries.BuiltInRegistries.FEATURE.get(
                 new ResourceLocation("skysterrainsmoother", "terrain_smoothing"));
         require(smoothing instanceof TerrainSmoothingFeature, "The registered terrain smoothing feature is missing");
         int vegetation = net.minecraft.world.level.levelgen.GenerationStep.Decoration.VEGETAL_DECORATION.ordinal();
@@ -140,8 +140,8 @@ public final class RuntimeProbe {
     }
 
     @SubscribeEvent
-    public void tick(TickEvent.ServerTickEvent event) {
-        if (server == null || ran || event.phase != TickEvent.Phase.END) {
+    public void tick(ServerTickEvent.Post event) {
+        if (server == null || ran) {
             return;
         }
 
@@ -525,10 +525,10 @@ public final class RuntimeProbe {
                 PieceBlock piece = (PieceBlock) grass.getBlock();
                 boolean completeTop = Geometry.completeTop(piece.mask(grass));
 
-                require(piece.isValidBonemealTarget(world, position, grass, false) == completeTop
+                require(piece.isValidBonemealTarget(world, position, grass) == completeTop
                         && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1), position, grass) == completeTop,
                         "bonemeal requires a complete upper supporting face");
-                require(!piece.isValidBonemealTarget(world, position, dirt, false), "dirt forms do not accept grass bonemeal");
+                require(!piece.isValidBonemealTarget(world, position, dirt), "dirt forms do not accept grass bonemeal");
                 world.setBlock(position.north().below(), Blocks.STONE.defaultBlockState(), 2);
                 world.setBlock(position.north(), Blocks.SNOW.defaultBlockState(), 2);
                 require(world.getBlockState(position.north()).getBlock() == Blocks.SNOW,
@@ -539,7 +539,7 @@ public final class RuntimeProbe {
                 require(!piece.getActualState(grass, world, position).getValue(net.minecraft.world.level.block.GrassBlock.SNOWY),
                         "fine grass snow clears");
                 world.setBlock(position.below(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
-                grass.getBlock().neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, position.below(), false);
+                piece.neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, position.below(), false);
                 int cells = piece.mask(grass);
                 boolean coversSupport = ((cells | cells >> 4) & 15) == 15;
                 require(world.getBlockState(position.below()).getBlock() == (coversSupport ? Blocks.DIRT : Blocks.GRASS_BLOCK),
@@ -548,7 +548,7 @@ public final class RuntimeProbe {
                 require(GrassSpread.growTarget(world, position.below()) == !coversSupport,
                         "visible soil beneath finer pieces can regain grass");
                 world.setBlock(position, dirt, 2);
-                world.setBlock(position.above(), ModBlocks.GRASS_SLAB.defaultBlockState(), 2);
+                world.setBlock(position.above(), ModBlocks.GRASS_SLAB.get().defaultBlockState(), 2);
                 require(!GrassSpread.growTarget(world, position), "covered dirt piece rejected");
                 world.setBlock(position.above(), Pieces.state("minecraft:grass", Shape.HORIZONTAL_STEP, 4), 2);
                 require(!GrassSpread.growTarget(world, position), "covered dirt pieces still reject partial grass cover");
@@ -556,7 +556,7 @@ public final class RuntimeProbe {
                 world.setBlock(position.above(), Blocks.STONE.defaultBlockState(), 2);
                 ProbeWorld.light(world, LightLayer.SKY, position.above(), 0);
                 ProbeWorld.light(world, LightLayer.BLOCK, position.above(), 0);
-                grass.getBlock().tick(grass, world, position, net.minecraft.util.RandomSource.create(1));
+                grass.tick(world, position, net.minecraft.util.RandomSource.create(1));
                 require(world.getBlockState(position).equals(dirt), "covered decay keeps orientation");
                 checks += 10;
             }
@@ -566,11 +566,12 @@ public final class RuntimeProbe {
     }
 
     private void beginTrackedGeneration(ServerLevel world) {
-        trackedPlayer = FakePlayerFactory.get(world,
+        trackedPlayer = ProbeItems.player(world,
                 new GameProfile(UUID.fromString("4f5b04d6-9050-4e39-a06c-7793a3ffbe18"), "TerrainProbe"));
         // Discard network packets while retaining the native player tracking and chunk tickets.
         trackedPlayer.connection = new net.minecraft.server.network.ServerGamePacketListenerImpl(world.getServer(),
-                new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND), trackedPlayer) {
+                new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND), trackedPlayer,
+                net.minecraft.server.network.CommonListenerCookie.createInitial(trackedPlayer.getGameProfile(), false)) {
             @Override
             public void send(net.minecraft.network.protocol.Packet<?> packet) {
             }
@@ -789,7 +790,7 @@ public final class RuntimeProbe {
                             BlockState state = world
                                     .getBlockState(new BlockPos((origin << 4) + blockX, blockY, (128 << 4) + blockZ));
 
-                            digest.update((net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(state.getBlock()) + "/"
+                            digest.update((net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()) + "/"
                                     + state.toString() + "\n").getBytes("UTF-8"));
                         }
                     }

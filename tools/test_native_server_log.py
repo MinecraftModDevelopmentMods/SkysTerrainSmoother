@@ -1,4 +1,4 @@
-"""Negative controls for Forge 40 server completion and native settings."""
+"""Negative controls for NeoForge server completion and native settings."""
 
 from pathlib import Path
 import shutil
@@ -112,10 +112,9 @@ class NativeServerFilesTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
-        self.config = self.directory / 'world/serverconfig/forge-server.toml'
-        self.config.parent.mkdir(parents=True)
+        self.config = self.directory / 'config/neoforge-server.toml'
         defaults = Path(__file__).resolve().parent.parent / 'src/bootstrapTest/defaultconfigs'
-        shutil.copyfile(defaults / 'defaultconfigs/forge-server.toml', self.config)
+        shutil.copytree(defaults / 'config', self.directory / 'config')
         logs = self.directory / 'logs'
         logs.mkdir()
         (logs / 'latest.log').write_text(LOG, encoding='utf-8')

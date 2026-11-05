@@ -11,19 +11,17 @@ class MineralogyLaunchContractTest {
     @Test
     void optionalProfilesReuseTheNormalLauncherWithoutAddingRuntimeDependencies() throws Exception {
         String build = text("gradle/mineralogy-runs.gradle");
-        assertTrue(build.contains("tasks.register('runMineralogyClient', JavaExec)"));
-        assertTrue(build.contains("tasks.register('runMineralogyServer', JavaExec)"));
-        assertTrue(build.contains("configureVerification(delegate, 'runClient')"));
-        assertTrue(build.contains("configureVerification(delegate, 'runServer')"));
+        assertTrue(build.contains("mineralogyClient {"));
+        assertTrue(build.contains("mineralogyServer {"));
+        assertTrue(build.contains("runType 'client'"));
+        assertTrue(build.contains("runType 'server'"));
         assertTrue(build.contains("run-mineralogy"));
-        assertTrue(build.contains("ATTR_EXCLUDE_TEST_CODE"));
-        assertTrue(build.contains("bin/test"));
+        assertTrue(text("build.gradle").contains("ATTR_EXCLUDE_TEST_CODE"));
+        assertTrue(text("build.gradle").contains("bin/test"));
         assertFalse(build.contains("implementation "));
         assertFalse(build.contains("runtimeOnly "));
         assertFalse(build.contains("into sourceSets.main"));
-        assertTrue(text("build.gradle").contains(
-                "--main cpw.mods.bootstraplauncher.BootstrapLauncher"));
-        assertTrue(text("build.gradle").contains("--fml.mcVersion ${project.minecraft_version}"));
+        assertTrue(text("build.gradle").contains("net.neoforged.gradle.userdev"));
     }
 
     @Test
@@ -42,23 +40,18 @@ class MineralogyLaunchContractTest {
         assertTrue(script.contains("Missing optional"));
         assertTrue(script.contains("does not match gradle/mineralogy-runtime.properties"));
         assertFalse(script.contains("delete(gameDirectory"));
-        assertTrue(script.contains("Exact mapped reference jars"));
-        assertTrue(script.contains(".development.path"));
-        assertTrue(script.contains(".development.sha256"));
-        assertFalse(script.contains("minecraft.accessTransformers.from(accessRules)"));
+        assertTrue(script.contains("project.stageTerrainContentJars(gameDirectory.asFile)"));
     }
 
     @Test
     void probesUseSeparateGeneratedWorldsAndRequireFreshAndReloadEvidence() throws Exception {
-        String script = text("gradle/mineralogy-runs.gradle");
-        assertTrue(script.contains("buildDirectory.dir('mineralogy-integration-run')"));
+        String script = text("tools/run_packaged_checks.py");
+        assertTrue(script.contains("Fresh checks require a new disposable directory"));
         assertTrue(script.contains("server-port=0"));
         assertTrue(script.contains("server-ip=127.0.0.1"));
-        assertTrue(script.contains("level-type=BIOMESOP"));
-        assertTrue(script.contains("fresh_complete"));
-        assertTrue(script.contains("reload_complete"));
+        assertTrue(script.contains("Reload inputs differ from the fresh run"));
         assertTrue(script.contains("requireMineralogy"));
-        assertTrue(script.contains("testMineralogyShapes"));
+        assertTrue(script.contains("TERRAIN_SMOOTHER_RUNTIME_PASS"));
     }
 
     private static String text(String path) throws Exception {

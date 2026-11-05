@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0.120062 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.6 on NeoForge.
+- Use the matching Grass Slabs and Building Pieces versions.
+- Use Mineralogy's natural rock pieces when its NeoForge build is installed.
+
 ## 0.1.0.120012 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.1.

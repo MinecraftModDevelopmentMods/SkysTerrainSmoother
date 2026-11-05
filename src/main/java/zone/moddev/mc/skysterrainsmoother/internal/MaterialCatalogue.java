@@ -26,6 +26,7 @@ public final class MaterialCatalogue {
     private volatile List<TerrainSmoothingApi.BiomeRule> biomeRules = Collections.emptyList();
     private volatile List<TerrainSmoothingApi.AreaProtection> protections = Collections.emptyList();
     private volatile boolean frozen;
+    private volatile boolean registrationOpen;
 
     public synchronized void register(TerrainMaterial material) {
         requireOpen();
@@ -82,6 +83,15 @@ public final class MaterialCatalogue {
     public synchronized void freeze() {
         requireOpen();
         frozen = true;
+    }
+
+    public synchronized void openRegistration() {
+        requireOpen();
+        registrationOpen = true;
+    }
+
+    public boolean registrationOpen() {
+        return registrationOpen && !frozen;
     }
 
     public boolean frozen() {

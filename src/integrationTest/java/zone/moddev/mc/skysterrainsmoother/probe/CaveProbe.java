@@ -11,9 +11,8 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.block.RedStoneOreBlock;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.fml.LogicalSide;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -220,7 +219,7 @@ final class CaveProbe {
                 world.setBlock(floor.above(), Blocks.GLASS.defaultBlockState(), 2);
             }
 
-            MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+            NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
             RuntimeProbe.require(
                     kind == 1
                             ? world.getBlockState(floor.above())
@@ -251,7 +250,7 @@ final class CaveProbe {
                 world.setBlock(floor, ore, 2);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
                 ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
-                MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+                NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
                 RuntimeProbe.require(world.getBlockState(floor.above()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
                 RuntimeProbe.require(world.getBlockState(floor).equals(ore), "ore support is never overwritten");
@@ -264,7 +263,7 @@ final class CaveProbe {
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         world.setBlock(floor, Blocks.COAL_ORE.defaultBlockState(), 2);
         world.setBlock(floor.above(2), Blocks.BRICKS.defaultBlockState(), 2);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+        NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
         RuntimeProbe.require(world.isEmptyBlock(floor.above()) && world.getBlockState(floor).getBlock() == Blocks.COAL_ORE,
                 "ore preservation does not override cave headroom protection");
         checks++;

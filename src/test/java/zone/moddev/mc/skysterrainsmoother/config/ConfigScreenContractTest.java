@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,19 +16,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigScreenContractTest {
     @TempDir
     Path directory;
-    private ForgeConfigSpec spec;
+    private ModConfigSpec spec;
 
     @BeforeEach
     void loadDefaults() throws Exception {
         java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("SPEC");
         field.setAccessible(true);
-        spec = (ForgeConfigSpec) field.get(null);
+        spec = (ModConfigSpec) field.get(null);
         field = TerrainSmootherConfig.class.getDeclaredField("active");
         field.setAccessible(true);
         field.set(null, null);
         CommentedFileConfig config = CommentedFileConfig.builder(directory.resolve("settings.toml")).sync().build();
         config.load();
-        spec.setConfig(config);
+        spec.acceptConfig(config);
         field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
         field.setAccessible(true);
         field.set(null, config);

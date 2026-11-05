@@ -8,24 +8,26 @@ import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.electronwill.nightconfig.core.CommentedConfig;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLPaths;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Saves future choices without changing the generation settings of a running session. */
 public final class TerrainSmootherConfig {
     public static final String FILE_NAME = "skysterrainsmoother-common.toml";
-    private static final ForgeConfigSpec SPEC;
-    private static final ForgeConfigSpec.BooleanValue ENABLED;
-    private static final ForgeConfigSpec.IntValue LEVEL;
-    private static final ForgeConfigSpec.BooleanValue MINERALOGY;
+    private static final ModConfigSpec SPEC;
+    private static final ModConfigSpec.BooleanValue ENABLED;
+    private static final ModConfigSpec.IntValue LEVEL;
+    private static final ModConfigSpec.BooleanValue MINERALOGY;
     private static volatile Settings active;
     private static CommentedConfig loadedValues;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         builder.push("worldgen");
         ENABLED = builder.comment("Smooth new dry Overworld slopes and cave floors. Requires restart.")
                 .worldRestart().define("enabled", true);
@@ -43,15 +45,14 @@ public final class TerrainSmootherConfig {
     private TerrainSmootherConfig() {
     }
 
-    public static void register() {
+    public static void register(IEventBus modBus, ModContainer container) {
         migrateLegacyConfig(FMLPaths.CONFIGDIR.get());
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
-        net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus()
-                .addListener((net.minecraftforge.fml.event.config.ModConfigEvent.Loading event) -> {
-                    if (event.getConfig().getSpec() == SPEC) {
-                        loadedValues = event.getConfig().getConfigData();
-                    }
-                });
+        container.registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
+        modBus.addListener((ModConfigEvent.Loading event) -> {
+            if (event.getConfig().getSpec() == SPEC) {
+                loadedValues = event.getConfig().getConfigData();
+            }
+        });
     }
 
     public static synchronized void activateSettingsForThisRun() {
@@ -94,7 +95,7 @@ public final class TerrainSmootherConfig {
         if (loadedValues == null) {
             throw new IllegalStateException("Terrain Smoother settings have not loaded yet");
         }
-        // Forge watches this file and autosaves each root edit. Save the choices
+        // NeoForge watches this file and autosaves each root edit. Save the choices
         // together so its watcher cannot reload a half-written set of settings.
         CommentedConfig pending = CommentedConfig.copy(loadedValues);
         CommentedConfig worldgen = CommentedConfig.copy(loadedValues.get("worldgen"));
@@ -105,7 +106,7 @@ public final class TerrainSmootherConfig {
         pending.set("worldgen", worldgen);
         pending.set("compat", compatibility);
         loadedValues.putAll(pending);
-        // Refresh Forge's cached choices after the atomic file update. The active
+        // Refresh NeoForge's cached choices after the atomic file update. The active
         // session keeps its separate snapshot until Minecraft starts again.
         SPEC.afterReload();
         SPEC.save();

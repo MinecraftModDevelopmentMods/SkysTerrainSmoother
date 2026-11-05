@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
@@ -11,21 +11,22 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Runs once in the owning chunk, before plants can occupy its transition cells. */
 public final class TerrainSmoothingFeature extends Feature<NoneFeatureConfiguration> {
     private static final String ID = "terrain_smoothing";
     private static final DeferredRegister<Feature<?>> FEATURES =
-            DeferredRegister.create(ForgeRegistries.FEATURES, SkysTerrainSmoother.ID);
-    private static final DeferredRegister<Codec<? extends BiomeModifier>> BIOME_MODIFIERS =
-            DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, SkysTerrainSmoother.ID);
-    private static final RegistryObject<TerrainSmoothingFeature> SMOOTHING =
+            DeferredRegister.create(BuiltInRegistries.FEATURE, SkysTerrainSmoother.ID);
+    private static final DeferredRegister<MapCodec<? extends BiomeModifier>> BIOME_MODIFIERS =
+            DeferredRegister.create(NeoForgeRegistries.BIOME_MODIFIER_SERIALIZERS, SkysTerrainSmoother.ID);
+    private static final DeferredHolder<Feature<?>, TerrainSmoothingFeature> SMOOTHING =
             FEATURES.register(ID, TerrainSmoothingFeature::new);
     private static Holder<PlacedFeature> placed;
 

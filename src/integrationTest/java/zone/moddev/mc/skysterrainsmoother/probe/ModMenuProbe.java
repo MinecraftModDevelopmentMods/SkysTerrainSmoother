@@ -5,11 +5,11 @@ import java.lang.reflect.Method;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.Button;
-import net.minecraftforge.client.gui.ModListScreen;
-import net.minecraftforge.client.gui.widget.ModListWidget;
-import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
+import net.neoforged.neoforge.client.gui.ModListScreen;
+import net.neoforged.neoforge.client.gui.widget.ModListWidget;
+import net.neoforged.neoforgespi.language.IModInfo;
 
-/** Uses Forge's actual Mods list and Config button, without desktop automation. */
+/** Uses NeoForge's actual Mods list and Config button, without desktop automation. */
 final class ModMenuProbe {
     static Screen open(Minecraft minecraft, String modId, Screen parent) {
         ModListScreen mods = new ModListScreen(parent);
@@ -20,7 +20,7 @@ final class ModMenuProbe {
             try {
                 Method infoMethod = entry.getClass().getDeclaredMethod("getInfo");
                 infoMethod.setAccessible(true);
-                ModInfo info = (ModInfo) infoMethod.invoke(entry);
+                IModInfo info = (IModInfo) infoMethod.invoke(entry);
                 if (info.getModId().equals(modId)) {
                     RuntimeProbe.require(!info.getDisplayName().trim().isEmpty()
                             && !info.getDescription().trim().isEmpty(), "Player-facing mod metadata exists");

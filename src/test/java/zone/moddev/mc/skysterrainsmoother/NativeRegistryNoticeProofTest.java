@@ -95,7 +95,7 @@ class NativeRegistryNoticeProofTest {
                             byte[] bytes = readAll(input);
                             CompoundTag root;
                             if (bytes.length >= 2 && (bytes[0] & 255) == 31 && (bytes[1] & 255) == 139) {
-                                root = NbtIo.readCompressed(new ByteArrayInputStream(bytes));
+                                root = NbtIo.readCompressed(new ByteArrayInputStream(bytes), net.minecraft.nbt.NbtAccounter.unlimitedHeap());
                             } else {
                                 // Older forced-chunk data is native, uncompressed NBT.
                                 root = NbtIo.read(new DataInputStream(new ByteArrayInputStream(bytes)));

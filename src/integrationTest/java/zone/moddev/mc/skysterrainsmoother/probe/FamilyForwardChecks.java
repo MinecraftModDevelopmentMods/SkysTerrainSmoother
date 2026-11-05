@@ -23,9 +23,8 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.content.Pieces;
 import zone.moddev.mc.skysbuildingpieces.legacy.PiecesWorldState;
@@ -111,7 +110,7 @@ final class FamilyForwardChecks {
                     }
                     CompoundTag chunk;
                     try (java.io.DataInputStream input = new java.io.DataInputStream(payload)) {
-                        chunk = net.minecraft.nbt.NbtIo.read(input);
+                        chunk = net.minecraft.nbt.NbtIo.read(input, net.minecraft.nbt.NbtAccounter.unlimitedHeap());
                     }
                     for (CompoundTag parent : new CompoundTag[] { chunk, chunk.getCompound("Level") }) {
                         for (net.minecraft.nbt.Tag value : parent.getList("Entities", 10)) {
@@ -180,7 +179,7 @@ final class FamilyForwardChecks {
                     "Forward block identity and orientation at " + position + ": " + actual + " expected " + expected);
             RuntimeProbe.require(actual.getFluidState().isEmpty(), "Pre-waterlogging pieces begin dry");
             if (saved.has("snowy") && actual.hasProperty(SnowyDirtBlock.SNOWY)) {
-                BlockState refreshed = actual.getBlock().updateShape(actual, net.minecraft.core.Direction.EAST,
+                BlockState refreshed = actual.updateShape(net.minecraft.core.Direction.EAST,
                         world.getBlockState(position.east()), world, position, position.east());
                 RuntimeProbe.require(refreshed.getValue(SnowyDirtBlock.SNOWY) == saved.get("snowy").getAsBoolean(),
                         "Saved snow neighbours still produce the same derived snow appearance: " + position);
@@ -225,7 +224,7 @@ final class FamilyForwardChecks {
                     : Pieces.stack(expectedState(block), original.getInt("Count"));
             RuntimeProbe.require(actual.getItem() == expected.getItem() && actual.getCount() == expected.getCount(),
                     "Saved piece stack keeps material and count: " + original + " -> " + actual);
-            RuntimeProbe.require(actual.hasTag() && actual.getTag().equals(original.getCompound("tag")),
+            RuntimeProbe.require(ProbeItems.custom(actual).equals(original.getCompound("tag")),
                     "Piece custom NBT survives exactly");
             checked++;
         }
@@ -238,14 +237,14 @@ final class FamilyForwardChecks {
             CompoundTag original = TagParser.parseTag(saved.get("item").getAsString());
             if (saved.get("kind").getAsString().equals("item")) {
                 checkSandStack(actual, original.getInt("Damage"), original.getInt("Count"));
-                RuntimeProbe.require(actual.hasTag() && actual.getTag().equals(original.getCompound("tag")),
+                RuntimeProbe.require(ProbeItems.custom(actual).equals(original.getCompound("tag")),
                         "Dropped sand slab NBT survives exactly");
             } else {
                 checkShovel(actual);
             }
             checked++;
         }
-        FakePlayer player = FakePlayerFactory.get(world,
+        ServerPlayer player = ProbeItems.player(world,
                 new GameProfile(UUID.fromString(fixture.get("player").getAsString()), "SkyFixture"));
         world.getServer().getPlayerList().load(player);
         checkShovel(player.getInventory().getItem(0));
@@ -253,21 +252,23 @@ final class FamilyForwardChecks {
         checkSandStack(player.getInventory().getItem(1), 3, 23);
         checkSandStack(player.getEnderChestInventory().getItem(1), 3, 23);
         ItemStack box = player.getInventory().getItem(2);
-        RuntimeProbe.require(!box.isEmpty() && box.hasTag(), "The carried shulker box survives");
-        CompoundTag nested = box.getTag().getCompound("BlockEntityTag").getList("Items", 10).getCompound(0);
-        checkSandStack(ItemStack.of(nested), 3, 23);
+        RuntimeProbe.require(!box.isEmpty() && box.has(net.minecraft.core.component.DataComponents.CONTAINER), "The carried shulker box survives");
+        var nested = box.get(net.minecraft.core.component.DataComponents.CONTAINER).nonEmptyItems().iterator();
+        RuntimeProbe.require(nested.hasNext(), "The carried inventory retains its first item");
+        checkSandStack(nested.next(), 3, 23);
+        RuntimeProbe.require(!nested.hasNext(), "The carried inventory has no extra items");
         try (java.io.OutputStream output = java.nio.file.Files.newOutputStream(
                 world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.PLAYER_DATA_DIR)
                         .resolve(player.getUUID().toString() + ".dat"))) {
             net.minecraft.nbt.NbtIo.writeCompressed(player.saveWithoutId(new CompoundTag()), output);
         }
-        CompoundTag grass = ModWorldState.get(world).save(new CompoundTag());
+        CompoundTag grass = ModWorldState.get(world).save(new CompoundTag(), world.registryAccess());
         RuntimeProbe.require(grass.getInt("schema_version") == 1 && grass.getLong("migrated_chunks") == 1
                         && grass.getLong("migrated_grass_blocks") == 24
                         && grass.getLong("migrated_dirt_blocks") == 17
                         && grass.getLong("migrated_grass_items") == 19
                         && grass.getLong("migrated_dirt_items") == 23,
-                "Grass Slabs schema and migration counters survive unchanged");
+                "Grass Slabs schema and migration counters survive unchanged: " + grass);
         PiecesWorldState pieces = PiecesWorldState.get(world);
         RuntimeProbe.require(pieces.blocks == 29 && pieces.items == 31 && pieces.chunks == 7,
                 "Building Pieces counters remain unchanged");
@@ -334,7 +335,7 @@ final class FamilyForwardChecks {
             return (metadata < 2 ? SandContent.slab : SandContent.redSlab).defaultBlockState()
                     .setValue(zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM);
         }
-        BlockState state = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id)).defaultBlockState();
+        BlockState state = BuiltInRegistries.BLOCK.get(new ResourceLocation(id)).defaultBlockState();
         return state.hasProperty(SlabBlock.TYPE)
                 ? state.setValue(SlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM) : state;
     }
@@ -349,8 +350,8 @@ final class FamilyForwardChecks {
         RuntimeProbe.require(stack.getItem() == net.minecraft.world.item.Items.DIAMOND_SHOVEL && stack.getDamageValue() == 17
                         && stack.getHoverName().getString().equals("A saved slope shovel")
                         && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(
-                                net.minecraft.world.item.enchantment.Enchantments.BLOCK_EFFICIENCY, stack) == 3
-                        && stack.hasTag() && stack.getTag().getString("family_fixture").equals("Keep the complete tool"),
+                                net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY, stack) == 3
+                        && ProbeItems.custom(stack).getString("family_fixture").equals("Keep the complete tool"),
                 "The saved shovel retains damage, name, enchantment and custom data");
     }
 

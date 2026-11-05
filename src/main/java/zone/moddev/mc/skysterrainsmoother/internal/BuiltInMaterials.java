@@ -9,8 +9,8 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.ModList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.init.ModBlocks;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -35,16 +35,16 @@ public final class BuiltInMaterials {
     private BuiltInMaterials() {
     }
 
-    /** An add-on's parallel setup callback may arrive before this mod's own callback. */
+    /** Install the built-in mappings before the ordered add-on setup callbacks. */
     public static synchronized void ensureRegistered() {
         if (registered) {
             return;
         }
         TerrainSmootherConfig.activateSettingsForThisRun();
         vanilla("grass", Blocks.GRASS_BLOCK.defaultBlockState(), true,
-                ModBlocks.GRASS_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.GRASS_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
-                ModBlocks.DIRT_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.DIRT_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
         vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
         vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);
@@ -71,8 +71,8 @@ public final class BuiltInMaterials {
         int missing = 0;
         for (String rock : ROCKS) {
             ResourceLocation fullId = new ResourceLocation("mineralogy", rock);
-            Block full = ForgeRegistries.BLOCKS.getValue(fullId);
-            Block slab = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("mineralogy", rock + "_slab"));
+            Block full = BuiltInRegistries.BLOCK.get(fullId);
+            Block slab = BuiltInRegistries.BLOCK.get(new ResourceLocation("mineralogy", rock + "_slab"));
             if (full == null || full == Blocks.AIR || slab == null || slab == Blocks.AIR) {
                 missing++;
                 continue;

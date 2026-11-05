@@ -17,15 +17,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.*;
@@ -136,9 +136,9 @@ public final class SmoothingEngine {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void endWorldTick(TickEvent.LevelTickEvent event) {
-        Level world = event.level;
-        if (event.phase != TickEvent.Phase.END || world.isClientSide
+    public void endWorldTick(LevelTickEvent.Post event) {
+        Level world = event.getLevel();
+        if (world.isClientSide
                 || !isOverworld(world)) {
             return;
         }

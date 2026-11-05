@@ -22,8 +22,9 @@ final class RecipePreviewModels {
         int recipes = 0;
         int previews = 0;
 
-        for (Recipe<?> recipe : minecraft.getConnection().getRecipeManager().getRecipes()) {
-            ResourceLocation id = recipe.getId();
+        for (var holder : minecraft.getConnection().getRecipeManager().getRecipes()) {
+            Recipe<?> recipe = holder.value();
+            ResourceLocation id = holder.id();
 
             if (id == null || !OWNERS.contains(id.getNamespace()) || recipe.isSpecial()) {
                 continue;
@@ -51,7 +52,7 @@ final class RecipePreviewModels {
             throw new AssertionError("Empty recipe preview: " + recipe);
         }
 
-        String label = recipe + " -> " + net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        String label = recipe + " -> " + net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         BakedModel model = minecraft.getItemRenderer().getModel(stack, null, null, 0);
         BakedModel missing = minecraft.getBlockRenderer().getBlockModelShaper().getModelManager()
                 .getMissingModel();
