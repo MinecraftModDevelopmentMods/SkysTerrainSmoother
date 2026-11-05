@@ -158,19 +158,29 @@ class NativeServerFilesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit_server(self.directory, 'test')
 
-    def test_forge_52_notices_are_bound_to_the_exact_server_fixture(self):
+    def test_forge_61_notices_are_bound_to_the_exact_server_fixture(self):
         import json
         from native_registry_notices import audit_text, profile_for
 
         root = Path(__file__).resolve().parent.parent
-        policy = json.loads((root / 'tools/forge-52-registry-notices.json').read_text(encoding='utf-8'))
+        policy = json.loads((root / 'tools/forge-61-registry-notices.json').read_text(encoding='utf-8'))
         profile = next(value for value in policy.values() if 'forward-1.20.6-family/' in value['fixture'])
         inputs = self.directory / 'source-inputs.json'
         source = {'mode': 'server', 'world_sha256': profile['sha256'],
                   'manifest_sha256': profile['manifest_sha256']}
         inputs.write_text(json.dumps(source), encoding='utf-8')
+        capability = self.directory / 'world/data/capabilities.dat'
+        capability.parent.mkdir(parents=True, exist_ok=True)
+        # Bytes written by the bare Forge 61 control from the same empty saved data.
+        rewritten = bytes.fromhex(
+            '1f8b08000000000000ffe36260e0626049492c4984520c0ccc0cdc2e4046586a5171667e1e0383903d03003fed72de26000000')
+        capability.write_bytes(rewritten)
         resolved = profile_for(self.directory)
-        self.assertEqual(profile, resolved)
+        self.assertEqual(dict(profile, empty_capabilities_count=1), resolved)
+        capability.write_bytes(rewritten + b'bad')
+        with self.assertRaises(ValueError):
+            profile_for(self.directory)
+        capability.write_bytes(rewritten)
 
         prefix = '[time] [main/ERROR] [net.minecraftforge.registries.GameData/REGISTRIES]: '
         notices = ''.join(prefix + 'Unidentified mapping from registry ' + registry + '\n' +
@@ -178,7 +188,14 @@ class NativeServerFilesTest(unittest.TestCase):
                           for registry, names in profile['mappings'].items())
         notices += prefix + 'There are unidentified mappings in this world - we are going to attempt to process anyway'
         self.assertIn('minecraft:aztec2: 3', notices)
-        self.assertEqual(len(audit_text(notices, resolved)), 3)
+        self.assertEqual(len(audit_text(notices, resolved)), len(profile['mappings']) + 1)
+        from native_registry_notices import EMPTY_CAPABILITIES
+        empty = '\n[time] [Server thread/ERROR]: ' + EMPTY_CAPABILITIES
+        self.assertIn(EMPTY_CAPABILITIES, audit_text(notices + empty, resolved))
+        with self.assertRaises(ValueError):
+            audit_text(notices + empty + empty, resolved)
+        with self.assertRaises(ValueError):
+            audit_text(empty, None)
         with self.assertRaises(ValueError):
             audit_text(notices.replace('minecraft:aztec2: 3', 'minecraft:aztec2: 4'), resolved)
 

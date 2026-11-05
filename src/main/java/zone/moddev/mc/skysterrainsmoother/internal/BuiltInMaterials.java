@@ -8,7 +8,7 @@ import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.registries.ForgeRegistries;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
@@ -55,7 +55,7 @@ public final class BuiltInMaterials {
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(
-                    ResourceLocation.fromNamespaceAndPath("minecraft", variant == 0 ? "sand" : "red_sand"),
+                    Identifier.fromNamespaceAndPath("minecraft", variant == 0 ? "sand" : "red_sand"),
                     Collections.singleton(sand.defaultBlockState()),
                     SandContent.legacyState(variant * 2 + 1), null, null, false, null));
         }
@@ -70,9 +70,9 @@ public final class BuiltInMaterials {
         int available = 0;
         int missing = 0;
         for (String rock : ROCKS) {
-            ResourceLocation fullId = ResourceLocation.fromNamespaceAndPath("mineralogy", rock);
+            Identifier fullId = Identifier.fromNamespaceAndPath("mineralogy", rock);
             Block full = ForgeRegistries.BLOCKS.getValue(fullId);
-            Block slab = ForgeRegistries.BLOCKS.getValue(ResourceLocation.fromNamespaceAndPath("mineralogy", rock + "_slab"));
+            Block slab = ForgeRegistries.BLOCKS.getValue(Identifier.fromNamespaceAndPath("mineralogy", rock + "_slab"));
             if (full == null || full == Blocks.AIR || slab == null || slab == Blocks.AIR) {
                 missing++;
                 continue;
@@ -101,7 +101,7 @@ public final class BuiltInMaterials {
             corners[direction] = BuildingPiecesApi.bottomPiece(material,
                     BuildingPiecesApi.TerrainShape.CORNER, DIRECTIONS[direction]);
         }
-        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.parse(material),
+        MaterialCatalogue.instance().register(new TerrainMaterial(Identifier.parse(material),
                 Collections.singleton(source), slab, steps, corners, grass,
                 grass ? Blocks.DIRT.defaultBlockState() : null));
     }

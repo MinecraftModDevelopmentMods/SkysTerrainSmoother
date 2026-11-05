@@ -23,7 +23,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 
 /** A horizontal sand half. Joining it creates ordinary sand, so there is no double state. */
@@ -39,8 +43,9 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
     private static final VoxelShape UPPER_HALF = Block.box(0, 8, 0, 16, 16, 16);
     private final boolean red;
 
-    public SandSlabBlock(boolean red) {
+    public SandSlabBlock(boolean red, Identifier id) {
         this(red, Block.Properties.ofFullCopy(red ? Blocks.RED_SAND : Blocks.SAND)
+                .setId(ResourceKey.create(Registries.BLOCK, id))
                 .noOcclusion().isRedstoneConductor((state, world, position) -> false));
     }
 
@@ -90,22 +95,27 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
     }
 
     @Override
-    public BlockState updateShape(BlockState state, Direction side, BlockState neighbour, LevelAccessor world,
-            BlockPos position, BlockPos neighbourPosition) {
+    public BlockState updateShape(BlockState state, LevelReader world, ScheduledTickAccess ticks,
+            BlockPos position, Direction side, BlockPos neighbourPosition, BlockState neighbour, RandomSource random) {
         if (state.getValue(WATERLOGGED)) {
-            world.scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+            ticks.scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
-        return super.updateShape(state, side, neighbour, world, position, neighbourPosition);
+        return super.updateShape(state, world, ticks, position, side, neighbourPosition, neighbour, random);
     }
 
     @Override
-    public int getLightBlock(BlockState state, BlockGetter world, BlockPos position) {
+    public int getLightBlock(BlockState state) {
         return 0;
     }
 
     @Override
+    public int getDustColor(BlockState state, BlockGetter world, BlockPos position) {
+        return fullState().getMapColor(world, position).col;
+    }
+
+    @Override
     public void tick(BlockState state, ServerLevel world, BlockPos position, RandomSource random) {
-        if (world.isClientSide || !world.getBlockState(position).equals(state) || position.getY() < world.getMinBuildHeight()
+        if (world.isClientSide() || !world.getBlockState(position).equals(state) || position.getY() < world.getMinY()
                 || !isFree(world.getBlockState(position.below()))) {
             return;
         }

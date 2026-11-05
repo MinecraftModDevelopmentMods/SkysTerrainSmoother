@@ -11,12 +11,11 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.state.properties.SlabType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -34,13 +33,13 @@ import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 public final class NativeBootstrap {
     private boolean setupComplete;
 
-    public NativeBootstrap() {
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        MinecraftForge.EVENT_BUS.addListener(this::started);
+    public NativeBootstrap(FMLJavaModLoadingContext context) {
+        FMLCommonSetupEvent.getBus(context.getModBusGroup()).addListener(this::setup);
+        ServerStartedEvent.BUS.addListener(this::started);
     }
 
     private void setup(FMLCommonSetupEvent event) {
-        require(TerrainSmoothingApi.hasMaterial(ResourceLocation.parse("minecraft:stone")),
+        require(TerrainSmoothingApi.hasMaterial(Identifier.parse("minecraft:stone")),
                 "Built-ins are available from a contributor's native setup callback");
         TerrainSmoothingApi.addBiomeRule((material, biome) -> true);
         setupComplete = true;
@@ -73,8 +72,8 @@ public final class NativeBootstrap {
             custom.putString("Name", "Kept sand");
             oldStack.put("tag", custom);
             SandLegacyRecovery.recoverItems(oldStack);
-            require(oldStack.getString("id").equals(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(block).toString())
-                    && oldStack.getByte("Count") == 17 && custom.equals(oldStack.getCompound("tag")),
+            require(oldStack.getString("id").orElseThrow().equals(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(block).toString())
+                    && oldStack.getInt("Count").orElseThrow() == 17 && custom.equals(oldStack.getCompound("tag").orElseThrow()),
                     "Raw sand stack retains count and custom data");
             CompoundTag once = oldStack.copy();
             SandLegacyRecovery.recoverItems(oldStack);

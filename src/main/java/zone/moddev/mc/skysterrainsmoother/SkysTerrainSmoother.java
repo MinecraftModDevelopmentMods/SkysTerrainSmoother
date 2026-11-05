@@ -2,7 +2,12 @@ package zone.moddev.mc.skysterrainsmoother;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.ChunkEvent;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
+import net.minecraftforge.eventbus.api.listener.Priority;
+import net.minecraftforge.registries.RegisterEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -14,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+import zone.moddev.mc.skysterrainsmoother.content.SandContent;
 import zone.moddev.mc.skysterrainsmoother.internal.BuiltInMaterials;
 import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
 import zone.moddev.mc.skysterrainsmoother.internal.SmoothingEngine;
@@ -23,23 +29,29 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.0.121011";
+    public static final String VERSION = "0.1.0.121111";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
     public static boolean mineralogy = true;
     public static int level = 3;
 
+    @SuppressWarnings("removal") // Keep client classes off the dedicated server.
     public SkysTerrainSmoother(FMLJavaModLoadingContext context) {
+        BusGroup modBus = context.getModBusGroup();
         TerrainSmootherConfig.register(context);
         GrassSlabsApi.claimSmoothing(ID, TerrainSmootherConfig::enabled);
-        context.getModEventBus().addListener(this::setup);
-        context.getModEventBus().addListener(this::complete);
-        TerrainSmoothingFeature.register(context.getModEventBus());
-        MinecraftForge.EVENT_BUS.register(engine);
-        MinecraftForge.EVENT_BUS.addListener(this::beforeServer);
-        MinecraftForge.EVENT_BUS.addListener(this::stopped);
-        DistExecutor.runWhenOn(Dist.CLIENT,
+        FMLCommonSetupEvent.getBus(modBus).addListener(this::setup);
+        FMLLoadCompleteEvent.getBus(modBus).addListener(this::complete);
+        TerrainSmoothingFeature.register(modBus);
+        RegisterEvent.getBus(modBus).addListener(SandContent::register);
+        BuildCreativeModeTabContentsEvent.getBus(modBus).addListener(SandContent::buildCreativeTab);
+        ChunkEvent.Load.BUS.addListener(engine::loaded);
+        ChunkEvent.Unload.BUS.addListener(engine::unload);
+        TickEvent.LevelTickEvent.Post.BUS.addListener(Priority.LOWEST, engine::endWorldTick);
+        ServerAboutToStartEvent.BUS.addListener(this::beforeServer);
+        ServerStoppedEvent.BUS.addListener(this::stopped);
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> zone.moddev.mc.skysterrainsmoother.client.ClientProxy.register(context));
     }
 

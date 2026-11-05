@@ -1,7 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.api;
 
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraftforge.fml.ModContainer;
@@ -20,7 +20,7 @@ public final class TerrainSmoothingApi {
 
     /** A restrictive rule; it cannot enable a material disabled by the player. */
     public interface BiomeRule {
-        boolean allows(ResourceLocation material, Biome biome);
+        boolean allows(Identifier material, Biome biome);
     }
 
     /** A read-only veto. No world object is exposed and the engine performs all writes. */
@@ -45,7 +45,7 @@ public final class TerrainSmoothingApi {
     }
 
     /** Supply missing finer shapes without replacing the material's slab or existing shapes. */
-    public static void addShapes(ResourceLocation material, BlockState[] steps, BlockState[] corners) {
+    public static void addShapes(Identifier material, BlockState[] steps, BlockState[] corners) {
         requireInitialization();
         CATALOGUE.addShapes(material, steps, corners);
     }
@@ -63,7 +63,7 @@ public final class TerrainSmoothingApi {
     }
 
     /** Allows an add-on to skip disabled or unavailable built-in material mappings. */
-    public static boolean hasMaterial(ResourceLocation materialId) {
+    public static boolean hasMaterial(Identifier materialId) {
         if (!CATALOGUE.frozen()) {
             requireInitialization();
         }

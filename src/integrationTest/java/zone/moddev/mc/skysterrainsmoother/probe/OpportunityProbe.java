@@ -119,7 +119,7 @@ final class OpportunityProbe {
         BlockState[] palette = new BlockState[savedPalette.size()];
         for (int index = 0; index < palette.length; index++) {
             JsonObject entry = savedPalette.get(index).getAsJsonObject();
-            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(net.minecraft.resources.ResourceLocation.parse(entry.get("block").getAsString()));
+            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(net.minecraft.resources.Identifier.parse(entry.get("block").getAsString()));
             RuntimeProbe.require(block != null, "unknown block in the mountain regression fixture");
             RuntimeProbe.require(entry.get("meta").getAsInt() == 0, "Only default native states occur in this terrace fixture");
             palette[index] = block.defaultBlockState();

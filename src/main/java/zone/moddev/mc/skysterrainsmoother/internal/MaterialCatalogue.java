@@ -3,7 +3,7 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import java.util.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.SnowyDirtBlock;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.shapes.BooleanOp;
@@ -20,7 +20,7 @@ public final class MaterialCatalogue {
         return INSTANCE;
     }
 
-    private volatile Map<ResourceLocation, TerrainMaterial> materials = Collections.emptyMap();
+    private volatile Map<Identifier, TerrainMaterial> materials = Collections.emptyMap();
     private volatile Map<BlockState, TerrainMaterial> sources = Collections.emptyMap();
     private volatile Map<BlockState, TerrainMaterial> pieces = Collections.emptyMap();
     private volatile List<TerrainSmoothingApi.BiomeRule> biomeRules = Collections.emptyList();
@@ -40,13 +40,13 @@ public final class MaterialCatalogue {
             }
         }
 
-        Map<ResourceLocation, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
+        Map<Identifier, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
 
         candidate.put(material.id, material);
         commit(candidate);
     }
 
-    public synchronized void addShapes(ResourceLocation materialId, BlockState[] steps, BlockState[] corners) {
+    public synchronized void addShapes(Identifier materialId, BlockState[] steps, BlockState[] corners) {
         requireOpen();
 
         TerrainMaterial current = materials.get(materialId);
@@ -59,7 +59,7 @@ public final class MaterialCatalogue {
 
         validate(updated);
 
-        Map<ResourceLocation, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
+        Map<Identifier, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
 
         candidate.put(materialId, updated);
         commit(candidate);
@@ -92,7 +92,7 @@ public final class MaterialCatalogue {
         return materials.size();
     }
 
-    public TerrainMaterial material(ResourceLocation materialId) {
+    public TerrainMaterial material(Identifier materialId) {
         return materials.get(materialId);
     }
 
@@ -144,7 +144,7 @@ public final class MaterialCatalogue {
     }
 
     /** Build replacement indexes first, leaving the active catalogue intact if validation fails. */
-    private void commit(Map<ResourceLocation, TerrainMaterial> candidate) {
+    private void commit(Map<Identifier, TerrainMaterial> candidate) {
         Map<BlockState, TerrainMaterial> newSources = new HashMap<>();
         Map<BlockState, TerrainMaterial> newPieces = new HashMap<>();
 

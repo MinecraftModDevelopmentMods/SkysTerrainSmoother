@@ -6,9 +6,7 @@
     "SS"
   ],
   "key": {
-    "S": {
-      "item": "skysterrainsmoother:red_sand_slab"
-    }
+    "S": "skysterrainsmoother:red_sand_slab"
   },
   "result": {
     "id": "minecraft:red_sand"

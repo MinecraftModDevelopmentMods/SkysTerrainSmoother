@@ -20,7 +20,7 @@ public final class MinecraftTestBootstrap {
             }
 
             @Override
-            public int getMinBuildHeight() {
+            public int getMinY() {
                 return -64;
             }
         };
@@ -30,8 +30,8 @@ public final class MinecraftTestBootstrap {
         if (initialized) return;
         try {
             var versions = FMLLoader.versionInfo();
-            if (!versions.forgeVersion().equals("52.1.0") || !versions.mcVersion().equals("1.21.1")
-                    || !versions.mcpVersion().equals("20240808.132146")) {
+            if (!versions.forgeVersion().equals("61.1.0") || !versions.mcVersion().equals("1.21.11")
+                    || !versions.mcpVersion().equals("20251223.124241")) {
                 throw new IllegalStateException("Wrong Forge or Minecraft version for the focused tests");
             }
             SharedConstants.tryDetectVersion();
@@ -60,7 +60,7 @@ public final class MinecraftTestBootstrap {
                     net.minecraftforge.registries.ForgeRegistries.ITEMS).unfreeze();
             initialized = true;
         } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Unable to initialize the Forge 52 test runtime",
+            throw new IllegalStateException("Unable to initialize the Forge 61 test runtime",
                     exception);
         }
     }

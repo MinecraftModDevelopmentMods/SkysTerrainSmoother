@@ -48,11 +48,11 @@ For BOP grass and soils, add the
 
 ## Installation and settings
 
-For **Minecraft 1.21.1**, use **Forge 52.1.0** and **Java 21**, with:
+For **Minecraft 1.21.11**, use **Forge 61.1.0** and **Java 21**, with:
 
-- Sky's Grass Slabs **1.2.0.121011**.
-- Sky's Building Pieces **0.3.8.121011**.
-- Sky's Terrain Smoother **0.1.0.121011**.
+- Sky's Grass Slabs **1.2.0.121111**.
+- Sky's Building Pieces **0.3.8.121111**.
+- Sky's Terrain Smoother **0.1.0.121111**.
 
 Install all three main jars on both the client and server.
 

@@ -15,11 +15,11 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.121011", metadata.getProperty("mod_version"));
-        assertEquals("1.21.1", metadata.getProperty("minecraft_version"));
-        assertEquals("52.1.0", metadata.getProperty("forge_version"));
-        assertEquals("1.21.1", metadata.getProperty("mapping_version"));
-        assertEquals("20240808.132146", metadata.getProperty("mcp_version"));
+        assertEquals("0.1.0.121111", metadata.getProperty("mod_version"));
+        assertEquals("1.21.11", metadata.getProperty("minecraft_version"));
+        assertEquals("61.1.0", metadata.getProperty("forge_version"));
+        assertEquals("1.21.11", metadata.getProperty("mapping_version"));
+        assertEquals("20251223.124241", metadata.getProperty("mcp_version"));
         assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
         assertEquals("21", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
@@ -27,10 +27,9 @@ class ProjectContractTest {
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(48, pack.get("pack_format").getAsInt(), sourceSet);
-            JsonObject formats = pack.getAsJsonObject("supported_formats");
-            assertEquals(34, formats.get("min_inclusive").getAsInt(), sourceSet);
-            assertEquals(48, formats.get("max_inclusive").getAsInt(), sourceSet);
+            assertEquals(94, pack.get("max_format").getAsInt(), sourceSet);
+            assertEquals(94, pack.getAsJsonArray("min_format").get(0).getAsInt(), sourceSet);
+            assertEquals(1, pack.getAsJsonArray("min_format").get(1).getAsInt(), sourceSet);
         }
     }
 
@@ -51,6 +50,10 @@ class ProjectContractTest {
                     assertEquals("minecraft:block/" + sand, model.getAsJsonObject("textures").get(face).getAsString());
                 }
             }
+            JsonObject definition = json(assets.resolve("items/" + sand + "_slab.json"))
+                    .getAsJsonObject("model");
+            assertEquals("minecraft:model", definition.get("type").getAsString());
+            assertEquals("skysterrainsmoother:item/" + sand + "_slab", definition.get("model").getAsString());
             JsonObject loot = json(root.resolve("data/skysterrainsmoother/loot_table/blocks/" + sand + "_slab.json"));
             assertEquals("skysterrainsmoother:" + sand + "_slab", loot.getAsJsonArray("pools").get(0).getAsJsonObject()
                     .getAsJsonArray("entries").get(0).getAsJsonObject().get("name").getAsString());
@@ -66,12 +69,12 @@ class ProjectContractTest {
         for (String sand : new String[] { "sand", "red_sand" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
             assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
-            assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").get("S").getAsString());
             assertEquals("skysterrainsmoother:" + sand + "_slab", cut.getAsJsonObject("result").get("id").getAsString());
             assertEquals(6, cut.getAsJsonObject("result").get("count").getAsInt());
             JsonObject combine = json(recipes.resolve(sand + "_from_slabs.json"));
             assertEquals("SS", combine.getAsJsonArray("pattern").get(0).getAsString());
-            assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").get("S").getAsString());
             assertEquals("minecraft:" + sand, combine.getAsJsonObject("result").get("id").getAsString());
             assertFalse(combine.getAsJsonObject("result").has("count"));
         }

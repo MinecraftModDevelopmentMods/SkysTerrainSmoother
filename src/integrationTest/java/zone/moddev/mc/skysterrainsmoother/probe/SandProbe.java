@@ -78,7 +78,7 @@ final class SandProbe {
             ProbeWorld.clear(world, position.above());
             ItemStack held = new ItemStack(slab, 2);
             player.setItemInHand(InteractionHand.MAIN_HAND, held);
-            RuntimeProbe.require(use(player, position.below(), Direction.UP, 1) == InteractionResult.CONSUME,
+            RuntimeProbe.require(use(player, position.below(), Direction.UP, 1).consumesAction(),
                     "Bottom sand placement succeeds");
             RuntimeProbe.require(world.getBlockState(position).equals(SandContent.legacyState(colour * 2 + 1)),
                     "The held colour places a bottom half");
@@ -98,7 +98,7 @@ final class SandProbe {
             }, 2, 2);
             grid.setItem(0, new ItemStack(slab));
             grid.setItem(1, new ItemStack(slab));
-            ItemStack result = world.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid.asCraftInput(), world)
+            ItemStack result = world.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid.asCraftInput(), world)
                     .orElseThrow(() -> new AssertionError("Sand recombination recipe missing")).value().assemble(grid.asCraftInput(), world.registryAccess());
             RuntimeProbe.require(ItemStack.matches(new ItemStack(slab.fullState().getBlock()), result),
                     "Two sand slabs craft the matching full block");

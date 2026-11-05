@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.121111
+
+- Added support for Minecraft 1.21.11 on Forge. Update Grass Slabs and Building Pieces together with Terrain Smoother.
+- Sand slabs retain their colour, orientation and waterlogging when you move an existing world. Smoothing still applies only to new terrain.
+
 ## 0.1.0.121011 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.21.1 on Forge.

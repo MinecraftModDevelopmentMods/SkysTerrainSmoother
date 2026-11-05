@@ -11,7 +11,6 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.block.RedStoneOreBlock;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
@@ -164,8 +163,8 @@ final class CaveProbe {
         var previousStarts = new java.util.HashMap<>(owner.getAllStarts());
         BoundingBox protectedBounds = new BoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
                 floor.getX() + 2, 80, floor.getZ() + 2);
-        var mineshaft = world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
-                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT);
+        var mineshaft = world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT).value();
         StructureStart protectedStart = protectedStart(owner, mineshaft, protectedBounds);
         owner.setStartForStructure(mineshaft, protectedStart);
         try {
@@ -220,7 +219,7 @@ final class CaveProbe {
                 world.setBlock(floor.above(), Blocks.GLASS.defaultBlockState(), 2);
             }
 
-            MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
+            TickEvent.LevelTickEvent.Post.BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
             RuntimeProbe.require(
                     kind == 1
                             ? world.getBlockState(floor.above())
@@ -251,7 +250,7 @@ final class CaveProbe {
                 world.setBlock(floor, ore, 2);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
                 ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
-                MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
+                TickEvent.LevelTickEvent.Post.BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
                 RuntimeProbe.require(world.getBlockState(floor.above()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
                 RuntimeProbe.require(world.getBlockState(floor).equals(ore), "ore support is never overwritten");
@@ -264,7 +263,7 @@ final class CaveProbe {
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         world.setBlock(floor, Blocks.COAL_ORE.defaultBlockState(), 2);
         world.setBlock(floor.above(2), Blocks.BRICKS.defaultBlockState(), 2);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
+        TickEvent.LevelTickEvent.Post.BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
         RuntimeProbe.require(world.isEmptyBlock(floor.above()) && world.getBlockState(floor).getBlock() == Blocks.COAL_ORE,
                 "ore preservation does not override cave headroom protection");
         checks++;
@@ -306,7 +305,7 @@ final class CaveProbe {
     }
 
     private static int nativeHeightRange(ServerLevel world) {
-        RuntimeProbe.require(world.getMinBuildHeight() == -64 && world.getMaxBuildHeight() == 320,
+        RuntimeProbe.require(world.getMinY() == -64 && world.getMaxY() + 1 == 320,
                 "The native Overworld exposes the complete 1.18 height range");
         BlockPos centre = new BlockPos(3020, 0, 3020);
         LevelChunk owner = world.getChunkAt(centre);
@@ -314,7 +313,7 @@ final class CaveProbe {
         int[] floors = { -56, -24, 48, 264, 312 };
         int checks = 0;
         for (int level = 1; level <= 3; level++) {
-            clear(world, centre, world.getMinBuildHeight(), world.getMaxBuildHeight() - 1);
+            clear(world, centre, world.getMinY(), world.getMaxY());
             for (int floorY : floors) {
                 BlockPos floor = centre.atY(floorY);
                 fixture(world, floor, 6);

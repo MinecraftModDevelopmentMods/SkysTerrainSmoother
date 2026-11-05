@@ -1,44 +1,39 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Sand colours have separate identities after flattening, including when a falling slab drops. */
-@Mod.EventBusSubscriber(modid = SkysTerrainSmoother.ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class SandContent {
-    private static final ResourceLocation SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
-    private static final ResourceLocation RED_SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
+    private static final Identifier SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
+    private static final Identifier RED_SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
     public static SandSlabBlock slab;
     public static SandSlabBlock redSlab;
 
     private SandContent() {
     }
 
-    @SubscribeEvent
     public static void register(RegisterEvent event) {
         event.register(ForgeRegistries.Keys.BLOCKS, registry -> {
             // Register the recovery contributor here, after the parallel mod constructors.
             SandLegacyRecovery.register();
-            slab = new SandSlabBlock(false);
-            redSlab = new SandSlabBlock(true);
+            slab = new SandSlabBlock(false, SAND_SLAB);
+            redSlab = new SandSlabBlock(true, RED_SAND_SLAB);
             registry.register(SAND_SLAB, slab);
             registry.register(RED_SAND_SLAB, redSlab);
         });
         event.register(ForgeRegistries.Keys.ITEMS, registry -> {
-            registry.register(SAND_SLAB, new SandSlabItem(slab));
-            registry.register(RED_SAND_SLAB, new SandSlabItem(redSlab));
+            registry.register(SAND_SLAB, new SandSlabItem(slab, SAND_SLAB));
+            registry.register(RED_SAND_SLAB, new SandSlabItem(redSlab, RED_SAND_SLAB));
         });
     }
 
-    @SubscribeEvent
     public static void buildCreativeTab(BuildCreativeModeTabContentsEvent event) {
         if (CreativeModeTabs.BUILDING_BLOCKS.equals(event.getTabKey())) {
             event.accept(slab);

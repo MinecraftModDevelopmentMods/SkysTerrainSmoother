@@ -8,7 +8,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.common.MinecraftForge;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -205,7 +204,7 @@ final class LateTerrainProbe {
                                         128 + (blockZ >> 4));
 
                                 chunk.setBlockState(new BlockPos((origin << 4) + blockX, height, (128 << 4) + blockZ),
-                                        Blocks.GRASS_BLOCK.defaultBlockState(), false);
+                                        Blocks.GRASS_BLOCK.defaultBlockState(), 0);
                             }
                         }
                     }

@@ -5,6 +5,10 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
+from zipfile import ZipFile
+
+
+EMPTY_CAPABILITIES = "Failed to parse saved data for 'SavedDataType[capabilities]': No key data in MapLike[{}]"
 
 
 def profile_for(directory):
@@ -15,17 +19,22 @@ def profile_for(directory):
     root = Path(__file__).resolve().parent.parent
     if source.get("mode") != "server":
         return None
-    policy = json.loads((root / "tools/forge-52-registry-notices.json").read_text(encoding="utf-8"))
+    policy = json.loads((root / "tools/forge-61-registry-notices.json").read_text(encoding="utf-8"))
     profile = policy.get(source.get("world_sha256"))
     if profile is None:
         return None
     fixture = root / profile["fixture"]
     saved_manifest = fixture.parent / "source-family-fixture.json"
-    provenance = json.loads((fixture.parent / "provenance.json").read_text(encoding="utf-8"))
+    provenance_path = fixture.parent / "provenance.json"
+    if provenance_path.is_file():
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        source_artifacts = provenance["source_artifacts"]
+    else:
+        source_artifacts = json.loads((fixture.parent / "source-artifacts.json").read_text(encoding="utf-8"))
     if (hashlib.sha256(fixture.read_bytes()).hexdigest().upper() != profile["sha256"]
             or hashlib.sha256(saved_manifest.read_bytes()).hexdigest().upper() != profile["manifest_sha256"]
             or source.get("manifest_sha256") != profile["manifest_sha256"]
-            or provenance["source_artifacts"] != profile["source_artifacts"]
+            or source_artifacts != profile["source_artifacts"]
             or profile.get("non_biome_saved_uses", profile["saved_uses"]) != 0 or profile["inspected_nbt_records"] <= 0):
         raise ValueError("The unused-entry proof does not match the upgrade fixture")
     proof = profile.get("native_biome_contract")
@@ -38,7 +47,7 @@ def profile_for(directory):
                 or data["native_renamed_cells"] != proof["renamed_cells"]
                 or profile["saved_uses"] != proof["renamed_cells"]):
             raise ValueError("The complete biome proof does not match this fixture")
-    if profile["target"] != "Forge 52.1.0":
+    if profile["target"] != "Forge 61.1.0":
         raise ValueError("The registry notice proof is for another Forge version")
     # A spelling can occur in more than one registry. The save census must
     # distinguish those uses rather than treating a water block as a painting.
@@ -52,11 +61,28 @@ def profile_for(directory):
         if kind == "vanilla_biome_conversion" and name in profile["mappings"].get("minecraft:worldgen/biome", {}):
             if proof and typed["cells"] == proof["checked_cells"] and typed["renamed"] == proof["renamed_cells"]:
                 continue
+        elif (kind == "vanilla_block_rename" and name == "minecraft:grass"
+                and name in profile["mappings"].get("minecraft:block", {}) and typed["positions"] > 0):
+            continue
         elif any(kind == expected and name == entry and entry in profile["mappings"].get(registry, {})
                  for (registry, entry), expected in known_uses.items()):
             if typed["before"] >= 0 and typed["after"] >= 0 and typed["before"] + typed["after"] > 0:
                 continue
         raise ValueError("Unverified saved use of an unidentified registry entry: " + name)
+    empty = profile.get("empty_capabilities", {})
+    if empty:
+        originals, rewritten = empty["original"], empty["rewritten"]
+        allowed = {"data/capabilities.dat", "DIM-1/data/capabilities.dat", "DIM1/data/capabilities.dat"}
+        if not originals or originals.keys() != rewritten.keys() or not originals.keys() <= allowed:
+            raise ValueError("Unexpected empty capability proof paths")
+        with ZipFile(fixture) as archive:
+            for name, expected in originals.items():
+                archived = hashlib.sha256(archive.read("world/" + name)).hexdigest().upper()
+                saved = (Path(directory) / "world" / name)
+                if (not saved.is_file() or archived != expected
+                        or hashlib.sha256(saved.read_bytes()).hexdigest().upper() != rewritten[name]):
+                    raise ValueError("Forge did not rewrite the proven empty capability record: " + name)
+        profile["empty_capabilities_count"] = len(originals)
     return profile
 
 
@@ -94,15 +120,23 @@ def audit_text(text, profile=None):
     header_reads = {"Unidentified mapping from registry " + registry:
                     registry_reads.get(registry, expected_reads) for registry in observed}
     seen = Counter()
+    capabilities = 0
     for line in text.splitlines():
         if not re.search(r"/(?:ERROR|FATAL)\]|\[STDERR[/\]]", line):
             continue
-        message = re.fullmatch(r"\[[^\r\n]+\] \[" + re.escape(expected_thread) + r"/ERROR\] "
-                               r"\[net\.minecraftforge\.registries\.GameData/REGISTRIES\]: (.+)", line)
+        message = re.fullmatch(r"\[[^\r\n]+\] \[" + re.escape(expected_thread) + r"/ERROR\]"
+                               r"(?: \[net\.minecraftforge\.registries\.GameData/REGISTRIES\])?: (.+)", line)
         if message and message[1] in headers and seen[message[1]] < header_reads.get(message[1], expected_reads):
             seen[message[1]] += 1
+        elif (profile and profile.get("empty_capabilities_count", 0)
+                and re.fullmatch(r"\[[^\r\n]+\] \[Server thread/ERROR\]"
+                                 r"(?: \[net\.minecraft\.world\.level\.storage\.DimensionDataStorage/\])?: "
+                                 + re.escape(EMPTY_CAPABILITIES), line)):
+            capabilities += 1
         else:
             raise ValueError("Unexpected native failure: " + line)
+    if capabilities and capabilities != profile["empty_capabilities_count"]:
+        raise ValueError("Unexpected number of empty Forge capability records")
     if set(seen) != headers or any(count != header_reads.get(header, expected_reads)
                                    for header, count in seen.items()):
         raise ValueError("The native registry notice is incomplete")
@@ -113,4 +147,4 @@ def audit_text(text, profile=None):
                     "java.lang.AssertionError", "java.lang.IllegalStateException:"):
         if problem in text:
             raise ValueError("Unexpected native failure: " + problem)
-    return sorted(headers)
+    return sorted(headers) + [EMPTY_CAPABILITIES] * capabilities

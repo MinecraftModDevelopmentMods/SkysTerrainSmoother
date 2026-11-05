@@ -4,7 +4,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.fml.ModList;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -25,7 +25,7 @@ public final class MineralogyProbe {
             if (!material.mineralogy) {
                 continue;
             }
-            ResourceLocation slabId = ResourceLocation.fromNamespaceAndPath("mineralogy", material.id.getPath() + "_slab");
+            Identifier slabId = Identifier.fromNamespaceAndPath("mineralogy", material.id.getPath() + "_slab");
             require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(slabId) == material.slab.getBlock(), "native slab identity");
             boolean bottom = false;
             for (Property<?> property : material.slab.getProperties()) {

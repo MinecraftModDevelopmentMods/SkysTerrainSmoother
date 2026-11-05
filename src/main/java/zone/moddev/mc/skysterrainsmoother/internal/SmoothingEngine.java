@@ -8,7 +8,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.core.Direction;
@@ -24,8 +24,6 @@ import net.minecraft.world.level.WorldGenLevel;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.*;
@@ -110,12 +108,11 @@ public final class SmoothingEngine {
         return count > 0;
     }
 
-    @SubscribeEvent
     public void loaded(ChunkEvent.Load event) {
         if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        if (world.isClientSide || !isOverworld(world)) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
         int chunkX = event.getChunk().getPos().x;
@@ -135,11 +132,9 @@ public final class SmoothingEngine {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void endWorldTick(TickEvent.LevelTickEvent event) {
-        Level world = event.level;
-        if (event.phase != TickEvent.Phase.END || world.isClientSide
-                || !isOverworld(world)) {
+    public void endWorldTick(TickEvent.LevelTickEvent.Post event) {
+        Level world = event.level();
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
         for (long key : new ArrayList<>(dirtyOwners)) {
@@ -166,12 +161,11 @@ public final class SmoothingEngine {
         }
     }
 
-    @SubscribeEvent
     public void unload(ChunkEvent.Unload event) {
         if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        if (world.isClientSide || !isOverworld(world)) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
         long key = ExistingChunkIndex.key(event.getChunk().getPos().x, event.getChunk().getPos().z);
@@ -297,7 +291,7 @@ public final class SmoothingEngine {
             }
         }
         if (changed) {
-            owner.setUnsaved(true);
+            owner.markUnsaved();
         }
 
         placements.removeIf(placement -> placement.state.getBlock() == Blocks.AIR);
@@ -343,14 +337,14 @@ public final class SmoothingEngine {
                 int surfaceY = SmoothingFoliage.surfaceHeight(owner, localBlockX, localBlockZ, startX, startZ);
 
                 // Visit upward-facing floors at every depth. Finish every decision before the first world write.
-                if (surfaceY < owner.getMinBuildHeight()) {
+                if (surfaceY < owner.getMinY()) {
                     continue;
                 }
 
                 BlockState previous = owner.getBlockState(
-                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxBuildHeight() - 2) + 1, startZ + localBlockZ));
+                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxY() - 1) + 1, startZ + localBlockZ));
 
-                for (int floorY = Math.min(surfaceY, owner.getMaxBuildHeight() - 2); floorY >= owner.getMinBuildHeight(); --floorY) {
+                for (int floorY = Math.min(surfaceY, owner.getMaxY() - 1); floorY >= owner.getMinY(); --floorY) {
                     BlockState lower = owner
                             .getBlockState(cursor.set(startX + localBlockX, floorY, startZ + localBlockZ));
                     BlockState above = previous;
@@ -439,7 +433,7 @@ public final class SmoothingEngine {
             }
         }
         if (count > 0) {
-            owner.setUnsaved(true);
+            owner.markUnsaved();
         }
         if (afterDecoration) {
             pending.get(key).addAll(placements);
@@ -453,7 +447,7 @@ public final class SmoothingEngine {
     }
 
     private static boolean setGenerationState(LevelAccessor world, ChunkAccess owner, BlockPos position, BlockState state) {
-        if (position.getY() < owner.getMinBuildHeight() || position.getY() >= owner.getMaxBuildHeight()
+        if (position.getY() < owner.getMinY() || position.getY() > owner.getMaxY()
                 || position.getX() >> 4 != owner.getPos().x || position.getZ() >> 4 != owner.getPos().z) {
             throw new IllegalArgumentException("Terrain smoothing cannot write outside its owning chunk");
         }
@@ -461,7 +455,7 @@ public final class SmoothingEngine {
         if (before.equals(state)) {
             return false;
         }
-        owner.setBlockState(position, state, false);
+        owner.setBlockState(position, state, 0);
         BlockState actual = owner.getBlockState(position);
         if (world instanceof Level && owner.getPersistedStatus() == ChunkStatus.FULL && !before.equals(actual)) {
             // A late repair may follow the chunk's first packet. Notify tracked clients
@@ -553,7 +547,7 @@ public final class SmoothingEngine {
 
     private boolean caveHeadroom(LevelAccessor world, ChunkAccess owner, BlockPos support) {
         // Three clear blocks leave 2.5 blocks above a new cap. A two-block tunnel must stay walkable.
-        if (support.getY() + 3 >= owner.getMaxBuildHeight()) {
+        if (support.getY() + 3 > owner.getMaxY()) {
             return false;
         }
         for (int height = 2; height <= 3; height++) {

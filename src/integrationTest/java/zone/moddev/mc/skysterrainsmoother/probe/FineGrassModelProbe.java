@@ -8,7 +8,8 @@ import net.minecraft.world.level.block.GrassBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.model.geom.builders.UVPair;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.content.Pieces;
 
@@ -21,31 +22,29 @@ final class FineGrassModelProbe {
                 for (boolean snowy : new boolean[] { false, true }) {
                     BlockState state = Pieces.state("minecraft:grass", shape, orientation)
                             .setValue(GrassBlock.SNOWY, snowy);
-                    BakedModel model = minecraft.getBlockRenderer().getBlockModel(state);
+                    BlockStateModel model = minecraft.getBlockRenderer().getBlockModel(state);
                     int sides = 0;
                     java.util.Set<Direction> sideDirections = java.util.EnumSet.noneOf(Direction.class);
                     String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
-                    for (BakedQuad quad : allFaces(model, state)) {
-                        if (quad.getDirection().getAxis() == net.minecraft.core.Direction.Axis.Y
-                                || !quad.getSprite().contents().name().toString().equals(sideTexture)) {
+                    for (BakedQuad quad : allFaces(model)) {
+                        if (quad.direction().getAxis() == net.minecraft.core.Direction.Axis.Y
+                                || !quad.sprite().contents().name().toString().equals(sideTexture)) {
                             continue;
                         }
-                        int stride = com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK.getVertexSize() / Integer.BYTES;
-                        int textureOffset = primaryTextureOffset();
                         double firstRow = Double.POSITIVE_INFINITY;
                         double lastRow = Double.NEGATIVE_INFINITY;
 
                         for (int vertex = 0; vertex < 4; vertex++) {
-                            float atlasV = Float.intBitsToFloat(quad.getVertices()[vertex * stride + textureOffset + 1]);
-                            double row = 16 * (atlasV - quad.getSprite().getV0())
-                                    / (quad.getSprite().getV1() - quad.getSprite().getV0());
+                            float atlasV = UVPair.unpackV(quad.packedUV(vertex));
+                            double row = 16 * (atlasV - quad.sprite().getV0())
+                                    / (quad.sprite().getV1() - quad.sprite().getV0());
                             firstRow = Math.min(firstRow, row);
                             lastRow = Math.max(lastRow, row);
                         }
                         RuntimeProbe.require(Math.abs(firstRow) < .1 && Math.abs(lastRow - 8) < .1,
                                 "baked grass/snow fringe starts at the piece's top: " + state);
                         RuntimeProbe.require(!quad.isTinted(), "The base grass and snow sides are not tinted");
-                        sideDirections.add(quad.getDirection());
+                        sideDirections.add(quad.direction());
                         sides++;
                     }
                     int expectedFaces = shape == Shape.HORIZONTAL_STEP ? 6 : 4;
@@ -59,18 +58,13 @@ final class FineGrassModelProbe {
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_FINE_GRASS_MODELS_PASS states=" + checked);
     }
 
-    private static int primaryTextureOffset() {
-        com.mojang.blaze3d.vertex.VertexFormat format =
-                com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK;
-
-        return format.getOffset(com.mojang.blaze3d.vertex.VertexFormatElement.UV0) / Integer.BYTES;
-    }
-
-    private static List<BakedQuad> allFaces(BakedModel model, BlockState state) {
-        // Boundary faces live in direction-specific lists; inset faces are unculled.
-        List<BakedQuad> faces = new ArrayList<>(model.getQuads(state, null, RandomSource.create(0)));
-        for (Direction direction : Direction.values()) {
-            faces.addAll(model.getQuads(state, direction, RandomSource.create(0)));
+    private static List<BakedQuad> allFaces(BlockStateModel model) {
+        List<BakedQuad> faces = new ArrayList<>();
+        for (var part : model.collectParts(RandomSource.create(0))) {
+            faces.addAll(part.getQuads(null));
+            for (Direction direction : Direction.values()) {
+                faces.addAll(part.getQuads(direction));
+            }
         }
         return faces;
     }

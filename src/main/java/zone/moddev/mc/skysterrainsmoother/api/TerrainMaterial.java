@@ -4,19 +4,19 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Immutable exact-state mapping. Direction order is north, east, south, west. */
 public final class TerrainMaterial {
-    public final ResourceLocation id;
+    public final Identifier id;
     public final Set<BlockState> sources;
     public final boolean grass;
     public final boolean mineralogy;
     public final BlockState slab, supportAfterPlacement;
     private final BlockState[] steps, corners;
 
-    public TerrainMaterial(ResourceLocation materialId, Set<BlockState> sources, BlockState slab, BlockState[] steps,
+    public TerrainMaterial(Identifier materialId, Set<BlockState> sources, BlockState slab, BlockState[] steps,
             BlockState[] corners, boolean grass, BlockState supportAfterPlacement) {
         if (materialId == null || sources == null || sources.isEmpty() || slab == null) {
             throw new IllegalArgumentException("A material requires an identity, exact full states and a slab");
@@ -37,7 +37,7 @@ public final class TerrainMaterial {
                 throw new IllegalArgumentException("A source cannot be null");
             }
 
-            ResourceLocation name = ForgeRegistries.BLOCKS.getKey(source.getBlock());
+            Identifier name = ForgeRegistries.BLOCKS.getKey(source.getBlock());
 
             if (name != null && name.getNamespace().equals("mineralogy")) {
                 mineral = true;

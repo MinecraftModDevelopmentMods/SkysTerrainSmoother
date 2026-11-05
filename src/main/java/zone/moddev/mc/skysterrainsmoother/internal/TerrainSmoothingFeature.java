@@ -12,7 +12,7 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -37,7 +37,7 @@ public final class TerrainSmoothingFeature extends Feature<NoneFeatureConfigurat
         super(NoneFeatureConfiguration.CODEC);
     }
 
-    public static void register(IEventBus modBus) {
+    public static void register(BusGroup modBus) {
         FEATURES.register(modBus);
         BIOME_MODIFIERS.register(modBus);
     }

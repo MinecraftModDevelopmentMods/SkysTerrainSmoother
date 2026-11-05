@@ -1,6 +1,5 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -12,7 +11,6 @@ import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
 /** Opens, renders and saves the native settings screens, preserving the running session. */
 final class ConfigScreenProbe {
-    private static int screenshotNumber;
     private static Screen parent;
     private static Screen screen;
     private static int modIndex;
@@ -62,13 +60,19 @@ final class ConfigScreenProbe {
             String key = "config." + modId + "." + keys[choiceIndex];
             RuntimeProbe.require(!I18n.get(key).equals(key) && !I18n.get(key + ".tooltip").equals(key + ".tooltip"),
                     "Readable label and tooltip for " + key);
-            render(minecraft, screen, button.getX() + 5, button.getY() + 5);
-            screenshot(minecraft, modId + "-" + keys[choiceIndex] + "-tooltip.png");
-            button.onPress();
+            var holder = (net.minecraft.client.gui.components.WidgetTooltipHolder) ModMenuProbe.field(
+                    net.minecraft.client.gui.components.AbstractWidget.class, button, "tooltip");
+            var tooltip = holder.get();
+            RuntimeProbe.require(tooltip != null, "The button exposes its tooltip: " + key);
+            var message = (net.minecraft.network.chat.Component) ModMenuProbe.field(
+                    net.minecraft.client.gui.components.Tooltip.class, tooltip, "message");
+            RuntimeProbe.require(message.getString().equals(I18n.get(key + ".tooltip")),
+                    "The button uses the correct translated tooltip: " + key);
+            button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
             RuntimeProbe.require(!button.getMessage().getString().equals(original.get(choiceIndex)), "The pending choice changes");
             tooltips++;
             if (++choiceIndex == keys.length) {
-                buttons(screen).get(keys.length).onPress();
+                buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
                 deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
                 settleTicks = 0;
                 stage = 2;
@@ -93,11 +97,11 @@ final class ConfigScreenProbe {
                 Button button = buttons(screen).get(index);
                 RuntimeProbe.require(!button.getMessage().getString().equals(original.get(index)), "Saved choices are reloaded: " + keys[index]);
                 for (int attempt = 0; attempt < 3 && !button.getMessage().getString().equals(original.get(index)); attempt++) {
-                    button.onPress();
+                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
                 }
                 RuntimeProbe.require(button.getMessage().getString().equals(original.get(index)), "Restore the disposable configuration");
             }
-            buttons(screen).get(keys.length).onPress();
+            buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
             settleTicks = 0;
             stage = 3;
         } else {
@@ -159,27 +163,6 @@ final class ConfigScreenProbe {
         }
     }
 
-    static void render(Minecraft minecraft, Screen screen, int mouseX, int mouseY) {
-        minecraft.getMainRenderTarget().bindWrite(true);
-        com.mojang.blaze3d.platform.Window window = minecraft.getWindow();
-
-        com.mojang.blaze3d.systems.RenderSystem.clear(256, Minecraft.ON_OSX);
-        float farPlane = net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane();
-        com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
-                new org.joml.Matrix4f().setOrtho(0, (float) (window.getWidth() / window.getGuiScale()),
-                        (float) (window.getHeight() / window.getGuiScale()), 0, 1000, farPlane),
-                com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
-        org.joml.Matrix4fStack modelView =
-                com.mojang.blaze3d.systems.RenderSystem.getModelViewStack();
-        modelView.identity();
-        modelView.translate(0, 0, 1000 - farPlane);
-        com.mojang.blaze3d.systems.RenderSystem.applyModelViewMatrix();
-        com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
-        var graphics = new net.minecraft.client.gui.GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
-        screen.render(graphics, mouseX, mouseY, 0);
-        graphics.flush();
-    }
-
     private static List<Button> buttons(Screen screen) {
         List<Button> result = new ArrayList<>();
         for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
@@ -188,22 +171,6 @@ final class ConfigScreenProbe {
             }
         }
         return result;
-    }
-
-    static void screenshot(Minecraft minecraft, String filename) {
-        String phase = System.getProperty("skysterrainsmoother.integrationPhase", "client");
-        String savedName = phase + "-" + screenshotNumber++ + "-" + filename;
-        java.util.concurrent.CountDownLatch saved = new java.util.concurrent.CountDownLatch(1);
-        net.minecraft.client.Screenshot.grab(minecraft.gameDirectory, savedName,
-                minecraft.getMainRenderTarget(), message -> saved.countDown());
-        try {
-            RuntimeProbe.require(saved.await(10, java.util.concurrent.TimeUnit.SECONDS), "Screen capture finished");
-        } catch (InterruptedException failure) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Screen capture interrupted", failure);
-        }
-        RuntimeProbe.require(new File(minecraft.gameDirectory, "screenshots/" + savedName).isFile(),
-                "Screen capture saved: " + savedName);
     }
 
     private ConfigScreenProbe() {
