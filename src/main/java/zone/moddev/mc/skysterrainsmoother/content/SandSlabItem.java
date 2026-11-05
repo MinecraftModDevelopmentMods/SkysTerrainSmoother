@@ -9,6 +9,9 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -17,8 +20,8 @@ import net.minecraft.world.level.Level;
 public final class SandSlabItem extends BlockItem {
     private final SandSlabBlock slab;
 
-    public SandSlabItem(SandSlabBlock slab) {
-        super(slab, new Item.Properties());
+    public SandSlabItem(SandSlabBlock slab, Identifier id) {
+        super(slab, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)));
         this.slab = slab;
     }
 

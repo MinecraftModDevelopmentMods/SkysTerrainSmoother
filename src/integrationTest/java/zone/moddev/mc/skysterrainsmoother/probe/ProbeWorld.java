@@ -1,5 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.tags.BlockTags;
@@ -8,8 +10,6 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.DataLayer;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
@@ -64,7 +64,7 @@ final class ProbeWorld {
 
     static net.minecraft.world.level.chunk.LevelChunkSection emptySection(Level world) {
         return new net.minecraft.world.level.chunk.LevelChunkSection(
-                world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME));
+                world.palettedContainerFactory());
     }
 
     private ProbeWorld() {

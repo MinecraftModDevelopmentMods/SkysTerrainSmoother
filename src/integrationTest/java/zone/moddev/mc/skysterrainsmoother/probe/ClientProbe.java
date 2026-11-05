@@ -1,41 +1,46 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import java.io.*;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 public final class ClientProbe extends ProbeProxy {
     private boolean ran;
     private boolean integrated;
+    private boolean leaving;
+    private boolean stopped;
+    private int settleTicks = -1;
     private boolean resourcesChecked;
     private int settledWorldTicks;
-    private long leaveAfter;
+    private boolean requestedRecipes;
+    private volatile java.util.Set<net.minecraft.world.item.crafting.display.RecipeDisplayId> recipeDisplays;
 
     @Override
     public void init() {
-        NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.addListener(this::tick);
     }
 
-    @SubscribeEvent
     public void tick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
 
-        org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().getWindow());
+        org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().handle());
 
-        if (leaveAfter != 0) {
-            if (System.nanoTime() >= leaveAfter) {
-                RuntimeProbe.require(minecraft.isPaused() && minecraft.level != null,
-                        "The disposable world is paused before leaving");
-                // Leave through the same save path as the pause menu.
-                minecraft.level.disconnect();
-                minecraft.disconnect(new net.minecraft.client.gui.screens.GenericMessageScreen(
-                        net.minecraft.network.chat.Component.translatable("menu.savingLevel")));
-                RuntimeProbe.require(minecraft.level == null, "The client left the disposable world");
+        if (leaving) {
+            if (!stopped && minecraft.level == null && minecraft.getSingleplayerServer() == null) {
+                stopped = true;
                 zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info(
                         "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS");
                 minecraft.stop();
+            }
+            return;
+        }
+        if (settleTicks >= 0) {
+            RuntimeProbe.require(minecraft.level != null && minecraft.player != null,
+                    "The disposable world stays connected through its save check");
+            if (++settleTicks >= 40) {
+                leaving = true;
+                minecraft.disconnectFromWorld(net.minecraft.client.multiplayer.ClientLevel.DEFAULT_QUIT_MESSAGE);
             }
             return;
         }
@@ -43,16 +48,21 @@ public final class ClientProbe extends ProbeProxy {
         if (ran) {
             if (integrated) confirmDisposableWorld(minecraft);
             if (integrated && ClientStatus.complete && minecraft.level != null && minecraft.player != null
-                    && minecraft.getConnection() != null
-                    && !minecraft.getConnection().getRecipeManager().getRecipes().isEmpty()) {
-                if (++settledWorldTicks < 20) return;
-                RecipePreviewModels.check(minecraft);
+                    && minecraft.getConnection() != null && minecraft.getSingleplayerServer() != null) {
+                if (!requestedRecipes) {
+                    requestedRecipes = true;
+                    var server = minecraft.getSingleplayerServer();
+                    server.execute(() -> recipeDisplays = RecipePreviewModels.unlock(server));
+                }
+                if (recipeDisplays == null || !RecipePreviewModels.ready(minecraft, recipeDisplays)) {
+                    RuntimeProbe.require(++settledWorldTicks < 400, "Native client recipe displays arrived");
+                    return;
+                }
+                RecipePreviewModels.check(minecraft, recipeDisplays);
                 checkBiomeTints(minecraft);
                 zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS");
+                settleTicks = 0;
                 integrated = false;
-                // Pause world ticks long enough for the local connection to finish sending chunk data.
-                minecraft.setScreen(new net.minecraft.client.gui.screens.PauseScreen(true));
-                leaveAfter = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
             }
 
             return;
@@ -106,7 +116,7 @@ public final class ClientProbe extends ProbeProxy {
             } else {
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
                         "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE, false,
-                        net.minecraft.world.Difficulty.NORMAL, true, new net.minecraft.world.level.GameRules(),
+                        net.minecraft.world.Difficulty.NORMAL, true, new net.minecraft.world.level.gamerules.GameRules(net.minecraft.world.flag.FeatureFlags.DEFAULT_FLAGS),
                         net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
                 minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
                         new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
@@ -143,7 +153,7 @@ public final class ClientProbe extends ProbeProxy {
                 if (button.getMessage().equals(proceed)) {
                     // Only the marked probe's disposable world reaches this confirmation.
                     zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_NATIVE_EXPERIMENTAL_WORLD_CONFIRMATION");
-                    button.onPress();
+                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
                     return;
                 }
             }
@@ -172,18 +182,19 @@ public final class ClientProbe extends ProbeProxy {
     }
 
     private static void checkModel(Minecraft minecraft, net.minecraft.world.level.block.state.BlockState state) {
-        net.minecraft.client.resources.model.BakedModel model = minecraft.getBlockRenderer()
+        net.minecraft.client.renderer.block.model.BlockStateModel model = minecraft.getBlockRenderer()
                 .getBlockModel(state);
 
         RuntimeProbe.require(model != minecraft.getBlockRenderer().getBlockModelShaper().getModelManager()
-                .getMissingModel(), "missing model " + state);
+                .getMissingBlockStateModel(), "missing model " + state);
 
         for (net.minecraft.core.Direction face : new net.minecraft.core.Direction[] { null,
                 net.minecraft.core.Direction.DOWN, net.minecraft.core.Direction.UP,
                 net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.SOUTH,
                 net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.EAST }) {
-            for (net.minecraft.client.renderer.block.model.BakedQuad quad : model.getQuads(state, face, net.minecraft.util.RandomSource.create(0))) {
-                RuntimeProbe.require(!quad.getSprite().contents().name().toString().contains("missingno"), "missing texture " + state);
+            for (net.minecraft.client.renderer.block.model.BakedQuad quad : model.collectParts(net.minecraft.util.RandomSource.create(0)).stream()
+                    .flatMap(part -> part.getQuads(face).stream()).toList()) {
+                RuntimeProbe.require(!quad.sprite().contents().name().toString().contains("missingno"), "missing texture " + state);
             }
         }
     }

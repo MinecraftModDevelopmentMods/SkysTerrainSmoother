@@ -14,6 +14,7 @@ final class ModMenuProbe {
     static Screen open(Minecraft minecraft, String modId, Screen parent) {
         ModListScreen mods = new ModListScreen(parent);
         minecraft.setScreen(mods);
+        mods.tick();
         ModListWidget list = (ModListWidget) field(ModListScreen.class, mods, "modList");
         Object selected = null;
         for (Object entry : list.children()) {
@@ -38,11 +39,9 @@ final class ModMenuProbe {
         } catch (ReflectiveOperationException failure) {
             throw new IllegalStateException("Cannot select the native mod entry", failure);
         }
-        ConfigScreenProbe.render(minecraft, mods, 0, 0);
-        ConfigScreenProbe.screenshot(minecraft, modId + "-mod-info.png");
         Button button = (Button) field(ModListScreen.class, mods, "configButton");
         RuntimeProbe.require(button.visible && button.active, "The Config button is available for " + modId);
-        button.onPress();
+        button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
         RuntimeProbe.require(minecraft.screen != mods && minecraft.screen != null,
                 "The Config button opens " + modId);
         return minecraft.screen;

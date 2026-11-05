@@ -1,5 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.levelgen.GenerationStep;
@@ -20,15 +22,14 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.neoforged.neoforge.common.NeoForge;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.common.*;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.registries.RegisterEvent;
+import net.minecraft.core.registries.Registries;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Geometry;
@@ -60,21 +61,23 @@ public final class RuntimeProbe {
     public RuntimeProbe(net.neoforged.bus.api.IEventBus modBus) {
         modBus.addListener(this::registerProbeOre);
         modBus.addListener(this::init);
-        NeoForge.EVENT_BUS.register(this);
-        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+        NeoForge.EVENT_BUS.addListener(this::started);
+        NeoForge.EVENT_BUS.addListener(this::tick);
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() == net.neoforged.api.distmarker.Dist.CLIENT) {
             new ClientProbe().init();
         }
     }
 
     public void registerProbeOre(net.neoforged.neoforge.registries.RegisterEvent event) {
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("terrainsmootherprobe", "ore_support");
-        event.register(net.minecraft.core.registries.Registries.BLOCK, registry -> {
-            probeOre = new Block(Block.Properties.of().mapColor(net.minecraft.world.level.material.MapColor.STONE));
+        Identifier id = Identifier.fromNamespaceAndPath("terrainsmootherprobe", "ore_support");
+        event.register(Registries.BLOCK, registry -> {
+            probeOre = new Block(Block.Properties.of().setId(ResourceKey.create(Registries.BLOCK, id))
+                    .mapColor(net.minecraft.world.level.material.MapColor.STONE));
             registry.register(id, probeOre);
         });
-        event.register(net.minecraft.core.registries.Registries.ITEM, registry ->
+        event.register(Registries.ITEM, registry ->
                 registry.register(id, new net.minecraft.world.item.BlockItem(
-                        probeOre, new net.minecraft.world.item.Item.Properties())));
+                        probeOre, new net.minecraft.world.item.Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)))));
     }
 
     public void init(FMLCommonSetupEvent event) {
@@ -90,7 +93,7 @@ public final class RuntimeProbe {
                     BuildingPiecesApi.TerrainShape.CORNER, directions[directionIndex]);
         }
 
-        ResourceLocation registryId = ResourceLocation.parse("probe:obsidian");
+        Identifier registryId = Identifier.parse("probe:obsidian");
 
         TerrainSmoothingApi.registerMaterial(new TerrainMaterial(registryId,
                 Collections.singleton(Blocks.OBSIDIAN.defaultBlockState()), BuildingPiecesApi
@@ -102,7 +105,6 @@ public final class RuntimeProbe {
         TerrainSmoothingApi.addAreaProtection((dimension, pos, biome) -> pos.getY() == 241);
     }
 
-    @SubscribeEvent
     public void started(ServerStartedEvent event) {
         server = event.getServer();
         checkFeatureRegistration();
@@ -111,12 +113,12 @@ public final class RuntimeProbe {
     private void checkFeatureRegistration() {
         int eligible = 0;
         int excluded = 0;
-        var smoothing = net.minecraft.core.registries.BuiltInRegistries.FEATURE.get(
-                ResourceLocation.fromNamespaceAndPath("skysterrainsmoother", "terrain_smoothing"));
+        var smoothing = net.minecraft.core.registries.BuiltInRegistries.FEATURE.getValue(
+                Identifier.fromNamespaceAndPath("skysterrainsmoother", "terrain_smoothing"));
         require(smoothing instanceof TerrainSmoothingFeature, "The registered terrain smoothing feature is missing");
         int vegetation = net.minecraft.world.level.levelgen.GenerationStep.Decoration.VEGETAL_DECORATION.ordinal();
-        var biomes = server.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME);
-        for (var biome : biomes.holders().toList()) {
+        var biomes = server.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME);
+        for (var biome : biomes.listElements().toList()) {
             List<net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature>> stages =
                     biome.value().getGenerationSettings().features();
             net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature> features =
@@ -139,7 +141,6 @@ public final class RuntimeProbe {
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_FEATURE_REGISTRATION_PASS eligible=" + eligible + " excluded=" + excluded);
     }
 
-    @SubscribeEvent
     public void tick(ServerTickEvent.Post event) {
         if (server == null || ran) {
             return;
@@ -178,7 +179,7 @@ public final class RuntimeProbe {
 
 
             if (!gameplayComplete) {
-            server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "gamerule randomTickSpeed 0");
+            server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "gamerule minecraft:random_tick_speed 0");
                 require(GrassSlabsApi.hasSmoothingOwner(), "ownership claimed before Grass Slabs startup");
                 require(SkysTerrainSmoother.engine.indexedChunks() > 0 == phase().equals("reload"),
                         "saved-chunk index lifecycle");
@@ -539,7 +540,7 @@ public final class RuntimeProbe {
                 require(!piece.getActualState(grass, world, position).getValue(net.minecraft.world.level.block.GrassBlock.SNOWY),
                         "fine grass snow clears");
                 world.setBlock(position.below(), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
-                piece.neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, position.below(), false);
+                piece.neighborChanged(grass, world, position, Blocks.GRASS_BLOCK, null, false);
                 int cells = piece.mask(grass);
                 boolean coversSupport = ((cells | cells >> 4) & 15) == 15;
                 require(world.getBlockState(position.below()).getBlock() == (coversSupport ? Blocks.DIRT : Blocks.GRASS_BLOCK),
@@ -651,14 +652,14 @@ public final class RuntimeProbe {
                                                         mineralogy++;
                                                     }
                                                 }
-                                                if (ResourceLocation.parse("biomesoplenty:lush_desert")
-                                                        .equals(world.getBiome(piece).unwrapKey().orElseThrow().location())) {
+                                                if (Identifier.parse("biomesoplenty:lush_desert")
+                                                        .equals(world.getBiome(piece).unwrapKey().orElseThrow().identifier())) {
                                                     if (terrainMaterial.id
-                                                            .equals(ResourceLocation.parse("minecraft:hardened_clay"))) {
+                                                            .equals(Identifier.parse("minecraft:hardened_clay"))) {
                                                         lushClay++;
                                                     }
                                                     if (terrainMaterial.id
-                                                            .equals(ResourceLocation.parse("minecraft:grass"))) {
+                                                            .equals(Identifier.parse("minecraft:grass"))) {
                                                         lushGrass++;
                                                     }
                                                 }

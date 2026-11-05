@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.121112
+
+- Bring Terrain Smoother to Minecraft 1.21.11 on NeoForge.
+- Keep all three smoothing levels, including cave floors and optional Mineralogy support.
+
 ## 0.1.0.121012
 
 - Updated for Minecraft 1.21.1 on NeoForge.

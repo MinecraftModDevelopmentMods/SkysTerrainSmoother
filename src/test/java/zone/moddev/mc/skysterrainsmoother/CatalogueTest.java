@@ -49,7 +49,7 @@ class CatalogueTest {
 
         final AABB boundingBox = new AABB(x0, 0, z0, x1, .5, z1);
 
-        return new Block(Block.Properties.of().mapColor(MapColor.STONE)) {
+        return new Block(Block.Properties.of().setId(ResourceKey.create(Registries.BLOCK, Identifier.parse("skysterrainsmoother:test_piece_" + mask))).mapColor(MapColor.STONE)) {
             @Override
             public net.minecraft.world.phys.shapes.VoxelShape getShape(BlockState state, BlockGetter world,
                     BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
@@ -66,7 +66,7 @@ class CatalogueTest {
 
     private static TerrainMaterial material(String name, BlockState full, BlockState slab, BlockState[] steps,
             BlockState[] corners) {
-        return new TerrainMaterial(ResourceLocation.fromNamespaceAndPath("test", name), Collections.singleton(full), slab, steps,
+        return new TerrainMaterial(Identifier.fromNamespaceAndPath("test", name), Collections.singleton(full), slab, steps,
                 corners, false, null);
     }
 
@@ -150,7 +150,7 @@ class CatalogueTest {
     void wetOutputsAndHollowGeometryAreRejected() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
         zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock sand =
-                new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false);
+                new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false, Identifier.parse("skysterrainsmoother:test_sand_slab"));
         BlockState wet = sand.defaultBlockState().setValue(
                 zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.WATERLOGGED, true);
         // The native registry fills this cache for registered block states.
@@ -158,7 +158,7 @@ class CatalogueTest {
         assertFalse(wet.getFluidState().isEmpty());
         assertThrows(IllegalArgumentException.class,
                 () -> catalogue.register(material("wet", Blocks.STONE.defaultBlockState(), wet, null, null)));
-        Block hollow = new Block(Block.Properties.of().mapColor(MapColor.STONE)) {
+        Block hollow = new Block(Block.Properties.of().setId(ResourceKey.create(Registries.BLOCK, Identifier.parse("skysterrainsmoother:test_hollow_piece"))).mapColor(MapColor.STONE)) {
             @Override
             public net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter world,
                     BlockPos position, net.minecraft.world.phys.shapes.CollisionContext context) {
@@ -176,7 +176,7 @@ class CatalogueTest {
     @Test
     void snowyGrassKeepsItsLogicalMaterialButWetPiecesDoNotAliasDryOnes() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
-        BlockState dry = new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false).defaultBlockState();
+        BlockState dry = new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false, Identifier.parse("skysterrainsmoother:test_sand_slab")).defaultBlockState();
         TerrainMaterial grass = material("grass", Blocks.GRASS_BLOCK.defaultBlockState(), dry, null, null);
         catalogue.register(grass);
         assertSame(grass, catalogue.source(Blocks.GRASS_BLOCK.defaultBlockState().setValue(SnowyDirtBlock.SNOWY, true)));

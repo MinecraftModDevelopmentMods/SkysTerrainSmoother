@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,8 @@ class SandStateTest {
     @BeforeAll
     static void boot() {
         MinecraftTestBootstrap.registerVanilla();
-        SandContent.slab = new SandSlabBlock(false);
-        SandContent.redSlab = new SandSlabBlock(true);
+        SandContent.slab = new SandSlabBlock(false, Identifier.parse("skysterrainsmoother:sand_slab"));
+        SandContent.redSlab = new SandSlabBlock(true, Identifier.parse("skysterrainsmoother:red_sand_slab"));
     }
 
     @Test
@@ -50,14 +51,14 @@ class SandStateTest {
         root.putString("Unrelated", "keep");
         SandLegacyRecovery.recoverItems(root);
         for (int index = 0; index < 4; index++) {
-            CompoundTag stack = contents.getCompound(index);
-            assertEquals(index < 2 ? "skysterrainsmoother:sand_slab" : "skysterrainsmoother:red_sand_slab", stack.getString("id"));
-            assertEquals(19, stack.getByte("Count"));
-            assertEquals(index, stack.getByte("Slot"));
-            assertEquals("Named sand", stack.getCompound("tag").getString("Name"));
+            CompoundTag stack = contents.getCompound(index).orElseThrow();
+            assertEquals(index < 2 ? "skysterrainsmoother:sand_slab" : "skysterrainsmoother:red_sand_slab", stack.getString("id").orElseThrow());
+            assertEquals(19, stack.getInt("Count").orElseThrow().intValue());
+            assertEquals(index, stack.getInt("Slot").orElseThrow().intValue());
+            assertEquals("Named sand", stack.getCompound("tag").orElseThrow().getString("Name").orElseThrow());
             assertFalse(stack.contains("Damage"));
         }
-        assertEquals("keep", root.getString("Unrelated"));
+        assertEquals("keep", root.getString("Unrelated").orElseThrow());
         CompoundTag once = root.copy();
         SandLegacyRecovery.recoverItems(root);
         assertEquals(once, root);

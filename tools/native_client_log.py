@@ -10,7 +10,38 @@ from native_registry_notices import audit_text, profile_for
 
 
 
-def audit_complete_logs(directory):
+def offline_client_notices(text):
+    """Recognise the exact token-zero errors seen on the bare 21.11 client."""
+    realms_error = ("com.mojang.realmsclient.exception.RealmsServiceException: "
+                    "Realms authentication error with message "
+                    "'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'")
+    expected = (
+        (r"Download-\d+", r"(?:net\.minecraft\.client\.Minecraft/|minecraft/Minecraft)",
+         "Failed to fetch user properties",
+         "com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401"),
+        (r"Download-\d+", r"(?:com\.mojang\.realmsclient\.client\.RealmsClient/|mojang/RealmsClient)",
+         "Failed to fetch Realms feature flags", realms_error),
+        (r"IO-Worker-\d+", r"(?:com\.mojang\.realmsclient\.RealmsAvailability/|mojang/RealmsAvailability)",
+         "Couldn't connect to realms", realms_error),
+    )
+    lines = text.splitlines()
+    recognised = set()
+    kept = []
+    for index, line in enumerate(lines):
+        for thread, logger, message, error in expected:
+            header = rf"\[[^\r\n]+\] \[{thread}/ERROR\] \[{logger}\]: "
+            if (re.fullmatch(header + re.escape(message), line)
+                    and index + 1 < len(lines) and lines[index + 1] == error):
+                if message in recognised:
+                    raise ValueError("Repeated offline authentication notice: " + message)
+                recognised.add(message)
+                break
+        else:
+            kept.append(line)
+    return "\n".join(kept), sorted(recognised)
+
+
+def audit_complete_logs(directory, packaged_offline=False):
     """Include rolled first-load logs, so a clean reload cannot hide a failure."""
     paths = sorted(path for path in (Path(directory) / "logs").rglob("*")
                    if path.is_file() and (path.name.endswith(".log") or path.name.endswith(".log.gz")))
@@ -24,6 +55,8 @@ def audit_complete_logs(directory):
             text = path.read_text(encoding="utf-8")
         if not text.strip():
             raise ValueError(f"Empty native log: {path.name}")
+        if packaged_offline:
+            text, _ = offline_client_notices(text)
         try:
             audit_text(text, profile_for(directory))
         except ValueError as failure:
@@ -31,12 +64,15 @@ def audit_complete_logs(directory):
     return len(paths)
 
 
-def classify(log, unchanged_defaults):
+def classify(log, unchanged_defaults, packaged_offline=False):
     """Require a complete client login without severe notices."""
+    notices = []
+    if packaged_offline:
+        log, notices = offline_client_notices(log)
     lines = log.splitlines()
     severe = [line for line in lines if re.search(r"/(?:ERROR|FATAL)\]", line)]
     startup = next((index for index, line in enumerate(lines)
-                    if "Preparing start region for dimension " in line), -1)
+                    if "Starting integrated minecraft server version 1.21.11" in line), -1)
     login = next((index for index, line in enumerate(lines) if " logged in with entity id " in line), -1)
     joined = next((index for index, line in enumerate(lines) if line.endswith(" joined the game")), -1)
     if not 0 <= startup < login <= joined:
@@ -46,7 +82,7 @@ def classify(log, unchanged_defaults):
     if severe or "[STDERR/" in log or "[STDERR]" in log:
         raise ValueError("Unexpected client errors: " + repr(severe[:4]))
     return {"empty_handshakes": 0, "native_config_notices": 0,
-            "notices": [], "unchanged_native_defaults": True}
+            "notices": notices, "unchanged_native_defaults": True}
 
 
 def unchanged_native_settings(directory, names):
@@ -66,21 +102,21 @@ def unchanged_native_settings(directory, names):
     return True
 
 
-def audit(directory, phase):
+def audit(directory, phase, packaged_offline=False):
     directory = Path(directory)
     log = (directory / "logs/latest.log").read_text(encoding="utf-8")
     unchanged = unchanged_native_settings(directory, (
         "fml.toml", "neoforge-client.toml", "neoforge-common.toml", "neoforge-server.toml"))
     if not unchanged:
         raise ValueError("NeoForge settings differ from the controlled defaults")
-    receipt = classify(log, unchanged)
+    receipt = classify(log, unchanged, packaged_offline)
     required = ("SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
                 "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")
     if any(marker not in log for marker in required):
         raise ValueError("Native client completion checks are missing")
     if list((directory / "crash-reports").glob("*")):
         raise ValueError("Native client produced a crash report")
-    receipt["complete_log_files"] = audit_complete_logs(directory)
+    receipt["complete_log_files"] = audit_complete_logs(directory, packaged_offline)
     receipt["phase"] = phase
     (directory / (phase + "-log-audit.json")).write_text(
         json.dumps(receipt, indent=2) + "\n", encoding="utf-8")

@@ -44,7 +44,7 @@ public final class NativeBiomeChecks {
     public static void verify(ServerLevel world) throws Exception {
         JsonObject data = contract();
         JsonObject names = data.getAsJsonObject("source_names");
-        var registry = world.registryAccess().registryOrThrow(Registries.BIOME);
+        var registry = world.registryAccess().lookupOrThrow(Registries.BIOME);
         boolean tallSource = data.get("format").getAsString().equals("zlib-u8-quart-volume-v2");
         int minimumQuartY = tallSource ? data.get("minimum_quart_y").getAsInt() : 0;
         int quartHeight = tallSource ? data.get("quart_height").getAsInt() : 64;
