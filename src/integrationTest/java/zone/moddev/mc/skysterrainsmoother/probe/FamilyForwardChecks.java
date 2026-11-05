@@ -240,15 +240,15 @@ final class FamilyForwardChecks {
                 RuntimeProbe.require(ProbeItems.custom(actual).equals(original.getCompound("tag")),
                         "Dropped sand slab NBT survives exactly");
             } else {
-                checkShovel(actual);
+                checkShovel(world, actual);
             }
             checked++;
         }
         ServerPlayer player = ProbeItems.player(world,
                 new GameProfile(UUID.fromString(fixture.get("player").getAsString()), "SkyFixture"));
         world.getServer().getPlayerList().load(player);
-        checkShovel(player.getInventory().getItem(0));
-        checkShovel(player.getEnderChestInventory().getItem(0));
+        checkShovel(world, player.getInventory().getItem(0));
+        checkShovel(world, player.getEnderChestInventory().getItem(0));
         checkSandStack(player.getInventory().getItem(1), 3, 23);
         checkSandStack(player.getEnderChestInventory().getItem(1), 3, 23);
         ItemStack box = player.getInventory().getItem(2);
@@ -335,7 +335,7 @@ final class FamilyForwardChecks {
             return (metadata < 2 ? SandContent.slab : SandContent.redSlab).defaultBlockState()
                     .setValue(zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM);
         }
-        BlockState state = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id)).defaultBlockState();
+        BlockState state = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(id)).defaultBlockState();
         return state.hasProperty(SlabBlock.TYPE)
                 ? state.setValue(SlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM) : state;
     }
@@ -346,11 +346,12 @@ final class FamilyForwardChecks {
                 "Sand slab colour and count survive in every inventory location: " + stack);
     }
 
-    private static void checkShovel(ItemStack stack) {
+    private static void checkShovel(ServerLevel world, ItemStack stack) {
         RuntimeProbe.require(stack.getItem() == net.minecraft.world.item.Items.DIAMOND_SHOVEL && stack.getDamageValue() == 17
                         && stack.getHoverName().getString().equals("A saved slope shovel")
                         && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(
-                                net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY, stack) == 3
+                                world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                                        .getHolderOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), stack) == 3
                         && ProbeItems.custom(stack).getString("family_fixture").equals("Keep the complete tool"),
                 "The saved shovel retains damage, name, enchantment and custom data");
     }

@@ -66,7 +66,7 @@ class CatalogueTest {
 
     private static TerrainMaterial material(String name, BlockState full, BlockState slab, BlockState[] steps,
             BlockState[] corners) {
-        return new TerrainMaterial(new ResourceLocation("test", name), Collections.singleton(full), slab, steps,
+        return new TerrainMaterial(ResourceLocation.fromNamespaceAndPath("test", name), Collections.singleton(full), slab, steps,
                 corners, false, null);
     }
 

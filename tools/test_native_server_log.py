@@ -158,6 +158,36 @@ class NativeServerFilesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit_server(self.directory, 'test')
 
+    def test_forge_52_notices_are_bound_to_the_exact_server_fixture(self):
+        import json
+        from native_registry_notices import audit_text, profile_for
+
+        root = Path(__file__).resolve().parent.parent
+        policy = json.loads((root / 'tools/forge-52-registry-notices.json').read_text(encoding='utf-8'))
+        profile = next(value for value in policy.values() if 'forward-1.20.6-family/' in value['fixture'])
+        inputs = self.directory / 'source-inputs.json'
+        source = {'mode': 'server', 'world_sha256': profile['sha256'],
+                  'manifest_sha256': profile['manifest_sha256']}
+        inputs.write_text(json.dumps(source), encoding='utf-8')
+        resolved = profile_for(self.directory)
+        self.assertEqual(profile, resolved)
+
+        prefix = '[time] [main/ERROR] [net.minecraftforge.registries.GameData/REGISTRIES]: '
+        notices = ''.join(prefix + 'Unidentified mapping from registry ' + registry + '\n' +
+                          '\n'.join(f'\t{name}: {ordinal}' for name, ordinal in names.items()) + '\n\n'
+                          for registry, names in profile['mappings'].items())
+        notices += prefix + 'There are unidentified mappings in this world - we are going to attempt to process anyway'
+        self.assertIn('minecraft:aztec2: 3', notices)
+        self.assertEqual(len(audit_text(notices, resolved)), 3)
+        with self.assertRaises(ValueError):
+            audit_text(notices.replace('minecraft:aztec2: 3', 'minecraft:aztec2: 4'), resolved)
+
+        inputs.write_text(json.dumps(dict(source, mode='client')), encoding='utf-8')
+        self.assertIsNone(profile_for(self.directory))
+        inputs.write_text(json.dumps(dict(source, manifest_sha256='0' * 64)), encoding='utf-8')
+        with self.assertRaises(ValueError):
+            profile_for(self.directory)
+
 
 if __name__ == '__main__':
     unittest.main()

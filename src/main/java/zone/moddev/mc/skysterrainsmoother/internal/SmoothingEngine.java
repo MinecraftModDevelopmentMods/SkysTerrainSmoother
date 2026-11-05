@@ -463,7 +463,7 @@ public final class SmoothingEngine {
         }
         owner.setBlockState(position, state, false);
         BlockState actual = owner.getBlockState(position);
-        if (world instanceof Level && owner.getStatus() == ChunkStatus.FULL && !before.equals(actual)) {
+        if (world instanceof Level && owner.getPersistedStatus() == ChunkStatus.FULL && !before.equals(actual)) {
             // A late repair may follow the chunk's first packet. Notify tracked clients
             // without running neighbour placement logic outside this owner.
             ((Level) world).sendBlockUpdated(position, before, actual, 2);

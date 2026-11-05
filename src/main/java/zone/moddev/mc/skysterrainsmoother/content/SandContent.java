@@ -14,8 +14,8 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 /** Sand colours have separate identities after flattening, including when a falling slab drops. */
 @Mod.EventBusSubscriber(modid = SkysTerrainSmoother.ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class SandContent {
-    private static final ResourceLocation SAND_SLAB = new ResourceLocation(SkysTerrainSmoother.ID, "sand_slab");
-    private static final ResourceLocation RED_SAND_SLAB = new ResourceLocation(SkysTerrainSmoother.ID, "red_sand_slab");
+    private static final ResourceLocation SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
+    private static final ResourceLocation RED_SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
     public static SandSlabBlock slab;
     public static SandSlabBlock redSlab;
 

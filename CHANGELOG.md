@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.121011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.21.1 on Forge.
+- Use the matching Grass Slabs and Building Pieces versions.
+
 ## 0.1.0.120061 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.6.

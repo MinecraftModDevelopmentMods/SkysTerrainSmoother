@@ -15,11 +15,11 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.120061", metadata.getProperty("mod_version"));
-        assertEquals("1.20.6", metadata.getProperty("minecraft_version"));
-        assertEquals("50.2.0", metadata.getProperty("forge_version"));
-        assertEquals("1.20.6", metadata.getProperty("mapping_version"));
-        assertEquals("20240429.135109", metadata.getProperty("mcp_version"));
+        assertEquals("0.1.0.121011", metadata.getProperty("mod_version"));
+        assertEquals("1.21.1", metadata.getProperty("minecraft_version"));
+        assertEquals("52.1.0", metadata.getProperty("forge_version"));
+        assertEquals("1.21.1", metadata.getProperty("mapping_version"));
+        assertEquals("20240808.132146", metadata.getProperty("mcp_version"));
         assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
         assertEquals("21", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
@@ -27,9 +27,10 @@ class ProjectContractTest {
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(32, pack.get("pack_format").getAsInt(), sourceSet);
-            assertEquals(32, pack.get("forge:resource_pack_format").getAsInt(), sourceSet);
-            assertEquals(41, pack.get("forge:data_pack_format").getAsInt(), sourceSet);
+            assertEquals(48, pack.get("pack_format").getAsInt(), sourceSet);
+            JsonObject formats = pack.getAsJsonObject("supported_formats");
+            assertEquals(34, formats.get("min_inclusive").getAsInt(), sourceSet);
+            assertEquals(48, formats.get("max_inclusive").getAsInt(), sourceSet);
         }
     }
 
@@ -50,7 +51,7 @@ class ProjectContractTest {
                     assertEquals("minecraft:block/" + sand, model.getAsJsonObject("textures").get(face).getAsString());
                 }
             }
-            JsonObject loot = json(root.resolve("data/skysterrainsmoother/loot_tables/blocks/" + sand + "_slab.json"));
+            JsonObject loot = json(root.resolve("data/skysterrainsmoother/loot_table/blocks/" + sand + "_slab.json"));
             assertEquals("skysterrainsmoother:" + sand + "_slab", loot.getAsJsonArray("pools").get(0).getAsJsonObject()
                     .getAsJsonArray("entries").get(0).getAsJsonObject().get("name").getAsString());
         }
@@ -58,7 +59,7 @@ class ProjectContractTest {
 
     @Test
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
-        Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipes");
+        Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
             assertEquals(4, files.count());
         }

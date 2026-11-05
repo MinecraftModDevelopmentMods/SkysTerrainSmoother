@@ -31,7 +31,7 @@ def generateRecipeAdvancements = tasks.register('generateRecipeAdvancements') {
             // Independent unlocks avoid a long recipe visibility chain on login.
             Map advancement = [rewards: [recipes: [recipe]],
                                criteria: criteria, requirements: [requirements]]
-            File target = new File(output, "data/${owner}/advancements/recipes/${path}.json")
+            File target = new File(output, "data/${owner}/advancement/recipes/${path}.json")
             target.parentFile.mkdirs()
             target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(advancement)) + '\n', 'UTF-8')
         }
