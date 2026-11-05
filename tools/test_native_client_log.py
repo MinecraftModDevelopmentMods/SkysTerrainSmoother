@@ -76,8 +76,8 @@ class NativeClientFilesTest(unittest.TestCase):
 
     def test_native_defaults_with_different_order_and_comments(self):
         client = self.directory / "config/neoforge-client.toml"
-        settings = tomllib.loads(client.read_text(encoding="utf-8"))["client"]
-        client.write_text("[client]\n" + "\n".join(
+        settings = tomllib.loads(client.read_text(encoding="utf-8"))
+        client.write_text("# Same settings in a different order\n" + "\n".join(
             name + " = " + json.dumps(value) for name, value in reversed(list(settings.items()))),
             encoding="utf-8")
         receipt = audit(self.directory, "client-fresh")

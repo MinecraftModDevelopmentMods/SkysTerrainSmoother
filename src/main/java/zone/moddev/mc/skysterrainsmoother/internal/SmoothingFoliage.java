@@ -36,7 +36,7 @@ final class SmoothingFoliage {
 
     static int surfaceHeight(ChunkAccess chunk, int localX, int localZ, int startX, int startZ) {
         // Full chunks retain the live heightmap, not the generation-only map.
-        Heightmap.Types heightmap = chunk.getStatus() == ChunkStatus.FULL
+        Heightmap.Types heightmap = chunk.getPersistedStatus() == ChunkStatus.FULL
                 ? Heightmap.Types.WORLD_SURFACE : Heightmap.Types.WORLD_SURFACE_WG;
         int surfaceY = chunk.getHeight(heightmap, localX, localZ);
         while (surfaceY >= chunk.getMinBuildHeight()) {

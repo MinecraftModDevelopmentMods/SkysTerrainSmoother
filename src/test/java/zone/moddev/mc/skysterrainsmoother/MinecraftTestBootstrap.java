@@ -1,6 +1,9 @@
 package zone.moddev.mc.skysterrainsmoother;
 
 import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
+import net.neoforged.fml.loading.LoadingModList;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 
@@ -25,8 +28,12 @@ public final class MinecraftTestBootstrap {
         if (initialized) return;
         try {
             SharedConstants.tryDetectVersion();
-            if (!SharedConstants.getCurrentVersion().getName().equals("1.20.6")) {
+            if (!SharedConstants.getCurrentVersion().getName().equals("1.21.1")) {
                 throw new IllegalStateException("Wrong Minecraft version for the focused tests");
+            }
+            // Set up an empty mod list before Minecraft creates its feature flags.
+            if (LoadingModList.get() == null) {
+                LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
             }
             // Plain JUnit has no ModLauncher event transformation. Build the
             // registries here; real NeoForge launches cover the networking bootstrap.
@@ -40,7 +47,7 @@ public final class MinecraftTestBootstrap {
                     net.minecraft.core.registries.BuiltInRegistries.ITEM).unfreeze();
             initialized = true;
         } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Unable to initialize the NeoForge 20.6 test runtime",
+            throw new IllegalStateException("Unable to initialize the NeoForge 21.1 test runtime",
                     exception);
         }
     }

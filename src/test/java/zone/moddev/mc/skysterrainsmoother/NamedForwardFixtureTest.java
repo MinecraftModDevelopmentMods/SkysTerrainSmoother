@@ -25,7 +25,9 @@ class NamedForwardFixtureTest {
             "1.19.4,3337,FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74",
             "1.20.1-forge,3465,C66243CF9A35216E2CEC414737815E75E2130165AA32EE98B384DE8164156AFB",
             "1.20.1-neo,3465,D13274A5BCA6F6098E33BBAA84D1F532AFAA9F9C8061386F999A8C7548846080",
-            "1.20.6-forge,3839,25FDFCE7C09B3207C93CCB91FD76D4221C2EEFEEB2E04A7E1B54FB0514D1788A"
+            "1.20.6-forge,3839,25FDFCE7C09B3207C93CCB91FD76D4221C2EEFEEB2E04A7E1B54FB0514D1788A",
+            "1.20.6-neo,3839,D8E21089EFD2D1533E55BDB31B14E1C7342EEDE370964F18DE62303C059C52E6",
+            "1.21.1-forge,3955,4DDEBCE598DC15A9543BABA0BD795C3EC927C0B68F0EDA34E49B368318DB1510"
     })
     void precedingVersionSaveUsesQualifiedJarsAndContainsWetSand(String version, int dataVersion,
             String sealedChecksum) throws Exception {
@@ -40,6 +42,8 @@ class NamedForwardFixtureTest {
             case "1.20.1-forge" -> "forge-47.4.10";
             case "1.20.1-neo" -> "neoforge-47.1.106";
             case "1.20.6-forge" -> "forge-50.2.0";
+            case "1.20.6-neo" -> "neoforge-20.6.139";
+            case "1.21.1-forge" -> "forge-52.1.0";
             default -> null;
         };
         if (loader != null) assertEquals(loader, source.get("source_loader").getAsString());
@@ -103,6 +107,14 @@ class NamedForwardFixtureTest {
                     "7525C0726F056A5865F02F4D70649D5E2810E676979D58255FFEAFD65BB57221",
                     "1F8FACB8F8F367446078DDE830F22FBF31E93F48281BCE5AAA68A7FB0AC4725A",
                     "CDFA130CEC50423EA41663CA81CF0F9635DDE73FF9153A0BF0677C6C18D20EA6");
+            case "1.20.6-neo" -> Set.of(
+                    "F208B254829984D126EFF91CC1EA8FD52B89D8CE96C6827BCEF28C8C41F15E80",
+                    "83FB3727710389FB47BE681DD9817FC5F6343A0A588529584E3A5546EB2D2EE4",
+                    "C619E14E6179B0CE2467CDF99A94D3F1BE002BC31B8B4BCD4A23D298F7F6C308");
+            case "1.21.1-forge" -> Set.of(
+                    "9626DD7D27217A20585AE1AD0372EA2D703E6F9471E965B076A41647273682E5",
+                    "02D5955EE19E0452566D394B80D06DC285B59B376E4A6C52F05EB9CFA3BB1042",
+                    "350B2F935ED0817EBDFCEBC235DAB3709FE9152A1B51A0ED3936572AA0FEB66A");
             default -> throw new AssertionError("No artifact lock for " + version);
         };
         assertEquals(expected, artifacts);

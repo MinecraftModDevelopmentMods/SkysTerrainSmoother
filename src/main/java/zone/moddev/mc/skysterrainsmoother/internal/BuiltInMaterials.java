@@ -55,7 +55,7 @@ public final class BuiltInMaterials {
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(
-                    new ResourceLocation("minecraft", variant == 0 ? "sand" : "red_sand"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", variant == 0 ? "sand" : "red_sand"),
                     Collections.singleton(sand.defaultBlockState()),
                     SandContent.legacyState(variant * 2 + 1), null, null, false, null));
         }
@@ -70,9 +70,9 @@ public final class BuiltInMaterials {
         int available = 0;
         int missing = 0;
         for (String rock : ROCKS) {
-            ResourceLocation fullId = new ResourceLocation("mineralogy", rock);
+            ResourceLocation fullId = ResourceLocation.fromNamespaceAndPath("mineralogy", rock);
             Block full = BuiltInRegistries.BLOCK.get(fullId);
-            Block slab = BuiltInRegistries.BLOCK.get(new ResourceLocation("mineralogy", rock + "_slab"));
+            Block slab = BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("mineralogy", rock + "_slab"));
             if (full == null || full == Blocks.AIR || slab == null || slab == Blocks.AIR) {
                 missing++;
                 continue;
@@ -101,7 +101,7 @@ public final class BuiltInMaterials {
             corners[direction] = BuildingPiecesApi.bottomPiece(material,
                     BuildingPiecesApi.TerrainShape.CORNER, DIRECTIONS[direction]);
         }
-        MaterialCatalogue.instance().register(new TerrainMaterial(new ResourceLocation(material),
+        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.parse(material),
                 Collections.singleton(source), slab, steps, corners, grass,
                 grass ? Blocks.DIRT.defaultBlockState() : null));
     }

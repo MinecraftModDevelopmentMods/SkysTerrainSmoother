@@ -8,10 +8,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.electronwill.nightconfig.core.CommentedConfig;
+import com.electronwill.nightconfig.core.concurrent.ConcurrentCommentedConfig;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.config.IConfigSpec.ILoadedConfig;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLPaths;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -24,7 +26,7 @@ public final class TerrainSmootherConfig {
     private static final ModConfigSpec.IntValue LEVEL;
     private static final ModConfigSpec.BooleanValue MINERALOGY;
     private static volatile Settings active;
-    private static CommentedConfig loadedValues;
+    private static volatile ModConfig commonConfig;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -50,7 +52,7 @@ public final class TerrainSmootherConfig {
         container.registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
         modBus.addListener((ModConfigEvent.Loading event) -> {
             if (event.getConfig().getSpec() == SPEC) {
-                loadedValues = event.getConfig().getConfigData();
+                commonConfig = event.getConfig();
             }
         });
     }
@@ -77,39 +79,42 @@ public final class TerrainSmootherConfig {
     }
 
     public static boolean configuredEnabled() {
-        return ENABLED.get();
+        return ENABLED.getRaw();
     }
 
     public static int configuredLevel() {
-        return LEVEL.get();
+        return LEVEL.getRaw();
     }
 
     public static boolean configuredMineralogy() {
-        return MINERALOGY.get();
+        return MINERALOGY.getRaw();
     }
 
     public static void saveForNextStart(boolean enabled, int level, boolean mineralogy) {
         if (level < 1 || level > 3) {
             throw new IllegalArgumentException("Choose a smoothing level from 1 to 3");
         }
-        if (loadedValues == null) {
+        ModConfig config = commonConfig;
+        ILoadedConfig loaded = config == null ? null : config.getLoadedConfig();
+        if (loaded == null) {
             throw new IllegalStateException("Terrain Smoother settings have not loaded yet");
         }
-        // NeoForge watches this file and autosaves each root edit. Save the choices
-        // together so its watcher cannot reload a half-written set of settings.
-        CommentedConfig pending = CommentedConfig.copy(loadedValues);
-        CommentedConfig worldgen = CommentedConfig.copy(loadedValues.get("worldgen"));
-        CommentedConfig compatibility = CommentedConfig.copy(loadedValues.get("compat"));
-        worldgen.set("enabled", enabled);
-        worldgen.set("smoothingLevel", level);
-        compatibility.set("enableMineralogy", mineralogy);
-        pending.set("worldgen", worldgen);
-        pending.set("compat", compatibility);
-        loadedValues.putAll(pending);
-        // Refresh NeoForge's cached choices after the atomic file update. The active
-        // session keeps its separate snapshot until Minecraft starts again.
-        SPEC.afterReload();
-        SPEC.save();
+        CommentedConfig values = loaded.config();
+        // Save the choices together. The running world keeps its startup settings.
+        if (values instanceof ConcurrentCommentedConfig concurrent) {
+            concurrent.bulkCommentedUpdate(view -> {
+                setChoices(view, enabled, level, mineralogy);
+            });
+        } else {
+            setChoices(values, enabled, level, mineralogy);
+        }
+        loaded.save();
+    }
+
+    private static void setChoices(CommentedConfig values, boolean enabled, int level, boolean mineralogy) {
+        values.set("worldgen.enabled", enabled);
+        values.set("worldgen.smoothingLevel", level);
+        values.set("compat.enableMineralogy", mineralogy);
     }
 
     public static boolean migrateLegacyConfig(Path directory) {

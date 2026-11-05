@@ -1,13 +1,24 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import com.electronwill.nightconfig.core.CommentedConfig;
+import com.electronwill.nightconfig.toml.TomlParser;
+import com.electronwill.nightconfig.toml.TomlWriter;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.bus.api.BusBuilder;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ConfigTracker;
+import net.neoforged.fml.config.IConfigSpec;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforgespi.language.IModInfo;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,22 +27,33 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigScreenContractTest {
     @TempDir
     Path directory;
-    private ModConfigSpec spec;
+    private TestContainer container;
+    private Path configFile;
 
     @BeforeEach
     void loadDefaults() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("SPEC");
-        field.setAccessible(true);
-        spec = (ModConfigSpec) field.get(null);
-        field = TerrainSmootherConfig.class.getDeclaredField("active");
+        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("active");
         field.setAccessible(true);
         field.set(null, null);
-        CommentedFileConfig config = CommentedFileConfig.builder(directory.resolve("settings.toml")).sync().build();
-        config.load();
-        spec.acceptConfig(config);
-        field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
-        field.setAccessible(true);
-        field.set(null, config);
+        Path configDirectory = directory.resolve("config-test");
+        Files.createDirectories(configDirectory);
+        configFile = configDirectory.resolve(TerrainSmootherConfig.FILE_NAME);
+        FMLPaths.loadAbsolutePaths(configDirectory);
+        container = new TestContainer();
+        TerrainSmootherConfig.register(container.getEventBus(), container);
+        CommentedConfig defaults = CommentedConfig.inMemory();
+        container.config.getSpec().correct(defaults);
+        try (var writer = Files.newBufferedWriter(configFile)) {
+            new TomlWriter().write(defaults, writer);
+        }
+        container.tracker.loadConfigs(ModConfig.Type.COMMON, configDirectory);
+    }
+
+    @AfterEach
+    void unloadConfig() {
+        if (container != null) {
+            container.tracker.unloadConfigs(ModConfig.Type.COMMON);
+        }
     }
 
     @Test
@@ -53,12 +75,10 @@ class ConfigScreenContractTest {
 
     @Test
     void savingChoicesPreservesOtherSettingsAndComments() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
-        field.setAccessible(true);
-        com.electronwill.nightconfig.core.CommentedConfig values =
-                (com.electronwill.nightconfig.core.CommentedConfig) field.get(null);
+        CommentedConfig values = container.config.getLoadedConfig().config();
         values.set("worldgen.extra", "kept");
         values.setComment("worldgen.extra", "A pack setting");
+        values.set("other", values.createSubConfig());
         values.set("other.extra", 42);
         TerrainSmootherConfig.activateSettingsForThisRun();
         for (int level = 1; level <= 3; level++) {
@@ -70,6 +90,15 @@ class ConfigScreenContractTest {
             assertEquals("A pack setting", values.getComment("worldgen.extra"));
             assertEquals(42, (int) values.get("other.extra"));
             assertEquals(3, TerrainSmootherConfig.level());
+            try (var reader = Files.newBufferedReader(configFile)) {
+                CommentedConfig saved = new TomlParser().parse(reader);
+                assertEquals(level, (int) saved.get("worldgen.smoothingLevel"));
+                assertFalse((boolean) saved.get("worldgen.enabled"));
+                assertFalse((boolean) saved.get("compat.enableMineralogy"));
+                assertEquals("kept", saved.get("worldgen.extra"));
+                assertEquals("A pack setting", saved.getComment("worldgen.extra").trim());
+                assertEquals(42, (int) saved.get("other.extra"));
+            }
         }
     }
 
@@ -120,6 +149,32 @@ class ConfigScreenContractTest {
                     assertFalse(values.get("config.skysterrainsmoother." + key + ".tooltip").getAsString().trim().isEmpty(), language.toString());
                 }
             }
+        }
+    }
+    /** Load and save the test config without sharing the game's tracker. */
+    private static final class TestContainer extends ModContainer {
+        private final ConfigTracker tracker = new ConfigTracker();
+        private final IEventBus bus = BusBuilder.builder().build();
+        private ModConfig config;
+
+        TestContainer() {
+            super((IModInfo) Proxy.newProxyInstance(IModInfo.class.getClassLoader(),
+                    new Class<?>[] {IModInfo.class}, (proxy, method, arguments) -> {
+                        if (method.getName().equals("getModId")) {
+                            return "skysterrainsmoother";
+                        }
+                        throw new UnsupportedOperationException(method.getName());
+                    }));
+        }
+
+        @Override
+        public IEventBus getEventBus() {
+            return bus;
+        }
+
+        @Override
+        public void registerConfig(ModConfig.Type type, IConfigSpec spec, String fileName) {
+            config = tracker.registerConfig(type, spec, this, fileName);
         }
     }
 }

@@ -25,7 +25,7 @@ public final class MineralogyProbe {
             if (!material.mineralogy) {
                 continue;
             }
-            ResourceLocation slabId = new ResourceLocation("mineralogy", material.id.getPath() + "_slab");
+            ResourceLocation slabId = ResourceLocation.fromNamespaceAndPath("mineralogy", material.id.getPath() + "_slab");
             require(net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(slabId) == material.slab.getBlock(), "native slab identity");
             boolean bottom = false;
             for (Property<?> property : material.slab.getProperties()) {

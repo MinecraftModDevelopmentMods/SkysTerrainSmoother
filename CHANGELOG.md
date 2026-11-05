@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.121012
+
+- Updated for Minecraft 1.21.1 on NeoForge.
+- Sand slabs keep their colour, orientation and waterlogging when upgrading.
+
 ## 0.1.0.120062 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.6 on NeoForge.

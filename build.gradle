@@ -116,8 +116,8 @@ def normalizeArchiveLineEndings = { details ->
 }
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs1206NEO/SkysGrassSlabs'))
-def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces1206NEO/SkysBuildingPieces'))
+def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs1211NEO/SkysGrassSlabs'))
+def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces1211NEO/SkysBuildingPieces'))
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
 
@@ -334,11 +334,11 @@ def releaseFiles = provider {
 tasks.register('verifyReleaseMetadata') {
     group = 'verification'
     doLast {
-        if (project.minecraft_version != '1.20.6' || project.neo_version != '20.6.139' ||
+        if (project.minecraft_version != '1.21.1' || project.neo_version != '21.1.247' ||
                 project.loader_name != 'neoforge' || project.loader_code != '2' ||
                 project.java_version != '21' || project.java_toolchain_version != '21.0.7+6' ||
                 project.mod_id != 'skysterrainsmoother') {
-            throw new GradleException('Unexpected 1.20.6 release metadata')
+            throw new GradleException('Unexpected 1.21.1 release metadata')
         }
     }
 }
