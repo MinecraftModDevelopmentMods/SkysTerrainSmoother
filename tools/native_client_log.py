@@ -1,4 +1,4 @@
-"""Check Forge 65 completion, native settings and unexpected errors."""
+"""Check Forge 66 completion, native settings and unexpected errors."""
 
 import argparse
 import gzip
@@ -70,7 +70,7 @@ def classify(log, unchanged_defaults, profile=None, packaged_offline=False):
         log, offline_notices = offline_client_notices(log)
     lines = log.splitlines()
     startup = next((index for index, line in enumerate(lines)
-                    if "Starting integrated minecraft server version 26.2" in line), -1)
+                    if "Starting integrated minecraft server version 26.3" in line), -1)
     server_info = r"\[[^\r\n]+\] \[Server thread/INFO\](?: \[[^\r\n]+\])?: "
     player = None
     joined = False
@@ -80,7 +80,7 @@ def classify(log, unchanged_defaults, profile=None, packaged_offline=False):
                              line)
         if login:
             player = login[1]
-        elif player and re.fullmatch(server_info + re.escape(player) + " joined the game", line):
+        elif player and re.fullmatch(server_info + "System chat: " + re.escape(player) + " joined the game", line):
             joined = True
             break
     if not joined:
@@ -125,7 +125,7 @@ def audit(directory, phase, control=False, packaged_offline=False):
 
 
 def classify_server(log, debug, unchanged_defaults, profile=None):
-    """The Forge 65 server control completes without severe notices."""
+    """The Forge 66 server control completes without severe notices."""
     lines = log.splitlines()
     startup = any('Preparing level ' in line or 'Preparing start region for dimension ' in line
                   for line in lines)

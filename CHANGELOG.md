@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.2603001
+
+- Updated Terrain Smoother for Minecraft 26.3 on Forge.
+
 ## 0.1.0.2602001
 
 - Updated Terrain Smoother for Minecraft 26.2 on Forge.

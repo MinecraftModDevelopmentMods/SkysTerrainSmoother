@@ -20,10 +20,11 @@ final class TerrainSmoothingBiomeModifier implements BiomeModifier {
     @Override
     public void modify(Holder<Biome> biome, Phase phase, BiomeInfo.Builder builder) {
         Holder<PlacedFeature> smoothing = TerrainSmoothingFeature.placedFeature();
-        if (phase != Phase.ADD || smoothing == null || biome.is(BiomeTags.IS_NETHER) || biome.is(BiomeTags.IS_END)) {
+        if (phase != Phase.AFTER_EVERYTHING || smoothing == null
+                || biome.is(BiomeTags.IS_NETHER) || biome.is(BiomeTags.IS_END)) {
             return;
         }
-        List<Holder<PlacedFeature>> vegetation = builder.getGenerationSettings()
+        List<Holder<PlacedFeature>> vegetation = builder.generationSettings()
                 .getFeatures(GenerationStep.Decoration.VEGETAL_DECORATION);
         if (vegetation.stream().noneMatch(feature -> feature.value() == smoothing.value())) {
             vegetation.add(0, smoothing);

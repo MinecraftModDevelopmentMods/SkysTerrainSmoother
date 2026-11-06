@@ -40,7 +40,7 @@ final class ModMenuProbe {
         }
         Button button = (Button) field(ModListScreen.class, mods, "configButton");
         RuntimeProbe.require(button.visible && button.active, "The Config button is available for " + modId);
-        button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+        button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
         RuntimeProbe.require(minecraft.gui.screen() != mods && minecraft.gui.screen() != null,
                 "The Config button opens " + modId);
         return minecraft.gui.screen();

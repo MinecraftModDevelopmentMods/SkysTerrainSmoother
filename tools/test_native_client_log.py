@@ -1,4 +1,4 @@
-"""Negative controls for the exact Forge 65 native log classification."""
+"""Negative controls for the exact Forge 66 native log classification."""
 
 import unittest
 import json
@@ -10,8 +10,8 @@ from native_client_log import audit, classify
 
 
 LOGIN = ("[time] [Server thread/INFO]: TerrainChecks[local:E:0123] logged in with entity id 123 at (0, 64, 0)\n"
-         "[time] [Server thread/INFO]: TerrainChecks joined the game")
-START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 26.2"
+         "[time] [Server thread/INFO]: System chat: TerrainChecks joined the game")
+START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 26.3"
 NOTICE = "[Thread-1/FATAL] [net.minecraftforge.common.ForgeConfig/CORE]: Forge config just got changed on the file system!"
 PAYLOAD = "[Client thread/ERROR] [net.minecraftforge.fml.network.simple.IndexedMessageCodec/SIMPLENET]: Received empty payload on channel fml:handshake"
 

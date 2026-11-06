@@ -21,7 +21,7 @@ public final class ClientProbe extends ProbeProxy {
     public void tick(TickEvent.ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
 
-        org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().handle());
+        org.lwjgl.sdl.SDLVideo.SDL_HideWindow(minecraft.getWindow().handle());
 
         if (ran) {
             if (integrated && !confirmedWorld) confirmDisposableWorld(minecraft);
@@ -133,7 +133,7 @@ public final class ClientProbe extends ProbeProxy {
                     // The prompt stays visible while the asynchronous load starts.
                     confirmedWorld = true;
                     zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_NATIVE_EXPERIMENTAL_WORLD_CONFIRMATION");
-                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
                     return;
                 }
             }

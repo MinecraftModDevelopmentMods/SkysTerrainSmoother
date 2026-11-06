@@ -15,11 +15,12 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.2602001", metadata.getProperty("mod_version"));
-        assertEquals("26.2", metadata.getProperty("minecraft_version"));
-        assertEquals("65.1.0", metadata.getProperty("forge_version"));
-        assertEquals("26.2", metadata.getProperty("mapping_version"));
-        assertEquals("20260616.103818", metadata.getProperty("mcp_version"));
+        assertEquals("0.1.0.2603001", metadata.getProperty("mod_version"));
+        assertEquals(metadata.getProperty("mod_version"), SkysTerrainSmoother.VERSION);
+        assertEquals("26.3", metadata.getProperty("minecraft_version"));
+        assertEquals("66.0.2", metadata.getProperty("forge_version"));
+        assertEquals("26.3", metadata.getProperty("mapping_version"));
+        assertEquals("20260918.230105", metadata.getProperty("mcp_version"));
         assertEquals("25.0.3+9", metadata.getProperty("java_toolchain_version"));
         assertEquals("25", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
@@ -27,9 +28,8 @@ class ProjectContractTest {
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(107, pack.get("max_format").getAsInt(), sourceSet);
-            assertEquals(107, pack.getAsJsonArray("min_format").get(0).getAsInt(), sourceSet);
-            assertEquals(1, pack.getAsJsonArray("min_format").get(1).getAsInt(), sourceSet);
+            assertEquals(121, pack.get("max_format").getAsInt(), sourceSet);
+            assertEquals(121, pack.get("min_format").getAsInt(), sourceSet);
         }
     }
 

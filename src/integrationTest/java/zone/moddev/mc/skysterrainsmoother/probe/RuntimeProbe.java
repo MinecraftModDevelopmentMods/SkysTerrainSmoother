@@ -116,9 +116,9 @@ public final class RuntimeProbe {
     private void checkFeatureRegistration() {
         int eligible = 0;
         int excluded = 0;
-        var smoothing = net.minecraftforge.registries.ForgeRegistries.FEATURES.getValue(
+        var smoothing = net.minecraft.core.registries.BuiltInRegistries.FEATURE_TYPE.getValue(
                 Identifier.fromNamespaceAndPath("skysterrainsmoother", "terrain_smoothing"));
-        require(smoothing instanceof TerrainSmoothingFeature, "The registered terrain smoothing feature is missing");
+        require(smoothing != null, "The registered terrain smoothing feature is missing");
         int vegetation = net.minecraft.world.level.levelgen.GenerationStep.Decoration.VEGETAL_DECORATION.ordinal();
         var biomes = server.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME);
         for (var biome : biomes.listElements().toList()) {
@@ -126,16 +126,15 @@ public final class RuntimeProbe {
                     biome.value().getGenerationSettings().features();
             net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature> features =
                     vegetation < stages.size() ? stages.get(vegetation) : net.minecraft.core.HolderSet.direct(Collections.emptyList());
-            long occurrences = features.stream().filter(feature -> feature.value().getFeatures()
-                    .anyMatch(configured -> configured.value().feature() == smoothing)).count();
+            long occurrences = features.stream().filter(feature -> feature.value().feature().value().codec()
+                    == smoothing).count();
             boolean excludedBiome = biome.is(net.minecraft.tags.BiomeTags.IS_NETHER)
                     || biome.is(net.minecraft.tags.BiomeTags.IS_END);
             if (excludedBiome) {
                 require(occurrences == 0, "Nether and End biomes exclude terrain smoothing");
                 excluded++;
             } else {
-                require(occurrences == 1 && features.get(0).value().getFeatures()
-                        .anyMatch(configured -> configured.value().feature() == smoothing),
+                require(occurrences == 1 && features.get(0).value().feature().value().codec() == smoothing,
                         "Terrain smoothing occurs once, at the start of vegetation decoration");
                 eligible++;
             }
@@ -529,10 +528,13 @@ public final class RuntimeProbe {
                 PieceBlock piece = (PieceBlock) grass.getBlock();
                 boolean completeTop = Geometry.completeTop(piece.mask(grass));
 
-                require(piece.isValidBonemealTarget(world, position, grass) == completeTop
-                        && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1), position, grass) == completeTop,
+                var source = net.minecraft.world.level.block.BonemealSource.INTERACTION;
+                require(piece.isValidBonemealTarget(world, position, grass, source) == completeTop
+                        && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1),
+                                position, grass, source) == completeTop,
                         "bonemeal requires a complete upper supporting face");
-                require(!piece.isValidBonemealTarget(world, position, dirt), "dirt forms do not accept grass bonemeal");
+                require(!piece.isValidBonemealTarget(world, position, dirt, source),
+                        "dirt forms do not accept grass bonemeal");
                 world.setBlock(position.north().below(), Blocks.STONE.defaultBlockState(), 2);
                 world.setBlock(position.north(), Blocks.SNOW.defaultBlockState(), 2);
                 require(world.getBlockState(position.north()).getBlock() == Blocks.SNOW,

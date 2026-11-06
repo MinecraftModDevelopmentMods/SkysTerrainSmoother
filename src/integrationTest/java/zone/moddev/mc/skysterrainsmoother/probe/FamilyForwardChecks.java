@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.SlabBlock;
@@ -26,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.registries.ForgeRegistries;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
+import zone.moddev.mc.skysbuildingpieces.content.PieceBlock;
 import zone.moddev.mc.skysbuildingpieces.content.Pieces;
 import zone.moddev.mc.skysbuildingpieces.legacy.PiecesWorldState;
 import zone.moddev.mc.skysgrassslabs.world.ModWorldState;
@@ -172,12 +174,13 @@ final class FamilyForwardChecks {
         if (new File("source-native-biomes.json").isFile()) {
             NativeBiomeChecks.verify(world);
         }
+        boolean namedSource = fixture.has("source_data_version");
         int checked = 0;
         for (JsonElement element : fixture.getAsJsonArray("blocks")) {
             JsonObject saved = element.getAsJsonObject();
             BlockPos position = position(saved);
             BlockState actual = world.getBlockState(position);
-            BlockState expected = expectedState(saved);
+            BlockState expected = expectedState(saved, namedSource);
             RuntimeProbe.require(withoutSnow(actual).equals(withoutSnow(expected)),
                     "Forward block identity and orientation at " + position + ": " + actual + " expected " + expected);
             RuntimeProbe.require(actual.getFluidState().isEmpty(), "Pre-waterlogging pieces begin dry");
@@ -198,9 +201,12 @@ final class FamilyForwardChecks {
             for (JsonElement element : fixture.getAsJsonArray("native_sand_states")) {
                 JsonObject saved = element.getAsJsonObject();
                 BlockPos position = position(saved);
+                CompoundTag oldState = TagParser.parseCompoundFully(saved.get("state").getAsString());
+                CompoundTag state = new CompoundTag();
+                state.putString("id", oldState.getString("Name").orElseThrow());
+                state.put("properties", oldState.getCompound("Properties").orElseThrow());
                 BlockState expected = net.minecraft.nbt.NbtUtils.readBlockState(
-                        world.holderLookup(net.minecraft.core.registries.Registries.BLOCK),
-                        TagParser.parseCompoundFully(saved.get("state").getAsString()));
+                        world.holderLookup(net.minecraft.core.registries.Registries.BLOCK), state);
                 BlockState actual = world.getBlockState(position);
 
                 RuntimeProbe.require(actual.equals(expected),
@@ -222,9 +228,7 @@ final class FamilyForwardChecks {
             CompoundTag original = TagParser.parseCompoundFully(saved.get("item").getAsString());
             JsonObject block = fixture.getAsJsonArray("blocks").get(stackIndex++)
                     .getAsJsonObject();
-            ItemStack expected = block.has("material")
-                    ? Pieces.legacyItem(block.get("id").getAsString(), block.get("meta").getAsInt(), original.getInt("Count").orElseThrow())
-                    : Pieces.stack(expectedState(block), original.getInt("Count").orElseThrow());
+            ItemStack expected = expectedStack(block, original.getInt("Count").orElseThrow(), namedSource);
             RuntimeProbe.require(actual.getItem() == expected.getItem() && actual.getCount() == expected.getCount(),
                     "Saved piece stack keeps material and count: " + original + " -> " + actual);
             RuntimeProbe.require(ProbeItems.custom(actual).equals(original.getCompound("tag").orElseThrow()),
@@ -340,13 +344,17 @@ final class FamilyForwardChecks {
         }
     }
 
-    private static BlockState expectedState(JsonObject saved) {
+    private static BlockState expectedState(JsonObject saved, boolean namedSource) {
+        String id = saved.get("id").getAsString();
+        int metadata = saved.get("meta").getAsInt();
+        if (keepsSkyWoolIdentity(saved, namedSource)) {
+            PieceBlock palette = (PieceBlock) ForgeRegistries.BLOCKS.getValue(Identifier.parse(id));
+            return palette.getStateFromMeta(metadata);
+        }
         if (saved.has("material")) {
             return Pieces.state(saved.get("material").getAsString(), Shape.valueOf(saved.get("shape").getAsString()),
                     saved.get("orientation").getAsInt());
         }
-        String id = saved.get("id").getAsString();
-        int metadata = saved.get("meta").getAsInt();
         if (id.equals("skysterrainsmoother:sand_slab")) {
             return (metadata < 2 ? SandContent.slab : SandContent.redSlab).defaultBlockState()
                     .setValue(zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM);
@@ -354,6 +362,26 @@ final class FamilyForwardChecks {
         BlockState state = ForgeRegistries.BLOCKS.getValue(Identifier.parse(id)).defaultBlockState();
         return state.hasProperty(SlabBlock.TYPE)
                 ? state.setValue(SlabBlock.TYPE, (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM) : state;
+    }
+
+    private static ItemStack expectedStack(JsonObject saved, int count, boolean namedSource) {
+        if (keepsSkyWoolIdentity(saved, namedSource)) {
+            String material = Identifier.parse(saved.get("material").getAsString()).getPath();
+            String shape = saved.get("shape").getAsString().toLowerCase(Locale.ROOT);
+            var item = Pieces.pieceItem("skysbuildingpieces:" + material + "_" + shape);
+            return new ItemStack(item, count);
+        }
+        if (saved.has("material")) {
+            return Pieces.legacyItem(saved.get("id").getAsString(), saved.get("meta").getAsInt(), count);
+        }
+        return Pieces.stack(expectedState(saved, namedSource), count);
+    }
+
+    private static boolean keepsSkyWoolIdentity(JsonObject saved, boolean namedSource) {
+        String id = saved.get("id").getAsString();
+        // Old named wool pieces keep their IDs. New placements can use Minecraft's wool shapes.
+        return namedSource && (id.startsWith("skysbuildingpieces:cloth_slab_")
+                || id.startsWith("skysbuildingpieces:cloth_stairs_"));
     }
 
     private static void checkSandStack(ItemStack stack, int metadata, int count) {
