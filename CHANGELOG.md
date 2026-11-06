@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0.2602002
+
+- Updated Terrain Smoother for Minecraft 26.2 on NeoForge.
+- Existing worlds keep their saved chunks and smoothing settings.
+
 ## 0.1.0.2601022
 
 - Updated Terrain Smoother for Minecraft 26.1.2 on NeoForge.

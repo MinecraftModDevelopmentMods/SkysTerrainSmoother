@@ -17,6 +17,15 @@ their terrain can be smoothed.
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
 
+## Upgrading to Minecraft 26.2
+
+Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
+world and configuration files. Saved sand slabs keep their colour, orientation
+and waterlogging. Terrain Smoother only runs in new chunks.
+
+If you're moving from Forge to NeoForge, check that each mod in your world has
+a matching NeoForge build before opening a copy of the save.
+
 ## Upgrading to Minecraft 26.1.2
 
 Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
