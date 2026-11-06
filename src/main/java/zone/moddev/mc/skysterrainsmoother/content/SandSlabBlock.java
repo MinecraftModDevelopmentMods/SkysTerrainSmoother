@@ -1,8 +1,5 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -32,10 +29,6 @@ import net.minecraft.server.level.ServerLevel;
 
 /** A horizontal sand half. Joining it creates ordinary sand, so there is no double state. */
 public final class SandSlabBlock extends FallingBlock implements SimpleWaterloggedBlock {
-    private static final MapCodec<SandSlabBlock> CODEC = RecordCodecBuilder.mapCodec(instance ->
-            instance.group(Codec.BOOL.fieldOf("red").forGetter(block -> block.red), propertiesCodec())
-                    .apply(instance, SandSlabBlock::new));
-
     public static final EnumProperty<SlabType> TYPE = EnumProperty.create("type", SlabType.class,
             SlabType.TOP, SlabType.BOTTOM);
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
@@ -53,11 +46,6 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
         super(properties);
         this.red = red;
         registerDefaultState(stateDefinition.any().setValue(TYPE, SlabType.BOTTOM).setValue(WATERLOGGED, false));
-    }
-
-    @Override
-    protected MapCodec<SandSlabBlock> codec() {
-        return CODEC;
     }
 
     public BlockState fullState() {

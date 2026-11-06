@@ -9,7 +9,7 @@ plugins {
     id 'idea'
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.1.38'
+    id 'net.neoforged.gradle.userdev' version '7.1.39'
 }
 
 def sha256Of = { File inputFile ->
@@ -116,8 +116,8 @@ def normalizeArchiveLineEndings = { details ->
 }
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs262NEO/SkysGrassSlabs'))
-def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces262NEO/SkysBuildingPieces'))
+def grassSlabsDirectory = file(providers.gradleProperty('grassSlabsDirectory').getOrElse('../..' + '/SkysGrassSlabs263NEO/SkysGrassSlabs'))
+def buildingPiecesDirectory = file(providers.gradleProperty('buildingPiecesDirectory').getOrElse('../..' + '/SkysBuildingPieces263NEO/SkysBuildingPieces'))
 def contentLock=new Properties()
 file('gradle/content-dependencies.properties').withInputStream { contentLock.load(it) }
 
@@ -334,11 +334,11 @@ def releaseFiles = provider {
 tasks.register('verifyReleaseMetadata') {
     group = 'verification'
     doLast {
-        if (project.minecraft_version != '26.2' || project.neo_version != '26.2.0.45-beta' ||
+        if (project.minecraft_version != '26.3' || project.neo_version != '26.3.0.99' ||
                 project.loader_name != 'neoforge' || project.loader_code != '2' ||
                 project.java_version != '25' || project.java_toolchain_version != '25.0.3+9' ||
                 project.mod_id != 'skysterrainsmoother') {
-            throw new GradleException('Unexpected 26.2 release metadata')
+            throw new GradleException('Unexpected 26.3 release metadata')
         }
     }
 }

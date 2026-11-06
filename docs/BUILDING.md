@@ -1,6 +1,6 @@
 # Building from source
 
-This branch uses NeoForge 26.2.0.45-beta, NeoGradle 7.1.38 and the Gradle 9.2.1
+This branch uses NeoForge 26.3.0.99, NeoGradle 7.1.39 and the Gradle 9.2.1
 wrapper. Run Gradle with Temurin 25.0.3+9. The same Java version compiles and
 runs the mod. The log checks use Python 3.11 or newer.
 

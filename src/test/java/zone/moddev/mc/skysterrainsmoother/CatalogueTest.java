@@ -136,7 +136,7 @@ class CatalogueTest {
     void biomeRestrictionsAndProtectedAreasAreOnlyVetoes() {
         MaterialCatalogue catalogue = new MaterialCatalogue();
         TerrainMaterial terrainMaterial = material("stone", Blocks.STONE.defaultBlockState(), piece(15), null, null);
-        var biomes = VanillaRegistries.createLookup().lookupOrThrow(Registries.BIOME);
+        var biomes = VanillaRegistries.createWorldLookup().lookupOrThrow(Registries.BIOME);
         var plains = biomes.getOrThrow(Biomes.PLAINS).value();
         var desert = biomes.getOrThrow(Biomes.DESERT).value();
 

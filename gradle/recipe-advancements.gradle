@@ -26,7 +26,7 @@ def generateRecipeAdvancements = tasks.register('generateRecipeAdvancements') {
                 criteria[key] = [trigger: 'minecraft:inventory_changed', conditions: [items: [ingredient]]]
                 requirements.add(key)
             }
-            criteria.has_the_recipe = [trigger: 'minecraft:recipe_unlocked', conditions: [recipe: recipe]]
+            criteria.has_the_recipe = [trigger: 'minecraft:recipe_unlocked', conditions: [recipes: recipe]]
             requirements.add('has_the_recipe')
             // Independent unlocks avoid a long recipe visibility chain on login.
             Map advancement = [rewards: [recipes: [recipe]],

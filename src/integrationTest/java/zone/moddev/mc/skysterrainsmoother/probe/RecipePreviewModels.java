@@ -99,9 +99,9 @@ final class RecipePreviewModels {
         }
         try {
             for (var layer : layers(state)) {
-                @SuppressWarnings("unchecked")
-                List<BakedQuad> quads = (List<BakedQuad>) field(layer.getClass(), "quads").get(layer);
-                for (BakedQuad quad : quads) {
+                var quads = (net.minecraft.client.resources.model.geometry.ItemQuads)
+                        field(layer.getClass(), "quads").get(layer);
+                for (BakedQuad quad : quads.all()) {
                     if (quad.materialInfo().sprite().contents().name().toString().contains("missingno")) {
                         throw new AssertionError("Missing recipe face texture: " + stack);
                     }

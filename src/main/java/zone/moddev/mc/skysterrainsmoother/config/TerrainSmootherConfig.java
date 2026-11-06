@@ -49,7 +49,7 @@ public final class TerrainSmootherConfig {
 
     public static void register(IEventBus modBus, ModContainer container) {
         migrateLegacyConfig(FMLPaths.CONFIGDIR.get());
-        container.registerConfig(ModConfig.Type.COMMON, SPEC, FILE_NAME);
+        container.registerConfig(ModConfig.Type.LOCAL, SPEC, FILE_NAME);
         modBus.addListener((ModConfigEvent.Loading event) -> {
             if (event.getConfig().getSpec() == SPEC) {
                 commonConfig = event.getConfig();

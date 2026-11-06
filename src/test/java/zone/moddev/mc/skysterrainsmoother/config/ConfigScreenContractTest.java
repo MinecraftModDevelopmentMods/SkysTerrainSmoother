@@ -46,13 +46,13 @@ class ConfigScreenContractTest {
         try (var writer = Files.newBufferedWriter(configFile)) {
             new TomlWriter().write(defaults, writer);
         }
-        container.tracker.loadConfigs(ModConfig.Type.COMMON, configDirectory);
+        container.tracker.loadConfigs(ModConfig.Type.LOCAL, configDirectory);
     }
 
     @AfterEach
     void unloadConfig() {
         if (container != null) {
-            container.tracker.unloadConfigs(ModConfig.Type.COMMON);
+            container.tracker.unloadConfigs(ModConfig.Type.LOCAL);
         }
     }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.2603002
+
+- Updated Terrain Smoother for Minecraft 26.3 on NeoForge.
+
 ## 0.1.0.2602002
 
 - Updated Terrain Smoother for Minecraft 26.2 on NeoForge.

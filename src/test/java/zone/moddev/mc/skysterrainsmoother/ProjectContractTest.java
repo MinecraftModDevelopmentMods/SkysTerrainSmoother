@@ -15,9 +15,10 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.2602002", metadata.getProperty("mod_version"));
-        assertEquals("26.2", metadata.getProperty("minecraft_version"));
-        assertEquals("26.2.0.45-beta", metadata.getProperty("neo_version"));
+        assertEquals("0.1.0.2603002", metadata.getProperty("mod_version"));
+        assertEquals("26.3", metadata.getProperty("minecraft_version"));
+        assertEquals("26.3.0.99", metadata.getProperty("neo_version"));
+        assertEquals(metadata.getProperty("mod_version"), SkysTerrainSmoother.VERSION);
         assertEquals("25.0.3+9", metadata.getProperty("java_toolchain_version"));
         assertEquals("25", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
@@ -25,9 +26,8 @@ class ProjectContractTest {
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(107, pack.get("max_format").getAsInt(), sourceSet);
-            assertEquals(107, pack.getAsJsonArray("min_format").get(0).getAsInt(), sourceSet);
-            assertEquals(1, pack.getAsJsonArray("min_format").get(1).getAsInt(), sourceSet);
+            assertEquals(121, pack.get("max_format").getAsInt(), sourceSet);
+            assertEquals(121, pack.get("min_format").getAsInt(), sourceSet);
         }
     }
 

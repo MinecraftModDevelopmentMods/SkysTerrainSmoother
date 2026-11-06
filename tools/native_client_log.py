@@ -42,7 +42,7 @@ def classify(log, unchanged_defaults, packaged_offline=False):
     lines = log.splitlines()
     severe = [line for line in lines if re.search(r"/(?:ERROR|FATAL)\]", line)]
     startup = next((index for index, line in enumerate(lines)
-                    if "Starting integrated minecraft server version 26.2" in line), -1)
+                    if "Starting integrated minecraft server version 26.3" in line), -1)
     login = next((index for index, line in enumerate(lines) if " logged in with entity id " in line), -1)
     joined = next((index for index, line in enumerate(lines) if line.endswith(" joined the game")), -1)
     if not 0 <= startup < login <= joined:
@@ -78,7 +78,7 @@ def audit(directory, phase, packaged_offline=False, no_early_display=False):
     directory = Path(directory)
     log = (directory / "logs/latest.log").read_text(encoding="utf-8")
     unchanged = unchanged_native_settings(directory, (
-        "fml.toml", "neoforge-client.toml", "neoforge-common.toml", "neoforge-server.toml"), no_early_display)
+        "fml.toml", "neoforge-client.toml", "neoforge-local.toml", "neoforge-synced.toml"), no_early_display)
     if not unchanged:
         raise ValueError("NeoForge settings differ from the controlled defaults")
     if no_early_display:
@@ -87,9 +87,14 @@ def audit(directory, phase, packaged_offline=False, no_early_display=False):
             raise ValueError("NeoForge used the early loading window")
     receipt = classify(log, unchanged, packaged_offline)
     required = ("SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
-                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")
+                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS",
+                "SKY_RECIPE_PREVIEW_MODELS_PASS", "TERRAIN_SMOOTHER_CLIENT_TINT_PASS",
+                "Stopping server", "Saving worlds")
     if any(marker not in log for marker in required):
         raise ValueError("Native client completion checks are missing")
+    for dimension in ("overworld", "the_nether", "the_end"):
+        if not re.search(r"(?m)Saving chunks for level '[^\r\n]+'/minecraft:" + dimension + r"$", log):
+            raise ValueError("Native client did not save dimension " + dimension)
     if list((directory / "crash-reports").glob("*")):
         raise ValueError("Native client produced a crash report")
     receipt["complete_log_files"] = audit_complete_logs(directory, packaged_offline)
@@ -116,7 +121,7 @@ def classify_server(log, debug, unchanged_defaults, profile=None):
 
 def audit_server(directory, phase):
     directory = Path(directory)
-    unchanged = unchanged_native_settings(directory, ("fml.toml", "neoforge-common.toml", "neoforge-server.toml"))
+    unchanged = unchanged_native_settings(directory, ("fml.toml", "neoforge-local.toml", "neoforge-synced.toml"))
     receipt = classify_server((directory / 'logs/latest.log').read_text(encoding='utf-8'),
                               (directory / 'logs/debug.log').read_text(encoding='utf-8'), unchanged, profile_for(directory))
     if list((directory / 'crash-reports').glob('*')):

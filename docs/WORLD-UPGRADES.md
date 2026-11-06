@@ -17,6 +17,12 @@ their terrain can be smoothed.
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
 
+## Upgrading to Minecraft 26.3
+
+Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
+configuration and world folder so saved sand slabs retain their colour,
+orientation and waterlogging. Previously saved terrain stays unchanged.
+
 ## Upgrading to Minecraft 26.2
 
 Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your

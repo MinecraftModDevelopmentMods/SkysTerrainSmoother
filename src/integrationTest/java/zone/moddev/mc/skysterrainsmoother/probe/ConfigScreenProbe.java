@@ -68,11 +68,11 @@ final class ConfigScreenProbe {
                     net.minecraft.client.gui.components.Tooltip.class, tooltip, "message");
             RuntimeProbe.require(message.getString().equals(I18n.get(key + ".tooltip")),
                     "The button uses the correct translated tooltip: " + key);
-            button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+            button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
             RuntimeProbe.require(!button.getMessage().getString().equals(original.get(choiceIndex)), "The pending choice changes");
             tooltips++;
             if (++choiceIndex == keys.length) {
-                buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
                 deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
                 settleTicks = 0;
                 stage = 2;
@@ -97,11 +97,11 @@ final class ConfigScreenProbe {
                 Button button = buttons(screen).get(index);
                 RuntimeProbe.require(!button.getMessage().getString().equals(original.get(index)), "Saved choices are reloaded: " + keys[index]);
                 for (int attempt = 0; attempt < 3 && !button.getMessage().getString().equals(original.get(index)); attempt++) {
-                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                    button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
                 }
                 RuntimeProbe.require(button.getMessage().getString().equals(original.get(index)), "Restore the disposable configuration");
             }
-            buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+            buttons(screen).get(keys.length).onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0, 0));
             settleTicks = 0;
             stage = 3;
         } else {
