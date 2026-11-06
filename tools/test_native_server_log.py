@@ -199,6 +199,18 @@ class NativeServerFilesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit_text(notices.replace('minecraft:aztec2: 3', 'minecraft:aztec2: 4'), resolved)
 
+        from zipfile import ZipFile
+        with ZipFile(root / profile['fixture']) as archive:
+            capability.write_bytes(archive.read('world/data/capabilities.dat'))
+        current = profile_for(self.directory, forge64=True)
+        self.assertIsNone(current)
+        for old_error in (empty, notices):
+            with self.assertRaises(ValueError):
+                audit_text(old_error, current)
+        capability.write_bytes(rewritten)
+        with self.assertRaises(ValueError):
+            profile_for(self.directory, forge64=True)
+
         inputs.write_text(json.dumps(dict(source, mode='client')), encoding='utf-8')
         self.assertIsNone(profile_for(self.directory))
         inputs.write_text(json.dumps(dict(source, manifest_sha256='0' * 64)), encoding='utf-8')

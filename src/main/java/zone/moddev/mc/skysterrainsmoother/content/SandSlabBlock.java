@@ -104,7 +104,7 @@ public final class SandSlabBlock extends FallingBlock implements SimpleWaterlogg
     }
 
     @Override
-    public int getLightBlock(BlockState state) {
+    public int getLightDampening(BlockState state) {
         return 0;
     }
 

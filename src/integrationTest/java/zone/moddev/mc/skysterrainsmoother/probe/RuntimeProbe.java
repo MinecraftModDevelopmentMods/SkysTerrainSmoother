@@ -66,8 +66,9 @@ public final class RuntimeProbe {
         FMLCommonSetupEvent.getBus(modBus).addListener(this::init);
         ServerStartedEvent.BUS.addListener(this::started);
         TickEvent.ServerTickEvent.Post.BUS.addListener(this::tick);
-        net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,
-                () -> () -> new ClientProbe().init());
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
+            new ClientProbe().init();
+        }
     }
 
     public void registerProbeOre(net.minecraftforge.registries.RegisterEvent event) {
@@ -126,7 +127,7 @@ public final class RuntimeProbe {
             net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.placement.PlacedFeature> features =
                     vegetation < stages.size() ? stages.get(vegetation) : net.minecraft.core.HolderSet.direct(Collections.emptyList());
             long occurrences = features.stream().filter(feature -> feature.value().getFeatures()
-                    .anyMatch(configured -> configured.feature() == smoothing)).count();
+                    .anyMatch(configured -> configured.value().feature() == smoothing)).count();
             boolean excludedBiome = biome.is(net.minecraft.tags.BiomeTags.IS_NETHER)
                     || biome.is(net.minecraft.tags.BiomeTags.IS_END);
             if (excludedBiome) {
@@ -134,7 +135,7 @@ public final class RuntimeProbe {
                 excluded++;
             } else {
                 require(occurrences == 1 && features.get(0).value().getFeatures()
-                        .anyMatch(configured -> configured.feature() == smoothing),
+                        .anyMatch(configured -> configured.value().feature() == smoothing),
                         "Terrain smoothing occurs once, at the start of vegetation decoration");
                 eligible++;
             }
@@ -280,7 +281,7 @@ public final class RuntimeProbe {
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
                 require(!world.isEmptyBlock(position.above()), "regression starts with an actual generated piece");
                 world.setBlock(position, replacement.defaultBlockState(), 2);
-                ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+                ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
                 require(replacement == Blocks.SAND
                         ? world.getBlockState(position.above())
                                 .getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
@@ -312,10 +313,10 @@ public final class RuntimeProbe {
                     piece = Blocks.GLASS.defaultBlockState();
                 }
 
-                BlockPos post = new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4);
+                BlockPos post = new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4);
 
                 ProbeWorld.repair(world, post);
-                ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+                ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
                 require(world.getBlockState(position.above()).equals(piece),
                         "valid support and decorator-owned replacement remain intact; repeated Post is harmless");
                 checks++;
@@ -333,10 +334,10 @@ public final class RuntimeProbe {
         world.setBlock(late, Blocks.STONE.defaultBlockState(), 2);
         world.setBlock(late.north().above(), Blocks.STONE.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, lateOwner, 1);
-        ProbeWorld.repair(world, new BlockPos(lateOwner.getPos().x << 4, 0, lateOwner.getPos().z << 4));
+        ProbeWorld.repair(world, new BlockPos(lateOwner.getPos().x() << 4, 0, lateOwner.getPos().z() << 4));
         require(!world.isEmptyBlock(late.above()), "own Post retains supported generated piece");
         world.setBlock(late, Blocks.SAND.defaultBlockState(), 2);
-        ProbeWorld.repair(world, new BlockPos((lateOwner.getPos().x - 1) << 4, 0, lateOwner.getPos().z << 4));
+        ProbeWorld.repair(world, new BlockPos((lateOwner.getPos().x() - 1) << 4, 0, lateOwner.getPos().z() << 4));
         require(world.getBlockState(late.above()).getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
                 && world.getBlockState(late).getBlock() == Blocks.SAND,
                 "later neighbouring decoration retargets only its affected generated cap");
@@ -358,7 +359,7 @@ public final class RuntimeProbe {
         require(world.isEmptyBlock(beach.above()), "unsupported first pass leaves no piece");
         world.setBlock(beach, Blocks.RED_SAND.defaultBlockState(), 2);
         world.setBlock(beach.north().above(), Blocks.RED_SAND.defaultBlockState(), 2);
-        ProbeWorld.repair(world, new BlockPos(beachOwner.getPos().x << 4, 0, beachOwner.getPos().z << 4));
+        ProbeWorld.repair(world, new BlockPos(beachOwner.getPos().x() << 4, 0, beachOwner.getPos().z() << 4));
         require(world.getBlockState(beach.above())
                 .equals(zone.moddev.mc.skysterrainsmoother.content.SandContent.legacyState(3)),
                 "late beach gets a red sand cap without any initial placement");

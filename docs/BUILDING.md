@@ -1,17 +1,17 @@
 # Building from source
 
-Use the Gradle 9.6.1 wrapper with Java 21 and Temurin 21.0.7+6 for production.
-Set `STS_JAVA21_HOME` to the Java 21 installation. This branch targets
-Minecraft 1.21.11 with ForgeGradle 7.0.34.
+Use the Gradle 9.6.1 wrapper with Java 25 and Temurin 25.0.3+9 for production.
+Set `STS_JAVA25_HOME` to the Java 25 installation. This branch targets
+Minecraft 26.1.2 with ForgeGradle 7.0.34.
 ForgeGradle's Mavenizer also uses Java 25 to prepare the Forge dependency.
-The mod itself compiles and runs on Java 21.
+The mod itself compiles and runs on Java 25.
 
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.121111 and Building Pieces
-0.3.8.121111.
+The source lock records locally qualified Grass Slabs 1.2.0.2601021 and Building Pieces
+0.3.8.2601021.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -30,7 +30,7 @@ Eclipse's ignored Buildship preferences retain the selected checkouts. A version
 override is saved only when explicitly supplied; normal generation clears any
 older override. Refresh the Gradle project in Eclipse after generating the runs.
 
-Use `genEclipseRuns eclipse` to prepare the Java 21 IDE setup. Ordinary launches
+Use `genEclipseRuns eclipse` to prepare the Java 25 IDE setup. Ordinary launches
 use the two pinned content jars and exclude unit tests and build-only runtime probes.
 Generation prepares those jars in the development mods folder without clearing
 its configuration or worlds. See [the release guide](RELEASING.md)

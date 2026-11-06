@@ -15,20 +15,20 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.121111", metadata.getProperty("mod_version"));
-        assertEquals("1.21.11", metadata.getProperty("minecraft_version"));
-        assertEquals("61.1.0", metadata.getProperty("forge_version"));
-        assertEquals("1.21.11", metadata.getProperty("mapping_version"));
-        assertEquals("20251223.124241", metadata.getProperty("mcp_version"));
-        assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
-        assertEquals("21", metadata.getProperty("gradle_java_version"));
+        assertEquals("0.1.0.2601021", metadata.getProperty("mod_version"));
+        assertEquals("26.1.2", metadata.getProperty("minecraft_version"));
+        assertEquals("64.0.9", metadata.getProperty("forge_version"));
+        assertEquals("26.1.2", metadata.getProperty("mapping_version"));
+        assertEquals("20260409.101008", metadata.getProperty("mcp_version"));
+        assertEquals("25.0.3+9", metadata.getProperty("java_toolchain_version"));
+        assertEquals("25", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
         assertTrue(Files.isRegularFile(Paths.get("src/main/resources/META-INF/mods.toml")));
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(94, pack.get("max_format").getAsInt(), sourceSet);
-            assertEquals(94, pack.getAsJsonArray("min_format").get(0).getAsInt(), sourceSet);
+            assertEquals(101, pack.get("max_format").getAsInt(), sourceSet);
+            assertEquals(101, pack.getAsJsonArray("min_format").get(0).getAsInt(), sourceSet);
             assertEquals(1, pack.getAsJsonArray("min_format").get(1).getAsInt(), sourceSet);
         }
     }

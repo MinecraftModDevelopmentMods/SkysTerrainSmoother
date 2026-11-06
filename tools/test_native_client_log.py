@@ -1,4 +1,4 @@
-"""Negative controls for the exact Forge 61 native log classification."""
+"""Negative controls for the exact Forge 64 native log classification."""
 
 import unittest
 import json
@@ -9,8 +9,9 @@ import tomllib
 from native_client_log import audit, classify
 
 
-LOGIN = "[Client thread/INFO] [NetworkHooks/]: Connected to a modded server."
-START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 1.21.11"
+LOGIN = ("[time] [Server thread/INFO]: TerrainChecks[local:E:0123] logged in with entity id 123 at (0, 64, 0)\n"
+         "[time] [Server thread/INFO]: TerrainChecks joined the game")
+START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 26.1.2"
 NOTICE = "[Thread-1/FATAL] [net.minecraftforge.common.ForgeConfig/CORE]: Forge config just got changed on the file system!"
 PAYLOAD = "[Client thread/ERROR] [net.minecraftforge.fml.network.simple.IndexedMessageCodec/SIMPLENET]: Received empty payload on channel fml:handshake"
 
@@ -25,6 +26,18 @@ class NativeClientLogTest(unittest.TestCase):
         self.assertEqual(receipt["native_config_notices"], 0)
         self.assertEqual(receipt["empty_handshakes"], 0)
         self.assertEqual(receipt["notices"], [])
+
+    def test_dummy_token_notice_requires_opt_in_and_keeps_its_exact_identity(self):
+        message = "Failed to fetch Realms feature flags"
+        error = ("[time] [Download-1/ERROR] [com.mojang.realmsclient.client.RealmsClient/]: " + message + "\n"
+                 "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message "
+                 "'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'")
+        log = "\n".join((error, START, LOGIN))
+        self.assertEqual(classify(log, True, packaged_offline=True)["notices"], [message])
+        with self.assertRaises(ValueError):
+            classify(log, True)
+        with self.assertRaises(ValueError):
+            classify(log.replace("SignedJWT: 0", "SignedJWT: other"), True, packaged_offline=True)
 
     def test_actual_config_change_is_rejected(self):
         with self.assertRaises(ValueError):

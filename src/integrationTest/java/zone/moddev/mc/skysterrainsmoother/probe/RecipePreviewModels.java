@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
@@ -93,8 +93,8 @@ final class RecipePreviewModels {
 
     private static void checkModel(Minecraft minecraft, ItemStack stack) {
         var state = model(minecraft, stack);
-        var particle = state.pickParticleIcon(RandomSource.create(0));
-        if (particle == null || particle.contents().name().toString().contains("missingno")) {
+        var particle = state.pickParticleMaterial(RandomSource.create(0));
+        if (particle == null || particle.sprite().contents().name().toString().contains("missingno")) {
             throw new AssertionError("Missing recipe preview texture: " + stack);
         }
         try {
@@ -102,7 +102,7 @@ final class RecipePreviewModels {
                 @SuppressWarnings("unchecked")
                 List<BakedQuad> quads = (List<BakedQuad>) field(layer.getClass(), "quads").get(layer);
                 for (BakedQuad quad : quads) {
-                    if (quad.sprite().contents().name().toString().contains("missingno")) {
+                    if (quad.materialInfo().sprite().contents().name().toString().contains("missingno")) {
                         throw new AssertionError("Missing recipe face texture: " + stack);
                     }
                 }

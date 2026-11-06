@@ -16,9 +16,9 @@ public final class MineralogyProbe {
         if (!Boolean.getBoolean("skysterrainsmoother.requireMineralogy")) {
             return 0;
         }
-        require(ModList.get().isLoaded("mineralogy") && ModList.get().isLoaded("orespawn"),
+        require(ModList.isLoaded("mineralogy") && ModList.isLoaded("orespawn"),
                 "the optional profile loaded Mineralogy and its OreSpawn dependency");
-        require(!ModList.get().isLoaded("skysbuildingpiecesmineralogy"), "no separate piece add-on is installed");
+        require(!ModList.isLoaded("skysbuildingpiecesmineralogy"), "no separate piece add-on is installed");
         require(SkysTerrainSmoother.level == 3, "a fresh configuration uses level 3");
         int count = 0;
         for (TerrainMaterial material : MaterialCatalogue.instance().materials()) {

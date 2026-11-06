@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SnowyDirtBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.resources.Identifier;
@@ -115,8 +115,8 @@ public final class SmoothingEngine {
         if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
-        int chunkX = event.getChunk().getPos().x;
-        int chunkZ = event.getChunk().getPos().z;
+        int chunkX = event.getChunk().getPos().x();
+        int chunkZ = event.getChunk().getPos().z();
         populated.add(ExistingChunkIndex.key(chunkX, chunkZ));
 
         // Queue repairs on the server thread, after generation has handed over the full chunk.
@@ -168,7 +168,7 @@ public final class SmoothingEngine {
         if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
-        long key = ExistingChunkIndex.key(event.getChunk().getPos().x, event.getChunk().getPos().z);
+        long key = ExistingChunkIndex.key(event.getChunk().getPos().x(), event.getChunk().getPos().z());
         dirtyOwners.remove(key);
         pending.remove(key);
     }
@@ -312,7 +312,7 @@ public final class SmoothingEngine {
     private int smooth(LevelAccessor world, ChunkAccess owner, int level, boolean afterDecoration) {
         Footprint.validateLevel(level);
 
-        long key = ExistingChunkIndex.key(owner.getPos().x, owner.getPos().z);
+        long key = ExistingChunkIndex.key(owner.getPos().x(), owner.getPos().z());
 
         if (afterDecoration && !pending.containsKey(key)) {
             return 0;
@@ -322,8 +322,8 @@ public final class SmoothingEngine {
 
         buffer.clear();
 
-        int startX = owner.getPos().x << 4;
-        int startZ = owner.getPos().z << 4;
+        int startX = owner.getPos().x() << 4;
+        int startZ = owner.getPos().z() << 4;
 
         StructureProtection structures = structures(world, owner);
         if (!structures.canInspectSafely()) {
@@ -448,7 +448,7 @@ public final class SmoothingEngine {
 
     private static boolean setGenerationState(LevelAccessor world, ChunkAccess owner, BlockPos position, BlockState state) {
         if (position.getY() < owner.getMinY() || position.getY() > owner.getMaxY()
-                || position.getX() >> 4 != owner.getPos().x || position.getZ() >> 4 != owner.getPos().z) {
+                || position.getX() >> 4 != owner.getPos().x() || position.getZ() >> 4 != owner.getPos().z()) {
             throw new IllegalArgumentException("Terrain smoothing cannot write outside its owning chunk");
         }
         BlockState before = owner.getBlockState(position);
@@ -468,11 +468,11 @@ public final class SmoothingEngine {
     private static boolean sameState(BlockState first, BlockState second) {
         // Nearby snow can update the visual property between decoration callbacks.
         // Geometry, material and water state must still match our original cap.
-        if (first.hasProperty(SnowyDirtBlock.SNOWY)) {
-            first = first.setValue(SnowyDirtBlock.SNOWY, false);
+        if (first.hasProperty(BlockStateProperties.SNOWY)) {
+            first = first.setValue(BlockStateProperties.SNOWY, false);
         }
-        if (second.hasProperty(SnowyDirtBlock.SNOWY)) {
-            second = second.setValue(SnowyDirtBlock.SNOWY, false);
+        if (second.hasProperty(BlockStateProperties.SNOWY)) {
+            second = second.setValue(BlockStateProperties.SNOWY, false);
         }
         return first.equals(second);
     }
@@ -583,8 +583,8 @@ public final class SmoothingEngine {
             return false;
         }
 
-        int worldX = (owner.getPos().x << 4) + localX;
-        int worldZ = (owner.getPos().z << 4) + localZ;
+        int worldX = (owner.getPos().x() << 4) + localX;
+        int worldZ = (owner.getPos().z() << 4) + localZ;
 
         ChunkAccess neighbour = loaded(world, worldX >> 4, worldZ >> 4);
 
@@ -628,7 +628,7 @@ public final class SmoothingEngine {
     }
 
     private static StructureProtection structures(LevelAccessor world, ChunkAccess owner) {
-        return StructureProtection.read(owner, position -> loaded(world, position.x, position.z));
+        return StructureProtection.read(owner, position -> loaded(world, position.x(), position.z()));
     }
 
     private static boolean fullCollision(BlockState state) {

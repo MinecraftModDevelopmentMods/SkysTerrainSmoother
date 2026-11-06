@@ -200,10 +200,10 @@ final class CaveProbe {
             fixture(world, floor, 6);
             world.setBlock(floor.north().above(), Blocks.STONE.defaultBlockState(), 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+            ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
             RuntimeProbe.require(!world.isEmptyBlock(floor.above()),
                     "decorated cave cap retained until all later generators finish");
-            ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
+            ProbeWorld.queue(world, owner.getPos().x(), owner.getPos().z());
 
             if (kind == 0) {
                 world.setBlock(floor, Blocks.INFESTED_STONE.defaultBlockState(), 2);
@@ -248,8 +248,8 @@ final class CaveProbe {
 
                 RuntimeProbe.require(cap.getBlock() != Blocks.AIR, "ore regression starts with a generated piece");
                 world.setBlock(floor, ore, 2);
-                ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
-                ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
+                ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
+                ProbeWorld.queue(world, owner.getPos().x(), owner.getPos().z());
                 TickEvent.LevelTickEvent.Post.BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
                 RuntimeProbe.require(world.getBlockState(floor.above()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);

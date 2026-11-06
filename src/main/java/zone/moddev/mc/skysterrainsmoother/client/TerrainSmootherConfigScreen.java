@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
@@ -49,9 +49,9 @@ public final class TerrainSmootherConfigScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        graphics.drawCenteredString(font, title, width / 2, 25, 0xFFFFFFFF);
-        super.render(graphics, mouseX, mouseY, partialTicks);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
+        graphics.centeredText(font, title, width / 2, 25, 0xFFFFFFFF);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTicks);
 
     }
 

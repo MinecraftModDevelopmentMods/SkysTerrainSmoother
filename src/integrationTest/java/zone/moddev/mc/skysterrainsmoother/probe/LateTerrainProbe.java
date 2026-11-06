@@ -140,7 +140,7 @@ final class LateTerrainProbe {
     }
 
     private static void post(ServerLevel world, LevelChunk owner) {
-        ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+        ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
     }
 
     static int generationOrder(ServerLevel world) throws Exception {

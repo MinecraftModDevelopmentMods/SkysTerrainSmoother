@@ -11,7 +11,7 @@ from zipfile import ZipFile
 EMPTY_CAPABILITIES = "Failed to parse saved data for 'SavedDataType[capabilities]': No key data in MapLike[{}]"
 
 
-def profile_for(directory):
+def profile_for(directory, forge64=False):
     manifest = Path(directory) / "source-inputs.json"
     if not manifest.is_file():
         return None
@@ -80,10 +80,11 @@ def profile_for(directory):
                 archived = hashlib.sha256(archive.read("world/" + name)).hexdigest().upper()
                 saved = (Path(directory) / "world" / name)
                 if (not saved.is_file() or archived != expected
-                        or hashlib.sha256(saved.read_bytes()).hexdigest().upper() != rewritten[name]):
-                    raise ValueError("Forge did not rewrite the proven empty capability record: " + name)
+                        or hashlib.sha256(saved.read_bytes()).hexdigest().upper() != (expected if forge64 else rewritten[name])):
+                    raise ValueError("Unexpected changes to the saved capability record: " + name)
         profile["empty_capabilities_count"] = len(originals)
-    return profile
+    # Forge 64 preserves the old file and no longer emits the Forge 61 errors.
+    return None if forge64 else profile
 
 
 def audit_text(text, profile=None):

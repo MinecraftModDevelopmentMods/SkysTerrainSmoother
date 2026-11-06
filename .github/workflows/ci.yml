@@ -26,29 +26,23 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Install pinned Java 25 ForgeGradle Mavenizer runtime
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '25.0.3+9.0.LTS'
-
       - name: Install pinned Java 8 compilation toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '8.0.502+7'
 
-      - name: Install pinned Java 21 Gradle runtime
+      - name: Install pinned Java 25 Gradle runtime
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: '21.0.7+6.0.LTS'
+          java-version: '25.0.3+9.0.LTS'
 
       - name: Pin production Java for the dependency builds
         run: |
-          echo "SGS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SGS_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Read pinned dependency sources
         id: content
@@ -138,12 +132,6 @@ jobs:
           echo "gradle_java_version=$(value gradle_java_toolchain_version)" >> "$GITHUB_OUTPUT"
           echo "artifact_prefix=SkysTerrainSmoother-$(value mod_version)" >> "$GITHUB_OUTPUT"
 
-      - name: Install ForgeGradle Mavenizer Java
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '25.0.3+9.0.LTS'
-
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -151,11 +139,11 @@ jobs:
           java-version: ${{ steps.target.outputs.java_setup_version }}
 
       - name: Pin production Java
-        if: steps.target.outputs.java_version == '21'
+        if: steps.target.outputs.java_version == '25'
         run: |
-          echo "SGS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "SBP_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
-          echo "STS_JAVA21_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SGS_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "SBP_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STS_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java for Gradle
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -216,9 +204,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.121111.jar
-            build/libs/SkysTerrainSmoother-0.1.0.121111-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.121111-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.0.2601021.jar
+            build/libs/SkysTerrainSmoother-0.1.0.2601021-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.0.2601021-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 

@@ -2,7 +2,7 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.*;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.SnowyDirtBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
@@ -252,6 +252,6 @@ public final class MaterialCatalogue {
     }
 
     private static BlockState canonical(BlockState state) {
-        return state.hasProperty(SnowyDirtBlock.SNOWY) ? state.setValue(SnowyDirtBlock.SNOWY, false) : state;
+        return state.hasProperty(BlockStateProperties.SNOWY) ? state.setValue(BlockStateProperties.SNOWY, false) : state;
     }
 }

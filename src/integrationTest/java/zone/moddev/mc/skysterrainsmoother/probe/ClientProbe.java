@@ -7,6 +7,7 @@ import net.minecraftforge.event.TickEvent;
 public final class ClientProbe extends ProbeProxy {
     private boolean ran;
     private boolean integrated;
+    private boolean confirmedWorld;
     private boolean resourcesChecked;
     private int settledWorldTicks;
     private boolean requestedRecipes;
@@ -23,7 +24,7 @@ public final class ClientProbe extends ProbeProxy {
         org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().handle());
 
         if (ran) {
-            if (integrated) confirmDisposableWorld(minecraft);
+            if (integrated && !confirmedWorld) confirmDisposableWorld(minecraft);
             if (integrated && ClientStatus.complete && minecraft.level != null && minecraft.player != null
                     && minecraft.getConnection() != null && minecraft.getSingleplayerServer() != null) {
                 if (!requestedRecipes) {
@@ -92,8 +93,8 @@ public final class ClientProbe extends ProbeProxy {
                         () -> minecraft.setScreen(new net.minecraft.client.gui.screens.TitleScreen()));
             } else {
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
-                        "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE, false,
-                        net.minecraft.world.Difficulty.NORMAL, true, new net.minecraft.world.level.gamerules.GameRules(net.minecraft.world.flag.FeatureFlags.DEFAULT_FLAGS),
+                        "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE,
+                        net.minecraft.world.level.LevelSettings.DifficultySettings.DEFAULT, true,
                         net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
                 minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
                         new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
@@ -104,7 +105,7 @@ public final class ClientProbe extends ProbeProxy {
         }
     }
 
-    private static void confirmDisposableWorld(Minecraft client) {
+    private void confirmDisposableWorld(Minecraft client) {
         if (!new File(client.gameDirectory, "terrain-smoother-client-pass.txt").isFile()
                 || !System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             return;
@@ -129,6 +130,8 @@ public final class ClientProbe extends ProbeProxy {
                         (net.minecraft.client.gui.components.Button) child;
                 if (button.getMessage().equals(proceed)) {
                     // Only the marked probe's disposable world reaches this confirmation.
+                    // The prompt stays visible while the asynchronous load starts.
+                    confirmedWorld = true;
                     zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_NATIVE_EXPERIMENTAL_WORLD_CONFIRMATION");
                     button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
                     return;
@@ -140,38 +143,43 @@ public final class ClientProbe extends ProbeProxy {
 
     private static void checkBiomeTints(Minecraft client) {
         net.minecraft.core.BlockPos sample = client.player.blockPosition();
-        int expected = client.getBlockColors().getColor(net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState(),
-                client.level, sample, 0);
+        int expected = tint(client, net.minecraft.world.level.block.Blocks.GRASS_BLOCK.defaultBlockState(), sample);
         int count = 0;
         for (zone.moddev.mc.skysbuildingpieces.content.PieceBlock block :
                 zone.moddev.mc.skysbuildingpieces.content.Pieces.BLOCKS.values()) {
             if (block.palette.group.equals("grass")) {
-                RuntimeProbe.require(client.getBlockColors().getColor(block.defaultBlockState(), client.level, sample, 0)
+                RuntimeProbe.require(tint(client, block.defaultBlockState(), sample)
                                 == expected, "Fine grass uses the actual client biome tint");
                 count++;
             }
         }
         RuntimeProbe.require(count > 0, "Grass pieces reached the colour checks");
-        RuntimeProbe.require(client.getBlockColors().getColor(
-                        zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get().defaultBlockState(), client.level, sample, 0)
+        RuntimeProbe.require(tint(client, zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB.get().defaultBlockState(), sample)
                         == expected, "Grass slabs retain the actual client biome tint");
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_TINT_PASS palettes=" + count);
     }
 
-    private static void checkModel(Minecraft minecraft, net.minecraft.world.level.block.state.BlockState state) {
-        net.minecraft.client.renderer.block.model.BlockStateModel model = minecraft.getBlockRenderer()
-                .getBlockModel(state);
+    private static int tint(Minecraft client, net.minecraft.world.level.block.state.BlockState state,
+            net.minecraft.core.BlockPos position) {
+        var source = client.getBlockColors().getTintSource(state, 0);
+        RuntimeProbe.require(source != null, "Missing block tint: " + state);
+        return source.colorInWorld(state, client.level, position);
+    }
 
-        RuntimeProbe.require(model != minecraft.getBlockRenderer().getBlockModelShaper().getModelManager()
-                .getMissingBlockStateModel(), "missing model " + state);
+    private static void checkModel(Minecraft minecraft, net.minecraft.world.level.block.state.BlockState state) {
+        var models = minecraft.getModelManager().getBlockStateModelSet();
+        var model = models.get(state);
+        RuntimeProbe.require(model != models.missingModel(), "missing model " + state);
+        var parts = new java.util.ArrayList<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>();
+        model.collectParts(net.minecraft.util.RandomSource.create(0), parts);
 
         for (net.minecraft.core.Direction face : new net.minecraft.core.Direction[] { null,
                 net.minecraft.core.Direction.DOWN, net.minecraft.core.Direction.UP,
                 net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.SOUTH,
                 net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.EAST }) {
-            for (net.minecraft.client.renderer.block.model.BakedQuad quad : model.collectParts(net.minecraft.util.RandomSource.create(0)).stream()
+            for (net.minecraft.client.resources.model.geometry.BakedQuad quad : parts.stream()
                     .flatMap(part -> part.getQuads(face).stream()).toList()) {
-                RuntimeProbe.require(!quad.sprite().contents().name().toString().contains("missingno"), "missing texture " + state);
+                RuntimeProbe.require(!quad.materialInfo().sprite().contents().name().toString().contains("missingno"), "missing texture " + state);
             }
         }
     }

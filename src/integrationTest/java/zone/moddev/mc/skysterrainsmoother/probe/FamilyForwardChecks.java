@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.SnowyDirtBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.decoration.ItemFrame;
@@ -56,10 +56,10 @@ final class FamilyForwardChecks {
                     LOAD_ENTITIES.add(UUID.fromString(saved.get("uuid").getAsString()));
                     continue;
                 }
-                net.minecraft.world.level.ChunkPos chunk = new net.minecraft.world.level.ChunkPos(position(saved));
+                net.minecraft.world.level.ChunkPos chunk = net.minecraft.world.level.ChunkPos.containing(position(saved));
                 if (LOAD_CHUNKS.add(chunk)) {
-                    world.setChunkForced(chunk.x, chunk.z, true);
-                    world.getChunk(chunk.x, chunk.z);
+                    world.setChunkForced(chunk.x(), chunk.z(), true);
+                    world.getChunk(chunk.x(), chunk.z());
                 }
             }
         }
@@ -140,7 +140,7 @@ final class FamilyForwardChecks {
 
     static boolean ready(ServerLevel world) {
         for (net.minecraft.world.level.ChunkPos chunk : LOAD_CHUNKS) {
-            if (!world.areEntitiesLoaded(chunk.toLong()) || !world.getChunkSource().isPositionTicking(chunk.toLong())) {
+            if (!world.areEntitiesLoaded(chunk.pack()) || !world.getChunkSource().isPositionTicking(chunk.pack())) {
                 return false;
             }
         }
@@ -154,7 +154,7 @@ final class FamilyForwardChecks {
 
     static void release(ServerLevel world) {
         for (net.minecraft.world.level.ChunkPos chunk : LOAD_CHUNKS) {
-            world.setChunkForced(chunk.x, chunk.z, false);
+            world.setChunkForced(chunk.x(), chunk.z(), false);
         }
         LOAD_CHUNKS.clear();
         LOAD_ENTITIES.clear();
@@ -178,10 +178,10 @@ final class FamilyForwardChecks {
             RuntimeProbe.require(withoutSnow(actual).equals(withoutSnow(expected)),
                     "Forward block identity and orientation at " + position + ": " + actual + " expected " + expected);
             RuntimeProbe.require(actual.getFluidState().isEmpty(), "Pre-waterlogging pieces begin dry");
-            if (saved.has("snowy") && actual.hasProperty(SnowyDirtBlock.SNOWY)) {
+            if (saved.has("snowy") && actual.hasProperty(BlockStateProperties.SNOWY)) {
                 BlockState refreshed = actual.updateShape(world, world, position, net.minecraft.core.Direction.EAST, position.east(),
                         world.getBlockState(position.east()), world.getRandom());
-                RuntimeProbe.require(refreshed.getValue(SnowyDirtBlock.SNOWY) == saved.get("snowy").getAsBoolean(),
+                RuntimeProbe.require(refreshed.getValue(BlockStateProperties.SNOWY) == saved.get("snowy").getAsBoolean(),
                         "Saved snow neighbours still produce the same derived snow appearance: " + position);
                 checked++;
             }
@@ -259,7 +259,7 @@ final class FamilyForwardChecks {
         RuntimeProbe.require(!box.isEmpty() && box.has(net.minecraft.core.component.DataComponents.CONTAINER), "The carried shulker box survives");
         var nested = box.get(net.minecraft.core.component.DataComponents.CONTAINER).nonEmptyItems().iterator();
         RuntimeProbe.require(nested.hasNext(), "The carried inventory retains its first item");
-        checkSandStack(nested.next(), 3, 23);
+        checkSandStack(nested.next().create(), 3, 23);
         RuntimeProbe.require(!nested.hasNext(), "The carried inventory has no extra items");
         try (java.io.OutputStream output = java.nio.file.Files.newOutputStream(
                 world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.PLAYER_DATA_DIR)
@@ -272,7 +272,8 @@ final class FamilyForwardChecks {
         ModWorldState.get(world);
         world.getDataStorage().saveAndJoin();
         var grassFile = world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
-                .resolve("data").resolve(ModWorldState.DATA_NAME + ".dat");
+                .resolve("dimensions/minecraft/overworld/data/skysgrassslabs")
+                .resolve(ModWorldState.DATA_NAME + ".dat");
         CompoundTag grass = net.minecraft.nbt.NbtIo.readCompressed(grassFile,
                 net.minecraft.nbt.NbtAccounter.unlimitedHeap()).getCompound("data").orElseThrow();
         RuntimeProbe.require(grass.getInt("schema_version").orElseThrow() == 1 && grass.getLong("migrated_chunks").orElseThrow() == 1
@@ -369,7 +370,7 @@ final class FamilyForwardChecks {
     }
 
     private static BlockState withoutSnow(BlockState state) {
-        return state.hasProperty(SnowyDirtBlock.SNOWY) ? state.setValue(SnowyDirtBlock.SNOWY, false) : state;
+        return state.hasProperty(BlockStateProperties.SNOWY) ? state.setValue(BlockStateProperties.SNOWY, false) : state;
     }
 
     private static BlockPos position(JsonObject value) {

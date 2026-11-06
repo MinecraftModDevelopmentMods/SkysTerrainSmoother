@@ -1,4 +1,4 @@
-"""Check Forge 61 completion, native settings and unexpected errors."""
+"""Check Forge 64 completion, native settings and unexpected errors."""
 
 import argparse
 import gzip
@@ -10,7 +10,7 @@ from native_registry_notices import audit_text, profile_for
 
 
 def offline_client_notices(text):
-    # The packaged probe uses token 0. Bare Forge produces these same notices
+    # The offline probe uses token 0. Bare Forge produces these same notices
     # before the local world opens; a different exception still fails.
     rows = (
         (r'Download-\d+', 'net.minecraft.client.Minecraft/', 'Failed to fetch user properties',
@@ -54,7 +54,7 @@ def audit_complete_logs(directory, packaged_offline=False):
         if packaged_offline:
             text, _ = offline_client_notices(text)
         try:
-            audit_text(text, profile_for(directory))
+            audit_text(text, profile_for(directory, forge64=True))
         except ValueError as failure:
             raise ValueError(str(path) + ": " + str(failure)) from failure
     return len(paths)
@@ -62,16 +62,29 @@ def audit_complete_logs(directory, packaged_offline=False):
 
 def classify(log, unchanged_defaults, profile=None, packaged_offline=False):
     """Require a complete Forge client login without unexpected errors."""
+    offline_notices = []
     if packaged_offline:
-        log, _ = offline_client_notices(log)
+        log, offline_notices = offline_client_notices(log)
     lines = log.splitlines()
     startup = next((index for index, line in enumerate(lines)
-                    if "Starting integrated minecraft server version 1.21.11" in line), -1)
-    if "Connected to a modded server." not in log or startup < 0:
+                    if "Starting integrated minecraft server version 26.1.2" in line), -1)
+    server_info = r"\[[^\r\n]+\] \[Server thread/INFO\](?: \[[^\r\n]+\])?: "
+    player = None
+    joined = False
+    for line in lines[startup + 1:] if startup >= 0 else ():
+        login = re.fullmatch(server_info
+                             + r"([A-Za-z0-9_]{1,16})\[local:E:[0-9a-f]+\] logged in with entity id \d+ at \(.+\)",
+                             line)
+        if login:
+            player = login[1]
+        elif player and re.fullmatch(server_info + re.escape(player) + " joined the game", line):
+            joined = True
+            break
+    if not joined:
         raise ValueError("Native Forge login did not complete normally")
     if not unchanged_defaults:
         raise ValueError("Native Forge settings changed")
-    notices = audit_text(log, profile)
+    notices = offline_notices + audit_text(log, profile)
     return {"empty_handshakes": 0, "native_config_notices": 0,
             "notices": notices, "unchanged_native_defaults": True}
 
@@ -89,7 +102,7 @@ def audit(directory, phase, control=False, packaged_offline=False):
         == tomllib.loads(actual.read_text(encoding="utf-8")) for expected, actual in pairs)
     if not unchanged:
         raise ValueError("Native Forge settings differ from the controlled defaults")
-    receipt = classify(log, unchanged, profile_for(directory), packaged_offline)
+    receipt = classify(log, unchanged, profile_for(directory, forge64=True), packaged_offline)
     required = (("FORGE61_CLIENT_CONTROL_PASS joined=true sky_mods=false",) if control else
                 ("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
                  "SKY_CONFIG_SCREENS_PASS", "TERRAIN_FINE_GRASS_MODELS_PASS",
@@ -109,7 +122,7 @@ def audit(directory, phase, control=False, packaged_offline=False):
 
 
 def classify_server(log, debug, unchanged_defaults, profile=None):
-    """The Forge-only 1.18 server control completes without severe notices."""
+    """The Forge 64 server control completes without severe notices."""
     lines = log.splitlines()
     startup = any('Preparing level ' in line or 'Preparing start region for dimension ' in line
                   for line in lines)
@@ -130,7 +143,7 @@ def audit_server(directory, phase):
     unchanged = actual.is_file() and tomllib.loads(expected.read_text(encoding='utf-8')) == tomllib.loads(
         actual.read_text(encoding='utf-8'))
     receipt = classify_server((directory / 'logs/latest.log').read_text(encoding='utf-8'),
-                              (directory / 'logs/debug.log').read_text(encoding='utf-8'), unchanged, profile_for(directory))
+                              (directory / 'logs/debug.log').read_text(encoding='utf-8'), unchanged, profile_for(directory, forge64=True))
     if list((directory / 'crash-reports').glob('*')):
         raise ValueError('Native server produced a crash report')
     receipt['phase'] = phase
@@ -146,7 +159,12 @@ if __name__ == "__main__":
     parser.add_argument("--phase", required=True)
     parser.add_argument("--control", action="store_true")
     parser.add_argument("--server", action="store_true")
+    parser.add_argument("--offline-client", action="store_true",
+                        help="Accept only the exact native notices from the probe's dummy token")
     options = parser.parse_args()
+    if options.server and options.offline_client:
+        parser.error("--offline-client is only for the local client probe")
     result = (audit_server(options.directory, options.phase) if options.server
-              else audit(options.directory, options.phase, options.control))
-    print("FORGE61_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE61_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))
+              else audit(options.directory, options.phase, options.control,
+                         packaged_offline=options.offline_client))
+    print("FORGE64_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE64_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))

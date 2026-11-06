@@ -29,7 +29,7 @@ public final class TerrainSmoothingApi {
     }
 
     private static void requireInitialization() {
-        ModContainer container = ModLoadingContext.get().getActiveContainer();
+        ModContainer container = ModLoadingContext.get().getContainer();
         ModLoadingStage stage = container == null ? null : container.getCurrentState();
         if (stage != ModLoadingStage.COMMON_SETUP && stage != ModLoadingStage.SIDED_SETUP
                 && stage != ModLoadingStage.ENQUEUE_IMC && stage != ModLoadingStage.PROCESS_IMC) {

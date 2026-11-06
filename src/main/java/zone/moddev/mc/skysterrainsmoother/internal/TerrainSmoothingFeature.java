@@ -63,8 +63,8 @@ public final class TerrainSmoothingFeature extends Feature<NoneFeatureConfigurat
         int chunkZ = origin.getZ() >> 4;
         if (world instanceof WorldGenRegion) {
             WorldGenRegion region = (WorldGenRegion) world;
-            chunkX = region.getCenter().x;
-            chunkZ = region.getCenter().z;
+            chunkX = region.getCenter().x();
+            chunkZ = region.getCenter().z();
         }
         return SkysTerrainSmoother.engine.generate(world, chunkX, chunkZ);
     }

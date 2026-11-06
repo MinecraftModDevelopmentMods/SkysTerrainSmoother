@@ -64,7 +64,7 @@ public final class BuiltInMaterials {
     }
 
     private static void registerMineralogy() {
-        if (!TerrainSmootherConfig.mineralogy() || !ModList.get().isLoaded("mineralogy")) {
+        if (!TerrainSmootherConfig.mineralogy() || !ModList.isLoaded("mineralogy")) {
             return;
         }
         int available = 0;

@@ -15,6 +15,7 @@ import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.resources.*;
 import net.minecraft.core.*;
 import net.minecraft.world.level.BlockGetter;
@@ -179,7 +180,7 @@ class CatalogueTest {
         BlockState dry = new zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock(false, Identifier.parse("skysterrainsmoother:test_sand_slab")).defaultBlockState();
         TerrainMaterial grass = material("grass", Blocks.GRASS_BLOCK.defaultBlockState(), dry, null, null);
         catalogue.register(grass);
-        assertSame(grass, catalogue.source(Blocks.GRASS_BLOCK.defaultBlockState().setValue(SnowyDirtBlock.SNOWY, true)));
+        assertSame(grass, catalogue.source(Blocks.GRASS_BLOCK.defaultBlockState().setValue(BlockStateProperties.SNOWY, true)));
         assertNull(catalogue.piece(dry.setValue(zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock.WATERLOGGED, true)));
     }
 

@@ -133,7 +133,7 @@ final class TransitionProbe {
             RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(upperCap)) != null,
                     "late-terrace regression begins with a valid upper cap");
             ProbeWorld.clear(world, origin.above());
-            ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+            ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
             requireOpenDownhillEdge(world, upperCap, uphill.getOpposite(),
                     "late decoration cannot leave an upper cap that raises a newly exposed downhill edge");
             RuntimeProbe.require(SkysTerrainSmoother.level != 1 || world.isEmptyBlock(upperCap),
