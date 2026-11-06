@@ -29,8 +29,8 @@ public final class MinecraftTestBootstrap {
         if (initialized) return;
         try {
             var versions = FMLLoader.versionInfo();
-            if (!versions.forgeVersion().equals("64.0.9") || !versions.mcVersion().equals("26.1.2")
-                    || !versions.mcpVersion().equals("20260409.101008")) {
+            if (!versions.forgeVersion().equals("65.1.0") || !versions.mcVersion().equals("26.2")
+                    || !versions.mcpVersion().equals("20260616.103818")) {
                 throw new IllegalStateException("Wrong Forge or Minecraft version for the focused tests");
             }
             SharedConstants.tryDetectVersion();

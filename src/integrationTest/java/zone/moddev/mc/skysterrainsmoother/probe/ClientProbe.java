@@ -45,7 +45,7 @@ public final class ClientProbe extends ProbeProxy {
 
             return;
         }
-        if (minecraft.screen == null || minecraft.getOverlay() != null) {
+        if (minecraft.gui.screen() == null || minecraft.gui.overlay() != null) {
             return;
         }
 
@@ -90,7 +90,7 @@ public final class ClientProbe extends ProbeProxy {
             integrated = true;
             if (new File(minecraft.gameDirectory, "saves/terrain-smoother-world/level.dat").isFile()) {
                 minecraft.createWorldOpenFlows().openWorld("terrain-smoother-world",
-                        () -> minecraft.setScreen(new net.minecraft.client.gui.screens.TitleScreen()));
+                        () -> minecraft.gui.setScreen(new net.minecraft.client.gui.screens.TitleScreen()));
             } else {
                 net.minecraft.world.level.LevelSettings settings = new net.minecraft.world.level.LevelSettings(
                         "Terrain Smoother Test", net.minecraft.world.level.GameType.CREATIVE,
@@ -98,7 +98,7 @@ public final class ClientProbe extends ProbeProxy {
                         net.minecraft.world.level.WorldDataConfiguration.DEFAULT);
                 minecraft.createWorldOpenFlows().createFreshLevel("terrain-smoother-world", settings,
                         new net.minecraft.world.level.levelgen.WorldOptions(4815162342L, false, false),
-                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions, minecraft.screen);
+                        net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions, minecraft.gui.screen());
             }
         } else {
             minecraft.stop();
@@ -110,7 +110,7 @@ public final class ClientProbe extends ProbeProxy {
                 || !System.getProperty("skysterrainsmoother.integrationPhase", "").startsWith("client-")) {
             return;
         }
-        net.minecraft.client.gui.screens.Screen screen = client.screen;
+        net.minecraft.client.gui.screens.Screen screen = client.gui.screen();
         if (screen == null || !(screen.getTitle().getContents()
                 instanceof net.minecraft.network.chat.contents.TranslatableContents title)
                 || !title.getKey().equals("selectWorld.backupQuestion.experimental")) {

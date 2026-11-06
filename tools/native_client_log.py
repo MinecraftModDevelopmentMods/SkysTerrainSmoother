@@ -1,12 +1,14 @@
-"""Check Forge 64 completion, native settings and unexpected errors."""
+"""Check Forge 65 completion, native settings and unexpected errors."""
 
 import argparse
 import gzip
 import json
+import os
 from pathlib import Path
 import re
 import tomllib
 from native_registry_notices import audit_text, profile_for
+from native_windows_log import forge_windows_log
 
 
 def offline_client_notices(text):
@@ -18,7 +20,7 @@ def offline_client_notices(text):
         (r'Download-\d+', 'com.mojang.realmsclient.client.RealmsClient/', 'Failed to fetch Realms feature flags',
          "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message "
          "'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'"),
-        (r'IO-Worker-\d+', 'com.mojang.realmsclient.RealmsAvailability/', "Couldn't connect to realms",
+        (r'(?:IO-Worker|Download)-\d+', 'com.mojang.realmsclient.RealmsAvailability/', "Couldn't connect to realms",
          "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message "
          "'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'"),
     )
@@ -51,6 +53,7 @@ def audit_complete_logs(directory, packaged_offline=False):
                 text = source.read()
         else:
             text = path.read_text(encoding="utf-8")
+        text = forge_windows_log(text, enabled=os.name == "nt")
         if packaged_offline:
             text, _ = offline_client_notices(text)
         try:
@@ -67,7 +70,7 @@ def classify(log, unchanged_defaults, profile=None, packaged_offline=False):
         log, offline_notices = offline_client_notices(log)
     lines = log.splitlines()
     startup = next((index for index, line in enumerate(lines)
-                    if "Starting integrated minecraft server version 26.1.2" in line), -1)
+                    if "Starting integrated minecraft server version 26.2" in line), -1)
     server_info = r"\[[^\r\n]+\] \[Server thread/INFO\](?: \[[^\r\n]+\])?: "
     player = None
     joined = False
@@ -102,7 +105,7 @@ def audit(directory, phase, control=False, packaged_offline=False):
         == tomllib.loads(actual.read_text(encoding="utf-8")) for expected, actual in pairs)
     if not unchanged:
         raise ValueError("Native Forge settings differ from the controlled defaults")
-    receipt = classify(log, unchanged, profile_for(directory, forge64=True), packaged_offline)
+    receipt = classify(forge_windows_log(log, enabled=os.name == "nt"), unchanged, profile_for(directory, forge64=True), packaged_offline)
     required = (("FORGE61_CLIENT_CONTROL_PASS joined=true sky_mods=false",) if control else
                 ("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
                  "SKY_CONFIG_SCREENS_PASS", "TERRAIN_FINE_GRASS_MODELS_PASS",
@@ -122,7 +125,7 @@ def audit(directory, phase, control=False, packaged_offline=False):
 
 
 def classify_server(log, debug, unchanged_defaults, profile=None):
-    """The Forge 64 server control completes without severe notices."""
+    """The Forge 65 server control completes without severe notices."""
     lines = log.splitlines()
     startup = any('Preparing level ' in line or 'Preparing start region for dimension ' in line
                   for line in lines)
@@ -142,7 +145,8 @@ def audit_server(directory, phase):
     actual = directory / 'world/serverconfig/forge-server.toml'
     unchanged = actual.is_file() and tomllib.loads(expected.read_text(encoding='utf-8')) == tomllib.loads(
         actual.read_text(encoding='utf-8'))
-    receipt = classify_server((directory / 'logs/latest.log').read_text(encoding='utf-8'),
+    latest = (directory / 'logs/latest.log').read_text(encoding='utf-8')
+    receipt = classify_server(forge_windows_log(latest, enabled=os.name == "nt"),
                               (directory / 'logs/debug.log').read_text(encoding='utf-8'), unchanged, profile_for(directory, forge64=True))
     if list((directory / 'crash-reports').glob('*')):
         raise ValueError('Native server produced a crash report')
@@ -167,4 +171,4 @@ if __name__ == "__main__":
     result = (audit_server(options.directory, options.phase) if options.server
               else audit(options.directory, options.phase, options.control,
                          packaged_offline=options.offline_client))
-    print("FORGE64_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE64_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))
+    print("FORGE65_NATIVE_SERVER_AUDIT_PASS" if options.server else "FORGE65_NATIVE_CLIENT_AUDIT_PASS", json.dumps(result, sort_keys=True))

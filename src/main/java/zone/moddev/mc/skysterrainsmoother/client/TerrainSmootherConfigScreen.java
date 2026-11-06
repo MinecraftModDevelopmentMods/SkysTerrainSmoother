@@ -44,7 +44,7 @@ public final class TerrainSmootherConfigScreen extends Screen {
         }).bounds(left, 125, 300, 20).tooltip(tooltip(MINERALOGY_KEY)).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> {
             TerrainSmootherConfig.saveForNextStart(enabled, smoothingLevel, mineralogy);
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
         }).bounds(width / 2 - 100, height - 35, 200, 20).build());
     }
 
@@ -57,7 +57,7 @@ public final class TerrainSmootherConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     private static Tooltip tooltip(String key) {

@@ -26,7 +26,7 @@ final class ConfigScreenProbe {
     private static String[] keys;
 
     static void begin(Minecraft minecraft) {
-        parent = minecraft.screen;
+        parent = minecraft.gui.screen();
         activeGrass = SkysGrassSlabsConfig.generateGrassSlabs();
         activeTerrain = TerrainSmootherConfig.enabled();
         activeLevel = TerrainSmootherConfig.level();
@@ -37,7 +37,7 @@ final class ConfigScreenProbe {
 
     static boolean tick(Minecraft minecraft) {
         if (modIndex == 2) {
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             RuntimeProbe.require(tooltips == 6, "All six settings were exercised");
             zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 widgets=6 restart_safe=true");
             return true;
@@ -82,7 +82,7 @@ final class ConfigScreenProbe {
             // a later frame also follows the same path a player uses.
             RuntimeProbe.require(System.nanoTime() < deadline, "Saved config choices became readable for " + modId);
             Screen pending = newConfigScreen(modId);
-            minecraft.setScreen(pending);
+            minecraft.gui.setScreen(pending);
             boolean changed = true;
             for (int index = 0; index < keys.length; index++) {
                 changed &= !buttons(pending).get(index).getMessage().getString().equals(original.get(index));
@@ -107,7 +107,7 @@ final class ConfigScreenProbe {
         } else {
             RuntimeProbe.require(System.nanoTime() < deadline, "Original config choices restored for " + modId);
             Screen restored = newConfigScreen(modId);
-            minecraft.setScreen(restored);
+            minecraft.gui.setScreen(restored);
             for (int index = 0; index < keys.length; index++) {
                 if (!buttons(restored).get(index).getMessage().getString().equals(original.get(index))) {
                     settleTicks = 0;

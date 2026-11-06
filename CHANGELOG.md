@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0.2602001
+
+- Updated Terrain Smoother for Minecraft 26.2 on Forge.
+
 ## 0.1.0.2601021
 
 - Added support for Minecraft 26.1.2 on Forge. Update Grass Slabs and Building Pieces together with Terrain Smoother.

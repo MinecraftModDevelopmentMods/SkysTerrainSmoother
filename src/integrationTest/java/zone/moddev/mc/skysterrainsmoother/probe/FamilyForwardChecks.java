@@ -77,8 +77,11 @@ final class FamilyForwardChecks {
             java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = archive.entries();
             while (entries.hasMoreElements()) {
                 java.util.zip.ZipEntry entry = entries.nextElement();
-                if (!(entry.getName().startsWith("world/region/")
-                        || entry.getName().startsWith("world/entities/")) || !entry.getName().endsWith(".mca")) {
+                String path = entry.getName();
+                boolean overworldRegion = path.startsWith("world/region/") || path.startsWith("world/entities/")
+                        || path.startsWith("world/dimensions/minecraft/overworld/region/")
+                        || path.startsWith("world/dimensions/minecraft/overworld/entities/");
+                if (!overworldRegion || !path.endsWith(".mca")) {
                     continue;
                 }
                 byte[] region;
