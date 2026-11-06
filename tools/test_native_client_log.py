@@ -11,7 +11,7 @@ from native_client_log import audit, classify
 
 LOGIN = ("[Server thread/INFO]: TerrainChecks logged in with entity id 21 at (0, 64, 0)\n"
          "[Server thread/INFO]: TerrainChecks joined the game")
-START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 1.21.11"
+START = "[Server thread/INFO] [MinecraftServer/]: Starting integrated minecraft server version 26.1.2"
 NOTICE = "[Thread-1/FATAL] [net.minecraftforge.common.ForgeConfig/CORE]: Forge config just got changed on the file system!"
 PAYLOAD = "[Client thread/ERROR] [net.minecraftforge.fml.network.simple.IndexedMessageCodec/SIMPLENET]: Received empty payload on channel fml:handshake"
 

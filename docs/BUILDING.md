@@ -1,7 +1,7 @@
 # Building from source
 
-This branch uses NeoForge 21.11.45, NeoGradle 7.1.38 and the Gradle 9.2.1
-wrapper. Run Gradle with Temurin 21.0.7+6. The same Java version compiles and
+This branch uses NeoForge 26.1.2.94, NeoGradle 7.1.38 and the Gradle 9.2.1
+wrapper. Run Gradle with Temurin 25.0.3+9. The same Java version compiles and
 runs the mod. The log checks use Python 3.11 or newer.
 
 Build the Grass Slabs and Building Pieces commits listed in
@@ -23,7 +23,7 @@ gradlew verifyEclipseProductionClasspath
 If Python isn't on your path, pass `-PpythonExecutable=<python>` to the first
 command. The Eclipse task prepares the processed resources and the content
 jars without clearing your game settings or saves. Import the Gradle project
-with Java 21 and refresh it after generating the launches. The regular
+with Java 25 and refresh it after generating the launches. The regular
 client and server launches exclude all test code.
 
 ## Trying Mineralogy

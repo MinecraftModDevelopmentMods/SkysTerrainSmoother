@@ -99,7 +99,7 @@ final class SandProbe {
             grid.setItem(0, new ItemStack(slab));
             grid.setItem(1, new ItemStack(slab));
             ItemStack result = world.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid.asCraftInput(), world)
-                    .orElseThrow(() -> new AssertionError("Sand recombination recipe missing")).value().assemble(grid.asCraftInput(), world.registryAccess());
+                    .orElseThrow(() -> new AssertionError("Sand recombination recipe missing")).value().assemble(grid.asCraftInput());
             RuntimeProbe.require(ItemStack.matches(new ItemStack(slab.fullState().getBlock()), result),
                     "Two sand slabs craft the matching full block");
             checks += 5;

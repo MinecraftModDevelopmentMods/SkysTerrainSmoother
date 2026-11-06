@@ -17,6 +17,15 @@ their terrain can be smoothed.
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
 
+## Upgrading to Minecraft 26.1.2
+
+Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
+configuration and the whole world folder. Minecraft moves dimension data into
+its new folder layout; Terrain Smoother still skips chunks you've already saved.
+
+To move a 26.1.2 Forge world to NeoForge, first check that every mod in the save
+has a matching NeoForge version. Try the new mod list on a copy of the world.
+
 ## Upgrading to Minecraft 1.21.1
 
 Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep
