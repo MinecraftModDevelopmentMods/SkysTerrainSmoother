@@ -1,79 +1,54 @@
 # Building from source
 
-Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
-Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
-Minecraft 1.12.2 with ForgeGradle 7.0.34.
+This branch uses NeoForge 21.1.247, NeoGradle 7.1.38 and the Gradle 9.2.1
+wrapper. Run Gradle with Temurin 21.0.7+6. The same Java version compiles and
+runs the mod. The log checks use Python 3.11 or newer.
 
-Build the exact Grass Slabs and Building Pieces source commits listed in
-`gradle/content-dependencies.properties` with their `jar` tasks first.
+Build the Grass Slabs and Building Pieces commits listed in
+`gradle/content-dependencies.properties` with their `assemble` tasks first.
+Both development and packaged games use the same jars. The build checks the
+source commits and jar hashes. It does not include the dependency classes
+or assets in Terrain Smoother.
 
-The source lock records released Grass Slabs 1.1.2.112021 and Building Pieces
-0.3.8.112021.
-
-The default layout uses sibling checkouts. For another layout, pass
-`-PgrassSlabsDirectory=<checkout>` and
-`-PbuildingPiecesDirectory=<checkout>`.
-Then run:
+The default layout uses sibling checkouts. For a different layout, pass
+`-PgrassSlabsDirectory=<checkout>` and `-PbuildingPiecesDirectory=<checkout>`.
+When testing another local Building Pieces candidate, supply its directory
+and `-PbuildingPiecesCoreVersion=<version>`. CI always uses the lock.
 
 ```text
-gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums verifyEclipseProductionClasspath
+gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums
+gradlew verifyEclipseProductionClasspath
 ```
 
-Development dependencies use deobfuscated jars. Packaged games use the normal
-main jars; dependency classes and assets are not bundled. CI builds the exact
-pinned commits rather than moving branches.
+If Python isn't on your path, pass `-PpythonExecutable=<python>` to the first
+command. The Eclipse task prepares the processed resources and the content
+jars without clearing your game settings or saves. Import the Gradle project
+with Java 21 and refresh it after generating the launches. The regular
+client and server launches exclude all test code.
 
-A local-only `buildingPiecesCoreVersion` override can test another core
-candidate. It requires an explicit core directory and is rejected in CI.
-Eclipse's ignored Buildship preferences retain the selected checkouts. A version
-override is saved only when explicitly supplied; normal generation clears any
-older override. Refresh the Gradle project in Eclipse after generating the runs.
+## Trying Mineralogy
 
-Use `genEclipseRuns eclipse` to prepare the Java 8 IDE setup. Ordinary launches
-exclude unit tests and build-only runtime probes. See [the release guide](RELEASING.md)
-for publication.
+Use `runMineralogyClient` or `runMineralogyServer` for a separate development
+game in `run-mineralogy`. These runs use the NeoForge jars pinned in
+`gradle/mineralogy-runtime.properties`. Point Gradle to them with
+`-PmineralogyRuntimeJar=<jar>` and `-PorespawnRuntimeJar=<jar>` if you keep them
+elsewhere. Eclipse also generates Mineralogy client and server launches.
 
-## Testing with Mineralogy
+With Mineralogy installed and its slabs enabled, natural rock has steps and
+corners from Building Pieces at smoothing levels 2 and 3. New configurations
+start at level 3; existing choices are kept.
 
-Run `gradlew genEclipseRuns eclipse`, then refresh the Eclipse project. Select
-`runMineralogyClient` under Java Application in Run Configurations. The matching
-`runMineralogyServer` profile is available for a dedicated server. From a terminal,
-use `gradlew runMineralogyClient` or `gradlew runMineralogyServer`.
+## World checks
 
-These profiles use a separate `run-mineralogy` folder and load Mineralogy plus
-its OreSpawn dependency.
-Ordinary client and server profiles keep their existing mod sets and worlds.
-Runtime probes and unit tests are excluded from these manual profiles.
+`preparePackagedIntegrationProbe` builds separate test mods for disposable
+games. The runtime tools in `tools/` check fresh worlds and reloads, including
+recipes, configuration, slopes and cave floors. For packaged upgrades, pass a
+sealed fixture directory to `run_packaged_checks.py`. Always use a new
+directory under `build/` for the first load. The tool retains the logs and
+checks that the source archive stays unchanged.
 
-The expected release jars and their checksums are listed in
-`gradle/mineralogy-runtime.properties`. The default paths use sibling checkouts;
-for a different layout, pass `-PmineralogyRuntimeJar=<jar>` and
-`-PorespawnRuntimeJar=<jar>` when generating the profiles. Missing optional jars
-do not prevent an ordinary build; `prepareMineralogyDevelopmentRun` explains
-what is needed before the combined profile can run. The jars are copied, not
-modified. Their access rules are translated for the mapped development game.
+The recipe unlocks are generated from `src/main/recipe-book/recipes.json`.
+The four sand recipes keep their IDs. The runtime checks exercise crafting,
+inventory discovery and recipe-book persistence.
 
-If a sibling build has moved on, keep the qualified jars under
-`.gradle/qualification-dependencies/` with their original filenames.
-The profiles prefer those copies, but still require the locked checksums.
-An explicit runtime-jar property takes precedence over either location.
-
-New configurations use smoothing level 3. An existing saved level is kept, so
-choose level 3 in Mods > Config and restart if that test folder already has a
-different setting. With Building Pieces 0.3.8, Mineralogy rocks use the core's
-steps at level 2 and corners at level 3, without a separate add-on.
-
-`gradlew integrationMineralogyTest` checks fresh-world and reload behaviour in
-a disposable build folder. `integrationMineralogyClientProcess` checks client
-resources there. Neither task opens the manual profile's saved worlds.
-
-## Recipe-book resources
-
-The build generates unlock advancements from `src/main/recipe-book/recipes.json`.
-The runtime checks compare those entries with the registered recipes and exercise
-inventory discovery, crafting-table discovery and recipe-book persistence.
-Optional catalogue entries load only when their recipe exists.
-
-Recipe unlocks have no shared advancement parent. Minecraft 1.12 walks that
-visibility tree recursively when loading completed progress, which can overflow
-with a large catalogue. The inventory and crafting unlock criteria are unchanged.
+See [the release guide](RELEASING.md) for release preparation.

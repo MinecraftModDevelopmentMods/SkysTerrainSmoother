@@ -27,6 +27,11 @@ public final class ExistingChunkIndex {
             if (!matcher.matches()) {
                 continue;
             }
+            // Forge may open a neighbouring region without ever saving a chunk
+            // into it. That leaves an empty file, with no saved entries to index.
+            if (file.length() == 0) {
+                continue;
+            }
 
             int regionX = Integer.parseInt(matcher.group(1));
             int regionZ = Integer.parseInt(matcher.group(2));

@@ -1,143 +1,105 @@
 package zone.moddev.mc.skysterrainsmoother;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectContractTest {
     @Test
-    void onlySandPaletteIsNewAndMigrationStateAndToolchainArePreserved() throws Exception {
-        String properties = text("gradle.properties");
-        String build = text("build.gradle");
-
-        assertTrue(properties.contains("mod_version=0.1.0.112021"));
-        assertTrue(properties.contains("mapping_version=39-1.12"));
-        assertTrue(build.contains("version '7.0.34'"));
-        assertTrue(build.contains("verifyEclipseProductionClasspath"));
-
-        try (java.util.stream.Stream<Path> paths = Files.walk(Paths.get("src/main/java"))) {
-            paths.filter(Files::isRegularFile).forEach(path -> {
-                try {
-                    String source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-
-                    assertFalse(source.contains("extends WorldSavedData"));
-
-                    if (!path.toString().contains("content")) {
-                        assertFalse(source.contains("setRegistryName("));
-                    }
-                } catch (Exception failure) {
-                    throw new AssertionError(failure);
-                }
-            });
+    void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
+        Properties metadata = new Properties();
+        metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
+        assertEquals("0.1.0.121012", metadata.getProperty("mod_version"));
+        assertEquals("1.21.1", metadata.getProperty("minecraft_version"));
+        assertEquals("21.1.247", metadata.getProperty("neo_version"));
+        assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
+        assertEquals("21", metadata.getProperty("gradle_java_version"));
+        assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
+        assertTrue(Files.isRegularFile(Paths.get("src/main/resources/META-INF/neoforge.mods.toml")));
+        for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
+            JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
+                    .getAsJsonObject("pack");
+            assertEquals(48, pack.get("pack_format").getAsInt(), sourceSet);
+            assertEquals(34, pack.getAsJsonObject("supported_formats").get("min_inclusive").getAsInt(), sourceSet);
+            assertEquals(48, pack.getAsJsonObject("supported_formats").get("max_inclusive").getAsInt(), sourceSet);
         }
-
-        String api = source("src/main/java/zone/moddev/mc/skysterrainsmoother/api/TerrainSmoothingApi.java");
-
-        assertFalse(api.contains("publicstaticMaterialCatalogue"));
-        assertTrue(api.contains("INITIALIZATION"));
     }
 
     @Test
-    void generationAndResourceContracts() throws Exception {
-        String engine = source("src/main/java/zone/moddev/mc/skysterrainsmoother/internal/SmoothingEngine.java");
-
-        assertTrue(engine.contains("priority=EventPriority.LOWEST"));
-        assertTrue(engine.contains("existing.contains"));
-        assertTrue(engine.contains("getLoadedChunk"));
-        assertFalse(engine.contains("provideChunk"));
-        assertTrue(engine.contains("newint[256]"));
-        assertTrue(engine.contains("newIBlockState[256]"));
-        assertTrue(text("src/main/resources/pack.mcmeta").contains("\"pack_format\":3"));
-
-        for (String workflow : new String[] { "ci.yml", "codeql-analysis.yml", "validate-gradle-build.yml",
-                "release-on-tag.yml" }) {
-            assertTrue(Files.isRegularFile(Paths.get(".github/workflows", workflow)));
-        }
-
-        assertTrue(text(".github/workflows/ci.yml").contains("if-no-files-found: error"));
-    }
-
-    /** Compare Java structure without tying these contracts to spacing or line breaks. */
-    private static String source(String path) throws Exception {
-        return text(path).replaceAll("\\s+", "");
-    }
-
-    private static String text(String path) throws Exception {
-        return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
-    }
-
-    @Test
-    void caveFloorsRetainTwoPassLoadedOnlyAndOreSupportContracts() throws Exception {
-        String engine = source("src/main/java/zone/moddev/mc/skysterrainsmoother/internal/SmoothingEngine.java");
-
-        assertTrue(engine.contains("for(intfloorY=Math.min(surfaceY,254);floorY>=0;--floorY)"));
-        assertTrue(engine.contains("height=2;height<=3"));
-        assertTrue(engine.contains("Arrays.copyOf(positions,capacity)"));
-        assertTrue(engine.indexOf("buffer.add(") < engine
-                .indexOf("setGenerationState(owner,target,buffer.results[index])"));
-        assertTrue(engine.contains("pos.getX()>>4!=owner.x"));
-        assertTrue(engine.contains("pos.getZ()>>4!=owner.z"));
-        assertTrue(engine.contains("section.set(pos.getX()&15,pos.getY()&15,pos.getZ()&15,state)"));
-        assertFalse(engine.contains("owner.setBlockState("));
-        assertTrue(engine.contains("PopulateChunkEvent.Post"));
-        assertTrue(engine.contains("TickEvent.WorldTickEvent"));
-        assertTrue(engine.contains("!oreSupport(support)"));
-        assertTrue(engine.contains("OreDictionary.getOreIDs"));
-        assertFalse(engine.contains("getChunkFromChunkCoords"));
-        assertTrue(text("README.md").contains("including cave floors"));
-        assertTrue(text("docs/CONFIGURATION.md").contains("no retrogen"));
-    }
-
-    @Test
-    void sandResourcesAndGravityContract() throws Exception {
-        String block = text("src/main/java/zone/moddev/mc/skysterrainsmoother/content/SandSlabBlock.java");
-
-        assertTrue(block.contains("extends BlockFalling"));
-        assertTrue(block.contains("EntityFallingBlock"));
-        assertTrue(block.contains("BlockSand.VARIANT"));
-        assertTrue(block.contains("BlockSlab.HALF"));
-        assertFalse(block.contains("VERTICAL"));
-        assertFalse(block.contains("TileEntity"));
-
-        Path root = Paths.get("src/main/resources/assets/skysterrainsmoother");
-
-        assertTrue(Files.isRegularFile(root.resolve("blockstates/sand_slab.json")));
-
-        for (String type : new String[] { "sand", "red_sand" }) {
+    void bothSandColoursHaveNativeModelsAndTheirOwnLoot() throws Exception {
+        Path root = Paths.get("src/main/resources");
+        for (String sand : new String[] { "sand", "red_sand" }) {
+            Path assets = root.resolve("assets/skysterrainsmoother");
+            JsonObject variants = json(assets.resolve("blockstates/" + sand + "_slab.json")).getAsJsonObject("variants");
+            assertEquals(2, variants.size());
             for (String half : new String[] { "top", "bottom" }) {
-                assertTrue(Files.isRegularFile(
-                        root.resolve("models/block/" + type + "_slab" + (half.equals("top") ? "_top" : "") + ".json")));
+                String suffix = half.equals("top") ? "_top" : "";
+                assertEquals("skysterrainsmoother:block/" + sand + "_slab" + suffix,
+                        variants.getAsJsonObject("type=" + half).get("model").getAsString());
+                JsonObject model = json(assets.resolve("models/block/" + sand + "_slab" + suffix + ".json"));
+                assertEquals(half.equals("top") ? "minecraft:block/slab_top" : "minecraft:block/slab", model.get("parent").getAsString());
+                for (String face : new String[] { "top", "bottom", "side" }) {
+                    assertEquals("minecraft:block/" + sand, model.getAsJsonObject("textures").get(face).getAsString());
+                }
             }
-        }
-        try (java.util.stream.Stream<Path> paths = Files.list(root.resolve("lang"))) {
-            List<Path> languages = paths.collect(java.util.stream.Collectors.toList());
-
-            assertEquals(18, languages.size());
-
-            for (Path language : languages) {
-                String content = new String(Files.readAllBytes(language), StandardCharsets.UTF_8);
-
-                assertTrue(content.endsWith("\n"));
-                assertFalse(content.contains("\r"));
-                assertFalse(content.contains("\uFEFF"));
-                assertEquals(8, content.split("\n").length);
-            }
+            JsonObject loot = json(root.resolve("data/skysterrainsmoother/loot_table/blocks/" + sand + "_slab.json"));
+            assertEquals("skysterrainsmoother:" + sand + "_slab", loot.getAsJsonArray("pools").get(0).getAsJsonObject()
+                    .getAsJsonArray("entries").get(0).getAsJsonObject().get("name").getAsString());
         }
     }
 
     @Test
-    void clayAndLateOasesReusePiecesWithoutRetrogen() throws Exception {
-        String materials = source("src/main/java/zone/moddev/mc/skysterrainsmoother/internal/BuiltInMaterials.java");
+    void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
+        Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
+        try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
+            assertEquals(4, files.count());
+        }
+        for (String sand : new String[] { "sand", "red_sand" }) {
+            JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
+            assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
+            assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("skysterrainsmoother:" + sand + "_slab", cut.getAsJsonObject("result").get("id").getAsString());
+            assertEquals(6, cut.getAsJsonObject("result").get("count").getAsInt());
+            JsonObject combine = json(recipes.resolve(sand + "_from_slabs.json"));
+            assertEquals("SS", combine.getAsJsonArray("pattern").get(0).getAsString());
+            assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("minecraft:" + sand, combine.getAsJsonObject("result").get("id").getAsString());
+            assertFalse(combine.getAsJsonObject("result").has("count"));
+        }
+    }
 
-        assertTrue(materials.contains("vanilla(\"hardened_clay\",Blocks.HARDENED_CLAY.getDefaultState(),false,null)"));
+    @Test
+    void eighteenUtf8LanguagesRetainNamesAndConfigHelp() throws Exception {
+        Path languages = Paths.get("src/main/resources/assets/skysterrainsmoother/lang");
+        try (java.util.stream.Stream<Path> files = Files.list(languages)) {
+            java.util.List<Path> paths = files.collect(java.util.stream.Collectors.toList());
+            assertEquals(18, paths.size());
+            for (Path path : paths) {
+                String source = text(path);
+                assertTrue(path.toString().endsWith(".json"));
+                assertFalse(source.startsWith("\uFEFF"));
+                assertFalse(source.contains("\r"));
+                assertTrue(source.endsWith("\n"));
+                JsonObject values = json(path);
+                assertEquals(8, values.size());
+                for (String sand : new String[] { "sand", "red_sand" }) {
+                    assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
+                }
+            }
+        }
+    }
 
-        String engine = source("src/main/java/zone/moddev/mc/skysterrainsmoother/internal/SmoothingEngine.java");
+    private static JsonObject json(Path path) throws Exception {
+        return new JsonParser().parse(text(path)).getAsJsonObject();
+    }
 
-        assertTrue(engine.contains("if(afterDecoration&&!pending.containsKey(key)){return0;}"));
-        assertFalse(engine.contains("sandOnly"));
-        assertTrue(engine.contains("if(afterDecoration){pending.get(key).addAll(placements);}"));
-        assertTrue(text("README.md").contains("hardened clay"));
+    private static String text(Path path) throws Exception {
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     }
 }

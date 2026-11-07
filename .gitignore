@@ -78,3 +78,7 @@ agent_notes/
 # Files from Forge MDK
 forge*changelog.txt
 /README.txt
+
+# Python caches can contain local source paths.
+__pycache__/
+*.py[cod]

@@ -1,10 +1,14 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.minecraft.block.BlockGrass;
-import net.minecraft.block.state.IBlockState;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.util.RandomSource;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.GrassBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.resources.model.BakedModel;
 import zone.moddev.mc.skysbuildingpieces.catalogue.Shape;
 import zone.moddev.mc.skysbuildingpieces.content.Pieces;
 
@@ -15,38 +19,60 @@ final class FineGrassModelProbe {
         for (Shape shape : new Shape[] { Shape.HORIZONTAL_STEP, Shape.CORNER }) {
             for (int orientation = 4; orientation < 8; orientation++) {
                 for (boolean snowy : new boolean[] { false, true }) {
-                    IBlockState state = Pieces.state("minecraft:grass", shape, orientation)
-                            .withProperty(BlockGrass.SNOWY, snowy);
-                    IBakedModel model = minecraft.getBlockRendererDispatcher().getModelForState(state);
+                    BlockState state = Pieces.state("minecraft:grass", shape, orientation)
+                            .setValue(GrassBlock.SNOWY, snowy);
+                    BakedModel model = minecraft.getBlockRenderer().getBlockModel(state);
                     int sides = 0;
-                    for (BakedQuad quad : model.getQuads(state, null, 0)) {
-                        if (quad.getFace().getAxis() == net.minecraft.util.EnumFacing.Axis.Y
-                                || !quad.getSprite().getIconName().contains("grass_side")) {
+                    java.util.Set<Direction> sideDirections = java.util.EnumSet.noneOf(Direction.class);
+                    String sideTexture = snowy ? "minecraft:block/grass_block_snow" : "minecraft:block/grass_block_side";
+                    for (BakedQuad quad : allFaces(model, state)) {
+                        if (quad.getDirection().getAxis() == net.minecraft.core.Direction.Axis.Y
+                                || !quad.getSprite().contents().name().toString().equals(sideTexture)) {
                             continue;
                         }
-                        int stride = quad.getFormat().getIntegerSize();
-                        int textureOffset = quad.getFormat().getUvOffsetById(0) / 4;
+                        int stride = com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK.getVertexSize() / Integer.BYTES;
+                        int textureOffset = primaryTextureOffset();
                         double firstRow = Double.POSITIVE_INFINITY;
                         double lastRow = Double.NEGATIVE_INFINITY;
 
                         for (int vertex = 0; vertex < 4; vertex++) {
-                            float atlasV = Float.intBitsToFloat(quad.getVertexData()[vertex * stride + textureOffset + 1]);
-                            double row = 16 * (atlasV - quad.getSprite().getMinV())
-                                    / (quad.getSprite().getMaxV() - quad.getSprite().getMinV());
+                            float atlasV = Float.intBitsToFloat(quad.getVertices()[vertex * stride + textureOffset + 1]);
+                            double row = 16 * (atlasV - quad.getSprite().getV0())
+                                    / (quad.getSprite().getV1() - quad.getSprite().getV0());
                             firstRow = Math.min(firstRow, row);
                             lastRow = Math.max(lastRow, row);
                         }
                         RuntimeProbe.require(Math.abs(firstRow) < .1 && Math.abs(lastRow - 8) < .1,
                                 "baked grass/snow fringe starts at the piece's top: " + state);
-                        RuntimeProbe.require(!snowy || !quad.hasTintIndex(), "snow edges are not biome tinted");
+                        RuntimeProbe.require(!quad.isTinted(), "The base grass and snow sides are not tinted");
+                        sideDirections.add(quad.getDirection());
                         sides++;
                     }
-                    RuntimeProbe.require(sides > 0, "grass piece has real side faces");
+                    int expectedFaces = shape == Shape.HORIZONTAL_STEP ? 6 : 4;
+                    RuntimeProbe.require(sides == expectedFaces && sideDirections.size() == 4,
+                            "Grass piece has every exposed side of its quadrant model: " + state
+                                    + " faces=" + sides + " directions=" + sideDirections);
                     checked++;
                 }
             }
         }
-        System.out.println("TERRAIN_FINE_GRASS_MODELS_PASS states=" + checked);
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_FINE_GRASS_MODELS_PASS states=" + checked);
+    }
+
+    private static int primaryTextureOffset() {
+        com.mojang.blaze3d.vertex.VertexFormat format =
+                com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK;
+
+        return format.getOffset(com.mojang.blaze3d.vertex.VertexFormatElement.UV0) / Integer.BYTES;
+    }
+
+    private static List<BakedQuad> allFaces(BakedModel model, BlockState state) {
+        // Boundary faces live in direction-specific lists; inset faces are unculled.
+        List<BakedQuad> faces = new ArrayList<>(model.getQuads(state, null, RandomSource.create(0)));
+        for (Direction direction : Direction.values()) {
+            faces.addAll(model.getQuads(state, direction, RandomSource.create(0)));
+        }
+        return faces;
     }
 
     private FineGrassModelProbe() {

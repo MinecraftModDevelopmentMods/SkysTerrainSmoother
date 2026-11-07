@@ -18,7 +18,7 @@ class RecipeAdvancementContractTest {
             String recipe = entry.get("recipe").getAsString();
             assertTrue(recipes.add(recipe), recipe);
             assertEquals("skysterrainsmoother", entry.get("owner").getAsString());
-            Path path = Paths.get("build/resources/main/assets/skysterrainsmoother/advancements/recipes",
+            Path path = Paths.get("build/resources/main/data/skysterrainsmoother/advancement/recipes",
                     recipe.split(":", 2)[1] + ".json");
             JsonObject advancement = new JsonParser().parse(read(path)).getAsJsonObject();
             assertFalse(advancement.has("parent"),

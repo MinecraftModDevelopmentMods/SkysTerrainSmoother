@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.1.0.121012
+
+- Updated for Minecraft 1.21.1 on NeoForge.
+- Sand slabs keep their colour, orientation and waterlogging when upgrading.
+
+## 0.1.0.120062 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.6 on NeoForge.
+- Use the matching Grass Slabs and Building Pieces versions.
+- Use Mineralogy's natural rock pieces when its NeoForge build is installed.
+
+## 0.1.0.120012 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.119041 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.19.4.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.118021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.18.2.
+- Include the lower caves and taller terrain in newly generated chunks.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.117011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.17.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.116051 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.16.5.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.115021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.15.2.
+- Use the matching Grass Slabs and Building Pieces releases.
+
+## 0.1.0.114041
+
+- Added Minecraft 1.14.4 support, including cave floors and all three smoothing levels.
+- Kept existing sand slabs, colours, orientations and custom item data when upgrading from 1.12.2.
+- Moved settings to TOML while preserving choices from the old CFG file.
+- Added the native Mods Config screen and kept changes pending until Minecraft restarts.
+- Kept Mineralogy's slabs and Building Pieces' steps and corners working together.
+
 ## 0.1.0.112021
 
 - Added ingredient-based recipe unlocks, including slab recombination.

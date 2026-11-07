@@ -7,7 +7,7 @@ sandstone, sand and hardened clay.
 
 ## Smoothing levels
 
-Set `worldgen.smoothingLevel` in `config/skysterrainsmoother.cfg`:
+Set `worldgen.smoothingLevel` in `config/skysterrainsmoother-common.toml`:
 
 1. **Slabs** - half-block transitions.
 2. **Slabs and steps** - adds pieces covering half a slab's footprint.
@@ -37,9 +37,8 @@ blocks in a row make six slabs, and two slabs side by side make a full block.
 Like sand blocks, the slabs fall when unsupported. Sand uses slabs at every
 smoothing level.
 
-Mineralogy is supported without another add-on. When it's installed, the
-smoother uses its natural rock slabs and the matching steps and corners
-included in Building Pieces. Disabled native slab types are skipped.
+Install the NeoForge build of Mineralogy to smooth its natural rock. When
+its slabs are enabled, Building Pieces provides the matching steps and corners.
 
 Ores, gravel, wood and decorative stone aren't smoothing materials.
 
@@ -48,14 +47,16 @@ For BOP grass and soils, add the
 
 ## Installation and settings
 
-For **Minecraft 1.12.2**, use **Forge 14.23.5.2859** and **Java 8**, with:
+For **Minecraft 1.21.1**, use **NeoForge 21.1.247** and **Java 21**, with:
 
-- Sky's Grass Slabs **1.1.2.112021**.
-- Sky's Building Pieces **0.3.8.112021**.
-- Sky's Terrain Smoother **0.1.0.112021**.
+- Sky's Grass Slabs **1.2.0.121012**.
+- Sky's Building Pieces **0.3.9.121012**.
+- Sky's Terrain Smoother **0.1.0.121012**.
 
-Install all three main jars on both the client and server.
+Install all three NeoForge jars on both the client and server. If you use
+the BOP add-on, keep its matching dependencies installed too.
 
+The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
 level, turn smoothing off or disable Mineralogy support, then restart Minecraft.

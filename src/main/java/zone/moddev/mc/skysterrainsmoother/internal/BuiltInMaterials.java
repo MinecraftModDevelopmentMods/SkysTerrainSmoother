@@ -1,121 +1,132 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import java.util.*;
-import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.Loader;
+import java.util.Collections;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.ModList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.init.ModBlocks;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
-import zone.moddev.mc.skysterrainsmoother.api.*;
+import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+import zone.moddev.mc.skysterrainsmoother.content.SandContent;
 
-/** Registers known natural surfaces without treating ores or decorative blocks as terrain. */
+/** Exact natural surfaces; ores and decorative variants are never inferred from tags. */
 public final class BuiltInMaterials {
-    private static final String[] ROCKS = { "basalt", "rhyolite", "basaltic_glass", "scoria", "tuff", "pumice",
-            "pegmatite", "diabase", "gabbro", "peridotite", "shale", "conglomerate", "dolomite", "limestone",
-            "siltstone", "rock_salt", "chert", "gypsum", "chalk", "marble", "slate", "schist", "gneiss", "phyllite",
-            "amphibolite", "hornfels", "quartzite", "novaculite" };
+    private static final String[] ROCKS = {
+            "basalt", "rhyolite", "basaltic_glass", "scoria", "tuff", "pumice",
+            "pegmatite", "diabase", "gabbro", "peridotite", "shale", "conglomerate",
+            "dolomite", "limestone", "siltstone", "rock_salt", "chert", "gypsum",
+            "chalk", "marble", "slate", "schist", "gneiss", "phyllite", "amphibolite",
+            "hornfels", "quartzite", "novaculite"
+    };
+    private static final Direction[] DIRECTIONS = {
+            Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST
+    };
+    private static boolean registered;
 
     private BuiltInMaterials() {
     }
 
-    public static void register() {
-        vanilla("grass", Blocks.GRASS.getDefaultState(), true, ModBlocks.GRASS_SLAB.getDefaultState());
-        vanilla("dirt", Blocks.DIRT.getStateFromMeta(0), false, ModBlocks.DIRT_SLAB.getDefaultState());
-        vanilla("stone", Blocks.STONE.getStateFromMeta(0), false, null);
-        vanilla("granite", Blocks.STONE.getStateFromMeta(1), false, null);
-        vanilla("diorite", Blocks.STONE.getStateFromMeta(3), false, null);
-        vanilla("andesite", Blocks.STONE.getStateFromMeta(5), false, null);
-        vanilla("sandstone", Blocks.SANDSTONE.getStateFromMeta(0), false, null);
-        vanilla("red_sandstone", Blocks.RED_SANDSTONE.getStateFromMeta(0), false, null);
-        vanilla("hardened_clay", Blocks.HARDENED_CLAY.getDefaultState(), false, null);
-
-        for (int variant = 0; variant < 2; variant++) {
-            TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
-                    new ResourceLocation("minecraft", variant == 0 ? "sand" : "red_sand"),
-                    Collections.singleton(Blocks.SAND.getStateFromMeta(variant)),
-                    zone.moddev.mc.skysterrainsmoother.content.SandContent.slab.getStateFromMeta(variant * 2 + 1), null,
-                    null, false, null));
-        }
-        if (!SkysTerrainSmoother.mineralogy || !Loader.isModLoaded("mineralogy")) {
+    /** Install the built-in mappings before the ordered add-on setup callbacks. */
+    public static synchronized void ensureRegistered() {
+        if (registered) {
             return;
         }
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        vanilla("grass", Blocks.GRASS_BLOCK.defaultBlockState(), true,
+                ModBlocks.GRASS_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
+                ModBlocks.DIRT_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
+        vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
+        vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);
+        vanilla("andesite", Blocks.ANDESITE.defaultBlockState(), false, null);
+        vanilla("sandstone", Blocks.SANDSTONE.defaultBlockState(), false, null);
+        vanilla("red_sandstone", Blocks.RED_SANDSTONE.defaultBlockState(), false, null);
+        vanilla("hardened_clay", Blocks.TERRACOTTA.defaultBlockState(), false, null);
+        for (int variant = 0; variant < 2; variant++) {
+            Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
+            MaterialCatalogue.instance().register(new TerrainMaterial(
+                    ResourceLocation.fromNamespaceAndPath("minecraft", variant == 0 ? "sand" : "red_sand"),
+                    Collections.singleton(sand.defaultBlockState()),
+                    SandContent.legacyState(variant * 2 + 1), null, null, false, null));
+        }
+        registerMineralogy();
+        registered = true;
+    }
 
-        int count = 0;
+    private static void registerMineralogy() {
+        if (!TerrainSmootherConfig.mineralogy() || !ModList.get().isLoaded("mineralogy")) {
+            return;
+        }
+        int available = 0;
         int missing = 0;
-
         for (String rock : ROCKS) {
-            ResourceLocation fullId = new ResourceLocation("mineralogy", rock);
-            ResourceLocation slabId = new ResourceLocation("mineralogy", rock + "_slab");
-
-            if (!Block.REGISTRY.containsKey(fullId) || !Block.REGISTRY.containsKey(slabId)) {
-                ++missing;
+            ResourceLocation fullId = ResourceLocation.fromNamespaceAndPath("mineralogy", rock);
+            Block full = BuiltInRegistries.BLOCK.get(fullId);
+            Block slab = BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("mineralogy", rock + "_slab"));
+            if (full == null || full == Blocks.AIR || slab == null || slab == Blocks.AIR) {
+                missing++;
                 continue;
             }
-
-            IBlockState slab = bottom(Block.REGISTRY.getObject(slabId).getDefaultState());
-
-            TerrainSmoothingApi.registerMaterial(new TerrainMaterial(fullId,
-                    Collections.singleton(Block.REGISTRY.getObject(fullId).getDefaultState()), slab,
+            MaterialCatalogue.instance().register(new TerrainMaterial(fullId,
+                    Collections.singleton(full.defaultBlockState()), bottom(slab.defaultBlockState()),
                     mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.STEP),
-                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.CORNER), false,
-                    null));
-            ++count;
+                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.CORNER), false, null));
+            available++;
         }
-
         SkysTerrainSmoother.logger.info(
-                "Mineralogy smoothing: {} natural rocks available, {} unavailable slab forms skipped", count, missing);
+                "Mineralogy smoothing: {} natural rocks available, {} unavailable slab forms skipped",
+                available, missing);
     }
 
-    private static void vanilla(String name, IBlockState source, boolean grass, IBlockState slab) {
+    private static void vanilla(String name, BlockState source, boolean grass, BlockState slab) {
         String material = "minecraft:" + name;
-
         if (slab == null) {
-            slab = BuildingPiecesApi.bottomPiece(material, BuildingPiecesApi.TerrainShape.SLAB, EnumFacing.NORTH);
+            slab = BuildingPiecesApi.bottomPiece(material, BuildingPiecesApi.TerrainShape.SLAB, Direction.NORTH);
         }
-
-        IBlockState[] steps = new IBlockState[4];
-        IBlockState[] corners = new IBlockState[4];
-
-        EnumFacing[] directions = { EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST };
-
-        for (int directionIndex = 0; directionIndex < 4; ++directionIndex) {
-            steps[directionIndex] = BuildingPiecesApi.bottomPiece(material, BuildingPiecesApi.TerrainShape.STEP,
-                    directions[directionIndex]);
-            corners[directionIndex] = BuildingPiecesApi.bottomPiece(material, BuildingPiecesApi.TerrainShape.CORNER,
-                    directions[directionIndex]);
+        BlockState[] steps = new BlockState[4];
+        BlockState[] corners = new BlockState[4];
+        for (int direction = 0; direction < DIRECTIONS.length; direction++) {
+            steps[direction] = BuildingPiecesApi.bottomPiece(material,
+                    BuildingPiecesApi.TerrainShape.STEP, DIRECTIONS[direction]);
+            corners[direction] = BuildingPiecesApi.bottomPiece(material,
+                    BuildingPiecesApi.TerrainShape.CORNER, DIRECTIONS[direction]);
         }
-
-        TerrainSmoothingApi
-                .registerMaterial(new TerrainMaterial(new ResourceLocation(material), Collections.singleton(source),
-                        slab, steps, corners, grass, grass ? Blocks.DIRT.getDefaultState() : null));
+        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.parse(material),
+                Collections.singleton(source), slab, steps, corners, grass,
+                grass ? Blocks.DIRT.defaultBlockState() : null));
     }
 
-    private static IBlockState[] mineralogyShapes(String material, BuildingPiecesApi.TerrainShape shape) {
-        EnumFacing[] directions = { EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST };
-        IBlockState[] pieces = new IBlockState[directions.length];
-        for (int direction = 0; direction < directions.length; direction++) {
-            pieces[direction] = BuildingPiecesApi.bottomPiece(material, shape, directions[direction]);
+    private static BlockState[] mineralogyShapes(String material, BuildingPiecesApi.TerrainShape shape) {
+        BlockState[] pieces = new BlockState[DIRECTIONS.length];
+        for (int direction = 0; direction < DIRECTIONS.length; direction++) {
+            pieces[direction] = BuildingPiecesApi.bottomPiece(material, shape, DIRECTIONS[direction]);
             if (pieces[direction] == null) {
-                // A missing optional form still falls back to the native slab.
                 return null;
             }
         }
         return pieces;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static IBlockState bottom(IBlockState state) {
-        for (IProperty property : state.getPropertyKeys()) {
-            if (property.getName().equals("facing") && property.getAllowedValues().contains(EnumFacing.UP)) {
-                return state.withProperty(property, EnumFacing.UP);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static BlockState bottom(BlockState state) {
+        if (state.hasProperty(SlabBlock.TYPE)) {
+            return state.setValue(SlabBlock.TYPE, SlabType.BOTTOM);
+        }
+        for (Property property : state.getProperties()) {
+            if (property.getName().equals("facing") && property.getPossibleValues().contains(Direction.UP)) {
+                return state.setValue(property, Direction.UP);
             }
         }
-
-        throw new IllegalStateException("Unsupported Mineralogy slab orientation property: " + state);
+        throw new IllegalStateException("Unsupported Mineralogy slab orientation: " + state);
     }
 }

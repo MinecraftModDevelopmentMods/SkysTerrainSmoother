@@ -1,67 +1,77 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import net.minecraft.block.BlockDoublePlant;
-import net.minecraft.block.BlockSnow;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 
-/** Small plants and a single snow layer may give way to a transition in a fresh chunk. */
+/** Small native plants may give way to a transition in a newly generated chunk. */
 final class SmoothingFoliage {
-    static boolean isCover(IBlockState state) {
+    static boolean isPlant(BlockState state) {
+        Block block = state.getBlock();
+        return block == Blocks.SHORT_GRASS || block == Blocks.FERN || block == Blocks.DEAD_BUSH
+                || block == Blocks.DANDELION || block == Blocks.POPPY || block == Blocks.BLUE_ORCHID
+                || block == Blocks.ALLIUM || block == Blocks.AZURE_BLUET || block == Blocks.RED_TULIP
+                || block == Blocks.ORANGE_TULIP || block == Blocks.WHITE_TULIP || block == Blocks.PINK_TULIP
+                || block == Blocks.OXEYE_DAISY || block == Blocks.CORNFLOWER
+                || block == Blocks.LILY_OF_THE_VALLEY || block == Blocks.TALL_GRASS
+                || block == Blocks.LARGE_FERN || block == Blocks.SUNFLOWER || block == Blocks.LILAC
+                || block == Blocks.ROSE_BUSH || block == Blocks.PEONY;
+    }
+
+    static boolean isCover(BlockState state) {
         return isPlant(state) || isThinSnow(state);
     }
 
-    private static boolean isThinSnow(IBlockState state) {
-        return state.getBlock() == Blocks.SNOW_LAYER && state.getValue(BlockSnow.LAYERS) == 1;
+    private static boolean isThinSnow(BlockState state) {
+        return state.getBlock() == Blocks.SNOW && state.getValue(SnowLayerBlock.LAYERS) == 1;
     }
 
-    static boolean isPlant(IBlockState state) {
-        return state.getBlock() == Blocks.TALLGRASS || state.getBlock() == Blocks.YELLOW_FLOWER
-                || state.getBlock() == Blocks.RED_FLOWER || state.getBlock() == Blocks.DEADBUSH
-                || state.getBlock() == Blocks.DOUBLE_PLANT;
+    static int surfaceHeight(ChunkAccess chunk, int localX, int localZ, int startX, int startZ) {
+        // Full chunks retain the live heightmap, not the generation-only map.
+        Heightmap.Types heightmap = chunk.getPersistedStatus() == ChunkStatus.FULL
+                ? Heightmap.Types.WORLD_SURFACE : Heightmap.Types.WORLD_SURFACE_WG;
+        int surfaceY = chunk.getHeight(heightmap, localX, localZ);
+        while (surfaceY >= chunk.getMinBuildHeight()) {
+            BlockState state = chunk.getBlockState(new BlockPos(startX + localX, surfaceY, startZ + localZ));
+            if (!state.isAir() && !isCover(state)) {
+                break;
+            }
+            surfaceY--;
+        }
+        return surfaceY;
     }
 
-    static boolean canReplace(World world, Chunk chunk, BlockPos target) {
-        IBlockState state = chunk.getBlockState(target);
-
-        if (state.getBlock().hasTileEntity(state)
-                || chunk.getTileEntity(target, Chunk.EnumCreateEntityType.CHECK) != null) {
+    static boolean canReplace(LevelAccessor world, ChunkAccess owner, BlockPos position) {
+        BlockState state = owner.getBlockState(position);
+        if (state.hasBlockEntity() || owner.getBlockEntity(position) != null
+                || !state.getFluidState().isEmpty()) {
             return false;
         }
-        if (state.getBlock().isAir(state, world, target) || isThinSnow(state)) {
+        if (state.isAir() || isThinSnow(state)) {
             return true;
         }
         if (!isPlant(state)) {
             return false;
         }
-        if (state.getBlock() != Blocks.DOUBLE_PLANT) {
+        if (!(state.getBlock() instanceof DoublePlantBlock)) {
             return true;
         }
-        if (target.getY() >= 255
-                || state.getValue(BlockDoublePlant.HALF) != BlockDoublePlant.EnumBlockHalf.LOWER) {
+        if (position.getY() + 1 >= owner.getMaxBuildHeight() || state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.LOWER) {
             return false;
         }
 
-        IBlockState upper = chunk.getBlockState(target.up());
-
-        return upper.getBlock() == Blocks.DOUBLE_PLANT
-                && upper.getValue(BlockDoublePlant.HALF) == BlockDoublePlant.EnumBlockHalf.UPPER
-                && chunk.getTileEntity(target.up(), Chunk.EnumCreateEntityType.CHECK) == null;
-    }
-
-    static int surfaceHeight(Chunk chunk, int localX, int localZ, int startX, int startZ) {
-        int surfaceY = chunk.getHeightValue(localX, localZ) - 1;
-
-        // A decorator may already have reached here from a neighbouring chunk.
-        while (surfaceY >= 0 && isCover(chunk.getBlockState(
-                new BlockPos(startX + localX, surfaceY, startZ + localZ)))) {
-            surfaceY--;
-        }
-
-        return surfaceY;
+        BlockState upper = owner.getBlockState(position.above());
+        return upper.getBlock() == state.getBlock()
+                && upper.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER
+                && owner.getBlockEntity(position.above()) == null;
     }
 
     private SmoothingFoliage() {

@@ -1,70 +1,72 @@
 package zone.moddev.mc.skysterrainsmoother;
 
-import java.io.File;
-import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.common.MinecraftForge;
-import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.*;
+import net.neoforged.api.distmarker.Dist;
+import net.minecraft.world.level.storage.LevelResource;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
-import zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi;
-import zone.moddev.mc.skysterrainsmoother.internal.*;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+import zone.moddev.mc.skysterrainsmoother.internal.BuiltInMaterials;
+import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
+import zone.moddev.mc.skysterrainsmoother.internal.SmoothingEngine;
+import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 
-@Mod(
-        modid = SkysTerrainSmoother.ID,
-        name = "Sky's Terrain Smoother",
-        version = SkysTerrainSmoother.VERSION,
-        acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "required-before:skysgrassslabs@[1.1.1.112021,2);required-before:skysbuildingpieces@[0.3.8.112021,0.4)",
-        guiFactory = "zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherGuiFactory")
+@Mod(SkysTerrainSmoother.ID)
 public final class SkysTerrainSmoother {
-    public static final String ID = "skysterrainsmoother", VERSION = "0.1.0.112021";
-    public static boolean enabled = true, mineralogy = true;
+    public static final String ID = "skysterrainsmoother";
+    public static final String NAME = "Sky's Terrain Smoother";
+    public static final String VERSION = "0.1.0.121012";
+    public static final Logger logger = LogManager.getLogger();
+    public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
+    public static boolean enabled = true;
+    public static boolean mineralogy = true;
     public static int level = 3;
-    public static Logger logger;
-    public static SmoothingEngine engine;
-    @SidedProxy(
-            clientSide = "zone.moddev.mc.skysterrainsmoother.client.ClientProxy",
-            serverSide = "zone.moddev.mc.skysterrainsmoother.client.CommonProxy")
-    public static zone.moddev.mc.skysterrainsmoother.client.CommonProxy proxy;
 
-    @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        logger = event.getModLog();
-
-        TerrainSmootherConfig.load(event.getSuggestedConfigurationFile());
-
-        GrassSlabsApi.claimSmoothing(ID, enabled);
-        zone.moddev.mc.skysterrainsmoother.content.SandContent.register();
-        proxy.preInit();
-        engine = new SmoothingEngine(MaterialCatalogue.instance());
-        MinecraftForge.EVENT_BUS.register(engine);
+    public SkysTerrainSmoother(IEventBus modBus, ModContainer container) {
+        TerrainSmootherConfig.register(modBus, container);
+        GrassSlabsApi.claimSmoothing(ID, TerrainSmootherConfig::enabled);
+        modBus.addListener(this::setup);
+        modBus.addListener(this::complete);
+        TerrainSmoothingFeature.register(modBus);
+        NeoForge.EVENT_BUS.register(engine);
+        NeoForge.EVENT_BUS.addListener(this::beforeServer);
+        NeoForge.EVENT_BUS.addListener(this::stopped);
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            zone.moddev.mc.skysterrainsmoother.client.ClientProxy.register(container);
+        }
     }
 
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        BuiltInMaterials.register();
+    private void setup(FMLCommonSetupEvent event) {
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        enabled = TerrainSmootherConfig.enabled();
+        level = TerrainSmootherConfig.level();
+        mineralogy = TerrainSmootherConfig.mineralogy();
+        BuiltInMaterials.ensureRegistered();
+        MaterialCatalogue.instance().openRegistration();
     }
 
-    @Mod.EventHandler
-    public void complete(FMLLoadCompleteEvent event) {
+    private void complete(FMLLoadCompleteEvent event) {
         MaterialCatalogue.instance().freeze();
-        logger.info("Terrain smoothing level {}: {} registered materials; one sand slab palette", level,
-                MaterialCatalogue.instance().size());
+        // Build the placed feature after all material contributors have finished.
+        event.enqueueWork(TerrainSmoothingFeature::install);
+        logger.info("Terrain smoothing level {}: {} registered materials; two sand slab colours",
+                level, MaterialCatalogue.instance().size());
     }
 
-    @Mod.EventHandler
-    public void beforeServer(FMLServerAboutToStartEvent event) {
-        MinecraftServer server = event.getServer();
-
-        engine.start(server.isDedicatedServer() ? server.getFile(server.getFolderName())
-                : new File(server.getDataDirectory(), "saves/" + server.getFolderName()));
+    private void beforeServer(ServerAboutToStartEvent event) {
+        engine.start(event.getServer().getWorldPath(LevelResource.ROOT).toFile());
     }
 
-    @Mod.EventHandler
-    public void stopped(FMLServerStoppedEvent event) {
+    private void stopped(ServerStoppedEvent event) {
         logger.info("Terrain smoothing completed {} passes and placed {} pieces; {} existing-chunk events skipped",
                 engine.passes, engine.placed, engine.skippedExisting);
         engine.stop();
