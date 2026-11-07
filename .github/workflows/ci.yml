@@ -176,7 +176,7 @@ jobs:
       - name: Build, test, and audit release artifacts
         run: >-
           ./gradlew clean check build javadoc preparePackagedIntegrationProbe verifyReleaseArtifacts writeReleaseChecksums
-          verifyEclipseProductionClasspath -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
+          verifyEclipseProductionClasspath -Declipse.application=org.eclipse.ui.ide.workbench -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
 
       - name: Replay artifact checks offline
         run: >-
@@ -205,9 +205,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.120062.jar
-            build/libs/SkysTerrainSmoother-0.1.0.120062-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.120062-javadoc.jar
+            build/libs/${{ steps.target.outputs.artifact_prefix }}.jar
+            build/libs/${{ steps.target.outputs.artifact_prefix }}-sources.jar
+            build/libs/${{ steps.target.outputs.artifact_prefix }}-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 
