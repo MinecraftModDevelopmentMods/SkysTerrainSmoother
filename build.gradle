@@ -452,9 +452,9 @@ ext.releaseJar = releaseJar
 apply from: 'gradle/release.gradle'
 
 
-// Keep the old entry point disabled until publication is configured.
+// Releases use the validated MMD workflow.
 tasks.register('publishRelease') {
-    doLast { throw new GradleException('Publication is disabled for the local beta.') }
+    doLast { throw new GradleException('Use the MMD release workflow to publish this mod.') }
 }
 
 def prepareEclipseResources = tasks.register('prepareEclipseResources') {
