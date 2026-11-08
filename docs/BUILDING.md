@@ -11,7 +11,7 @@ Build the exact Grass Slabs and Building Pieces source commits listed in
 and main/development jar checksums.
 
 The source lock records locally qualified Grass Slabs 1.2.0.121011 and Building Pieces
-0.3.8.121011.
+0.3.9.121011.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
