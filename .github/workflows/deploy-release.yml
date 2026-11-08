@@ -319,10 +319,19 @@ jobs:
           ref: ${{ steps.content.outputs.pieces }}
           path: dependencies/pieces
       - name: Build development dependencies
+        env:
+          LOADER_NAME: ${{ needs.preflight.outputs.loader_name }}
         run: |
           set -euo pipefail
           chmod +x dependencies/*/gradlew
           (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
+          if [[ "$LOADER_NAME" == "neoforge" ]]; then
+            grass_version="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
+            grass_jar="$GITHUB_WORKSPACE/dependencies/grass/build/libs/SkysGrassSlabs-$grass_version.jar"
+            test -f "$grass_jar"
+            export ORG_GRADLE_PROJECT_grassSlabsMainJar="$grass_jar"
+            export ORG_GRADLE_PROJECT_grassSlabsDeobfJar="$grass_jar"
+          fi
           (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
 
       - name: Build, test, and audit once
@@ -334,8 +343,8 @@ jobs:
           if [[ "$LOADER_NAME" == "neoforge" ]]; then
             # NeoGradle resolves model inputs during configuration under build/tmp.
             # Cleaning in the same invocation removes those inputs before setup runs.
-            ./gradlew clean --no-daemon --stacktrace --max-workers=2
-            ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
+            ./gradlew clean -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace --max-workers=2
+            ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces \
               --no-daemon --stacktrace --max-workers=2
           else
             # Preserve the established Forge release lifecycle.
@@ -516,10 +525,19 @@ jobs:
           ref: ${{ steps.content.outputs.pieces }}
           path: dependencies/pieces
       - name: Build development dependencies
+        env:
+          LOADER_NAME: ${{ needs.preflight.outputs.loader_name }}
         run: |
           set -euo pipefail
           chmod +x dependencies/*/gradlew
           (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
+          if [[ "$LOADER_NAME" == "neoforge" ]]; then
+            grass_version="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
+            grass_jar="$GITHUB_WORKSPACE/dependencies/grass/build/libs/SkysGrassSlabs-$grass_version.jar"
+            test -f "$grass_jar"
+            export ORG_GRADLE_PROJECT_grassSlabsMainJar="$grass_jar"
+            export ORG_GRADLE_PROJECT_grassSlabsDeobfJar="$grass_jar"
+          fi
           (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
 
       - name: Download immutable release artifact
