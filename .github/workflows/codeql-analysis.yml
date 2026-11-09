@@ -54,6 +54,7 @@ jobs:
           echo "STS_JAVA25_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install Java for Gradle
+        if: steps.target.outputs.gradle_java_version != steps.target.outputs.java_setup_version
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
