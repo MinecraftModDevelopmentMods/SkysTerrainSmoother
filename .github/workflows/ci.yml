@@ -69,9 +69,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
 
       - name: Bootstrap Forge from an empty cache
@@ -181,9 +180,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
 
       - name: Make the wrapper executable
