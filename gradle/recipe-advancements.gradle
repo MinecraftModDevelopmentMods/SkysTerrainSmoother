@@ -26,17 +26,12 @@ def generateRecipeAdvancements = tasks.register('generateRecipeAdvancements') {
                 criteria[key] = [trigger: 'minecraft:inventory_changed', conditions: [items: [ingredient]]]
                 requirements.add(key)
             }
-            criteria.has_the_recipe = [trigger: 'minecraft:recipe_unlocked', conditions: [recipe: recipe]]
+            criteria.has_the_recipe = [trigger: 'minecraft:recipe_unlocked', conditions: [recipes: recipe]]
             requirements.add('has_the_recipe')
-            // A shared parent makes 1.12 recurse through thousands of learned recipes on login.
-            // Independent hidden unlocks keep the same recipe-book behaviour without that recursion.
+            // Independent unlocks avoid a long recipe visibility chain on login.
             Map advancement = [rewards: [recipes: [recipe]],
                                criteria: criteria, requirements: [requirements]]
-            if (project.mod_id != 'skysgrassslabs') {
-                // Optional catalogues and recovery recipes must not leave phantom unlocks.
-                advancement.conditions = [[type: 'skysbuildingpieces:recipe_exists', recipe: recipe]]
-            }
-            File target = new File(output, "assets/${owner}/advancements/recipes/${path}.json")
+            File target = new File(output, "data/${owner}/advancement/recipes/${path}.json")
             target.parentFile.mkdirs()
             target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(advancement)) + '\n', 'UTF-8')
         }

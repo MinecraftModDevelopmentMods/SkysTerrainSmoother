@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.1.0.2603001
+
+- Updated Terrain Smoother for Minecraft 26.3 on Forge.
+
+## 0.1.0.2602001
+
+- Updated Terrain Smoother for Minecraft 26.2 on Forge.
+
+## 0.1.0.2601021
+
+- Added support for Minecraft 26.1.2 on Forge. Update Grass Slabs and Building Pieces together with Terrain Smoother.
+- Sand slabs retain their colour, orientation and waterlogging when you move an existing world. Smoothing still applies only to new terrain.
+
+## 0.1.0.121011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.21.1 on Forge.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.120061 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.6.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.120011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.119041 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.19.4.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.118021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.18.2.
+- Include the lower caves and taller terrain in newly generated chunks.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.117011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.17.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.116051 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.16.5.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.115021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.15.2.
+- Use the matching Grass Slabs and Building Pieces releases.
+
+## 0.1.0.114041
+
+- Added Minecraft 1.14.4 support, including cave floors and all three smoothing levels.
+- Kept existing sand slabs, colours, orientations and custom item data when upgrading from 1.12.2.
+- Moved settings to TOML while preserving choices from the old CFG file.
+- Added the native Mods Config screen and kept changes pending until Minecraft restarts.
+- Kept Mineralogy's slabs and Building Pieces' steps and corners working together.
+
 ## 0.1.0.112021
 
 - Added ingredient-based recipe unlocks, including slab recombination.

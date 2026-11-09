@@ -1,54 +1,50 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.item.crafting.ShapedRecipes;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.NonNullList;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent;
+import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
-@Mod.EventBusSubscriber(
-        modid = "skysterrainsmoother")
+/** Sand colours have separate identities after flattening, including when a falling slab drops. */
 public final class SandContent {
+    private static final Identifier SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
+    private static final Identifier RED_SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
     public static SandSlabBlock slab;
+    public static SandSlabBlock redSlab;
 
     private SandContent() {
     }
 
-    public static void register() {
-        slab = new SandSlabBlock();
+    public static void register(RegisterEvent event) {
+        event.register(ForgeRegistries.Keys.BLOCKS, registry -> {
+            // Register the recovery contributor here, after the parallel mod constructors.
+            SandLegacyRecovery.register();
+            slab = new SandSlabBlock(false, SAND_SLAB);
+            redSlab = new SandSlabBlock(true, RED_SAND_SLAB);
+            registry.register(SAND_SLAB, slab);
+            registry.register(RED_SAND_SLAB, redSlab);
+        });
+        event.register(ForgeRegistries.Keys.ITEMS, registry -> {
+            registry.register(SAND_SLAB, new SandSlabItem(slab, SAND_SLAB));
+            registry.register(RED_SAND_SLAB, new SandSlabItem(redSlab, RED_SAND_SLAB));
+        });
     }
 
-    @SubscribeEvent
-    public static void blocks(RegistryEvent.Register<Block> event) {
-        event.getRegistry().register(slab);
-    }
-
-    @SubscribeEvent
-    public static void items(RegistryEvent.Register<Item> event) {
-        event.getRegistry().register(new SandSlabItem(slab).setRegistryName(slab.getRegistryName()));
-    }
-
-    @SubscribeEvent
-    public static void recipes(RegistryEvent.Register<IRecipe> event) {
-        for (int variant = 0; variant < 2; variant++) {
-            String name = variant == 0 ? "sand" : "red_sand";
-            Ingredient full = Ingredient.fromStacks(new ItemStack(Blocks.SAND, 1, variant));
-            Ingredient half = Ingredient.fromStacks(new ItemStack(slab, 1, variant * 2));
-
-            event.getRegistry()
-                    .register(new ShapedRecipes("skysterrainsmoother/slabs", 3, 1,
-                            NonNullList.from(Ingredient.EMPTY, full, full, full), new ItemStack(slab, 6, variant * 2))
-                            .setRegistryName("skysterrainsmoother", name + "_slab"));
-            event.getRegistry()
-                    .register(new ShapedRecipes("skysterrainsmoother/full_blocks", 2, 1,
-                            NonNullList.from(Ingredient.EMPTY, half, half), new ItemStack(Blocks.SAND, 1, variant))
-                            .setRegistryName("skysterrainsmoother", name + "_from_slabs"));
+    public static void buildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (CreativeModeTabs.BUILDING_BLOCKS.equals(event.getTabKey())) {
+            event.accept(slab);
+            event.accept(redSlab);
         }
+    }
+
+    /** The old palette used colour in bit one and the lower half in bit zero. */
+    public static BlockState legacyState(int metadata) {
+        SandSlabBlock block = (metadata & 2) == 0 ? slab : redSlab;
+        SlabType half = (metadata & 1) == 0 ? SlabType.TOP : SlabType.BOTTOM;
+        return block.defaultBlockState().setValue(SandSlabBlock.TYPE, half);
     }
 }

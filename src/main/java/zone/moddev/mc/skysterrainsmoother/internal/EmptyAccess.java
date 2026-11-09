@@ -1,47 +1,39 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Biomes;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.WorldType;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
 
-final class EmptyAccess implements IBlockAccess {
+/** Empty neighbours for validating immutable piece collision shapes. */
+final class EmptyAccess implements BlockGetter {
     static final EmptyAccess INSTANCE = new EmptyAccess();
 
-    public TileEntity getTileEntity(BlockPos pos) {
+    @Override
+    public int getHeight() {
+        return 384;
+    }
+
+    @Override
+    public int getMinY() {
+        return -64;
+    }
+
+    @Override
+    public BlockEntity getBlockEntity(BlockPos position) {
         return null;
     }
 
-    public int getCombinedLight(BlockPos pos, int light) {
-        return 0;
+    @Override
+    public BlockState getBlockState(BlockPos position) {
+        return Blocks.AIR.defaultBlockState();
     }
 
-    public IBlockState getBlockState(BlockPos pos) {
-        return Blocks.AIR.getDefaultState();
-    }
-
-    public boolean isAirBlock(BlockPos pos) {
-        return true;
-    }
-
-    public Biome getBiome(BlockPos pos) {
-        return Biomes.PLAINS;
-    }
-
-    public int getStrongPower(BlockPos pos, EnumFacing side) {
-        return 0;
-    }
-
-    public WorldType getWorldType() {
-        return WorldType.DEFAULT;
-    }
-
-    public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean fallback) {
-        return false;
+    @Override
+    public FluidState getFluidState(BlockPos position) {
+        return Fluids.EMPTY.defaultFluidState();
     }
 }

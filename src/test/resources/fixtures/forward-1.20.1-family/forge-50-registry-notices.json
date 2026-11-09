@@ -1,0 +1,38 @@
+{
+  "source_world_sha256": "C66243CF9A35216E2CEC414737815E75E2130165AA32EE98B384DE8164156AFB",
+  "target": "Forge 50.2.0",
+  "snapshot_entries": {
+    "minecraft:block": {
+      "minecraft:grass": 94
+    },
+    "minecraft:enchantment": {
+      "minecraft:sweeping": 17
+    },
+    "minecraft:item": {
+      "minecraft:grass": 76,
+      "minecraft:scute": 519
+    },
+    "minecraft:potion": {
+      "minecraft:empty": 0
+    }
+  },
+  "inspected_nbt_records": 833,
+  "inspected_nbt_values": 276454,
+  "raw_matches": {
+    "minecraft:grass|value|world/data/skysgrassslabs_legacy_registry.dat/Blocks/ids/[]/K": 1
+  },
+  "grass_positions": 0,
+  "unused_non_biome_ids": {
+    "minecraft:empty": 0,
+    "minecraft:grass": 0,
+    "minecraft:scute": 0,
+    "minecraft:sweeping": 0
+  },
+  "retained_legacy_registry_aliases": {
+    "minecraft:grass": 1
+  },
+  "native_biome_contract_sha256": "27D046C318ABD4D103035B8DE242D2B8500C5CCEC7564B4349B1A2E16848F246",
+  "checked_biome_cells": 1261056,
+  "native_renamed_cells": 0,
+  "noticed_biome_cells": 0
+}

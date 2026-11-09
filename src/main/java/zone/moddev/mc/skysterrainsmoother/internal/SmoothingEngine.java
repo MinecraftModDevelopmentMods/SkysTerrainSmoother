@@ -2,26 +2,28 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.io.*;
 import java.util.*;
-import net.minecraft.block.BlockOre;
-import net.minecraft.block.BlockRedstoneOre;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraft.world.gen.ChunkProviderServer;
-import net.minecraft.world.gen.structure.StructureBoundingBox;
-import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
-import net.minecraftforge.event.terraingen.PopulateChunkEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.oredict.OreDictionary;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.*;
@@ -31,14 +33,14 @@ public final class SmoothingEngine {
     private static final int[] DX = { 0, 1, 0, -1 }, DZ = { -1, 0, 1, 0 }, CORNER_X = { -1, 1, 1, -1 },
             CORNER_Z = { -1, -1, 1, 1 };
     private final MaterialCatalogue catalogue;
-    private ExistingChunkIndex existing;
-    private final Set<Long> processed = new HashSet<>();
-    private final Set<Long> populated = new HashSet<>(), dirtyOwners = new HashSet<>();
-    private final Map<Long, List<Placement>> pending = new HashMap<>();
-    private final Map<IBlockState, Boolean> oreSupports = new HashMap<>();
-    private final Map<IBlockState, Integer> pieceEdges = new HashMap<>();
+    private volatile ExistingChunkIndex existing;
+    private final Set<Long> processed = ConcurrentHashMap.newKeySet();
+    private final Set<Long> populated = ConcurrentHashMap.newKeySet(), dirtyOwners = ConcurrentHashMap.newKeySet();
+    private final Map<Long, List<FeatureDecorator>> pending = new ConcurrentHashMap<>();
+    private final Map<BlockState, Boolean> oreSupports = new ConcurrentHashMap<>();
+    private final Map<BlockState, Integer> pieceEdges = new ConcurrentHashMap<>();
     private final ThreadLocal<Decisions> decisions = ThreadLocal.withInitial(Decisions::new);
-    public long passes, placed, elapsedNanos, skippedExisting;
+    public volatile long passes, placed, elapsedNanos, skippedExisting;
 
     public SmoothingEngine(MaterialCatalogue catalogue) {
         this.catalogue = catalogue;
@@ -77,167 +79,150 @@ public final class SmoothingEngine {
         return existing == null ? 0 : existing.size();
     }
 
-    @SubscribeEvent(
-            priority = EventPriority.LOWEST)
-    public void beforeDecoration(DecorateBiomeEvent.Pre event) {
-        World world = event.getWorld();
-
-        if (world.isRemote || world.provider.getDimension() != 0 || !SkysTerrainSmoother.enabled || existing == null) {
-            return;
+    /** Called by the first vegetation feature for the centre chunk of the decoration region. */
+    public boolean generate(LevelAccessor world, int chunkX, int chunkZ) {
+        ExistingChunkIndex index = existing;
+        if (!isOverworld(world) || !SkysTerrainSmoother.enabled
+                || index == null) {
+            return false;
+        }
+        if (index.contains(chunkX, chunkZ)) {
+            synchronized (this) {
+                skippedExisting++;
+            }
+            return false;
+        }
+        ChunkAccess owner = loaded(world, chunkX, chunkZ);
+        long key = ExistingChunkIndex.key(chunkX, chunkZ);
+        if (owner == null || !processed.add(key)) {
+            return false;
         }
 
-        int chunkX = event.getPos().getX() >> 4;
-        int chunkZ = event.getPos().getZ() >> 4;
-
-        if (existing.contains(chunkX, chunkZ)) {
-            ++skippedExisting;
-            return;
+        long started = System.nanoTime();
+        int count = smooth(world, owner, SkysTerrainSmoother.level);
+        synchronized (this) {
+            placed += count;
+            elapsedNanos += System.nanoTime() - started;
+            passes++;
         }
-
-        Chunk owner = loaded(world, chunkX, chunkZ);
-
-        if (owner == null || !processed.add(ExistingChunkIndex.key(chunkX, chunkZ))) {
-            return;
-        }
-
-        long start = System.nanoTime();
-
-        placed += smooth(world, owner, SkysTerrainSmoother.level);
-        elapsedNanos += System.nanoTime() - start;
-        ++passes;
+        return count > 0;
     }
 
-    @SubscribeEvent(
-            priority = EventPriority.LOWEST)
-    public void afterDecoration(DecorateBiomeEvent.Post event) {
-        World world = event.getWorld();
-
-        if (world.isRemote || world.provider.getDimension() != 0) {
+    public void loaded(ChunkEvent.Load event) {
+        if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-
-        int chunkX = event.getPos().getX() >> 4;
-        int chunkZ = event.getPos().getZ() >> 4;
-
-        checkAdjacent(world, chunkX, chunkZ);
-    }
-
-    @SubscribeEvent(
-            priority = EventPriority.LOWEST)
-    public void afterPopulation(PopulateChunkEvent.Post event) {
-        World world = event.getWorld();
-
-        if (world.isRemote || world.provider.getDimension() != 0) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
+        int chunkX = event.getChunk().getPos().x();
+        int chunkZ = event.getChunk().getPos().z();
+        populated.add(ExistingChunkIndex.key(chunkX, chunkZ));
 
-        populated.add(ExistingChunkIndex.key(event.getChunkX(), event.getChunkZ()));
-        checkAdjacent(world, event.getChunkX(), event.getChunkZ());
-    }
-
-    private void checkAdjacent(World world, int chunkX, int chunkZ) {
-        // The decoration offset can reach the next chunk east or south. Repairs still belong to their original owner.
-        for (int adjacentChunkZ = chunkZ; adjacentChunkZ <= chunkZ + 1; adjacentChunkZ++) {
-            for (int adjacentChunkX = chunkX; adjacentChunkX <= chunkX + 1; adjacentChunkX++) {
-                long key = ExistingChunkIndex.key(adjacentChunkX, adjacentChunkZ);
-                List<Placement> placements = pending.get(key);
-
-                if (placements == null) {
-                    continue;
+        // Queue repairs on the server thread, after generation has handed over the full chunk.
+        // Native decoration can cross any border, even though comparisons retain
+        // the established east/south policy.
+        for (int ownerZ = chunkZ - 1; ownerZ <= chunkZ + 1; ownerZ++) {
+            for (int ownerX = chunkX - 1; ownerX <= chunkX + 1; ownerX++) {
+                long key = ExistingChunkIndex.key(ownerX, ownerZ);
+                if (pending.containsKey(key)) {
+                    dirtyOwners.add(key);
                 }
-
-                validate(world, adjacentChunkX, adjacentChunkZ, placements);
-                dirtyOwners.add(key);
             }
         }
     }
 
-    @SubscribeEvent(
-            priority = EventPriority.LOWEST)
-    public void endWorldTick(TickEvent.WorldTickEvent event) {
-        World world = event.world;
-
-        if (event.phase != TickEvent.Phase.END || world.isRemote || world.provider.getDimension() != 0) {
+    public void endWorldTick(TickEvent.LevelTickEvent.Post event) {
+        Level world = event.level();
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
-        // Ore generators can run after decoration. Recheck only freshly touched owners when that work has returned.
         for (long key : new ArrayList<>(dirtyOwners)) {
-            List<Placement> placements = pending.get(key);
-
+            if (!dirtyOwners.remove(key)) {
+                continue;
+            }
+            List<FeatureDecorator> placements = pending.get(key);
             if (placements == null) {
                 continue;
             }
-
             int chunkX = (int) (key >> 32);
             int chunkZ = (int) key;
-
-            validate(world, chunkX, chunkZ, placements);
-
-            if (populated.contains(key) && populated.contains(ExistingChunkIndex.key(chunkX - 1, chunkZ))
-                    && populated.contains(ExistingChunkIndex.key(chunkX, chunkZ - 1))
-                    && populated.contains(ExistingChunkIndex.key(chunkX - 1, chunkZ - 1))) {
-                pending.remove(key);
+            boolean validated;
+            synchronized (placements) {
+                validated = validate(world, chunkX, chunkZ, placements);
+            }
+            if (!validated) {
+                dirtyOwners.add(key);
+                continue;
+            }
+            if (neighbouringDecorationFinished(chunkX, chunkZ)) {
+                pending.remove(key, placements);
             }
         }
-
-        dirtyOwners.clear();
     }
 
-    @SubscribeEvent
-    public void unload(net.minecraftforge.event.world.ChunkEvent.Unload event) {
-        Chunk owner = event.getChunk();
-        World world = event.getWorld();
-
-        if (world.isRemote || world.provider.getDimension() != 0) {
+    public void unload(ChunkEvent.Unload event) {
+        if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-
-        long key = ExistingChunkIndex.key(owner.x, owner.z);
-        List<Placement> placements = pending.remove(key);
-
-        dirtyOwners.remove(key);
-
-        if (placements != null) {
-            validate(world, owner.x, owner.z, placements);
+        if (world.isClientSide() || !isOverworld(world)) {
+            return;
         }
+        long key = ExistingChunkIndex.key(event.getChunk().getPos().x(), event.getChunk().getPos().z());
+        dirtyOwners.remove(key);
+        pending.remove(key);
     }
 
-    private void validate(World world, int chunkX, int chunkZ, List<Placement> placements) {
-        Chunk owner = loaded(world, chunkX, chunkZ);
+    private boolean neighbouringDecorationFinished(int chunkX, int chunkZ) {
+        for (int neighbourZ = chunkZ - 1; neighbourZ <= chunkZ + 1; neighbourZ++) {
+            for (int neighbourX = chunkX - 1; neighbourX <= chunkX + 1; neighbourX++) {
+                if (!populated.contains(ExistingChunkIndex.key(neighbourX, neighbourZ))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean validate(LevelAccessor world, int chunkX, int chunkZ, List<FeatureDecorator> placements) {
+        ChunkAccess owner = loaded(world, chunkX, chunkZ);
 
         if (owner == null) {
-            return;
+            return false;
         }
 
         // Plan repairs from one snapshot. Replace only our unchanged caps; never restore a decorator's old terrain.
-        Map<Placement, IBlockState> repairs = new LinkedHashMap<>();
-        Map<Placement, TerrainMaterial> materials = new HashMap<>();
-        List<StructureBoundingBox> structures = StructureProtection.bounds(world, chunkX << 4, chunkZ << 4);
+        Map<FeatureDecorator, BlockState> repairs = new LinkedHashMap<>();
+        Map<FeatureDecorator, TerrainMaterial> materials = new HashMap<>();
+        StructureProtection structures = structures(world, owner);
+        if (!structures.canInspectSafely()) {
+            return false;
+        }
 
-        for (Placement placement : placements) {
-            IBlockState support = owner.getBlockState(placement.pos.down());
+        for (FeatureDecorator placement : placements) {
+            BlockState support = owner.getBlockState(placement.pos.below());
             TerrainMaterial material = placement.material;
-            boolean blocked = placement.cave && !caveHeadroom(world, owner, placement.pos.down());
-            boolean raisesLip = raisesLowerEdge(world, placement.pos.down(), placement.state);
-            boolean unsupported = !material.sources.contains(support) && !support.equals(material.supportAfterPlacement)
+            boolean blocked = placement.cave && !caveHeadroom(world, owner, placement.pos.below());
+            boolean raisesLip = raisesLowerEdge(world, placement.pos.below(), placement.state);
+            boolean unsupported = catalogue.source(support) != material && !support.equals(material.supportAfterPlacement)
                     && !oreSupport(support);
 
             // Keep ore veins hidden beneath existing caps, but never use ore as a new smoothing source.
-            if ((blocked || raisesLip || unsupported) && owner.getBlockState(placement.pos).equals(placement.state)) {
+            if ((blocked || raisesLip || unsupported) && sameState(owner.getBlockState(placement.pos), placement.state)) {
                 boolean ourDirt = placement.dirtifiedSupport != null
                         && support.equals(placement.dirtifiedSupport)
-                        && material.sources.contains(placement.originalSupport);
+                        && catalogue.source(placement.originalSupport) == material;
                 TerrainMaterial replacement = ourDirt ? material : catalogue.source(support);
-                IBlockState result = null;
+                BlockState result = null;
 
                 if (!blocked && replacement != null && (!replacement.grass || GrassSlabsApi.grassGenerationAllowed())
                         && (!replacement.mineralogy || SkysTerrainSmoother.mineralogy)
-                        && support.isSideSolid(world, placement.pos.down(), EnumFacing.UP)
-                        && !support.getBlock().hasTileEntity(support)
-                        && owner.getTileEntity(placement.pos, Chunk.EnumCreateEntityType.CHECK) == null
-                        && !StructureProtection.contains(structures, placement.pos)
-                        && !StructureProtection.contains(structures, placement.pos.down())
-                        && catalogue.allows(replacement, world.getBiome(placement.pos), 0, placement.pos)) {
+                        && support.isCollisionShapeFullBlock(world, placement.pos.below())
+                        && !support.hasBlockEntity()
+                        && owner.getBlockEntity(placement.pos) == null
+                        && !structures.contains(placement.pos)
+                        && !structures.contains(placement.pos.below())
+                        && catalogue.allows(replacement, world.getBiome(placement.pos).value(), 0, placement.pos)) {
                     int localBlockX = placement.pos.getX() & 15;
                     int localBlockZ = placement.pos.getZ() & 15;
                     int supportY = placement.pos.getY() - 1;
@@ -259,72 +244,75 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    result = transitionResult(world, placement.pos.down(), replacement,
+                    result = transitionResult(world, placement.pos.below(), replacement,
                             Footprint.mask(cardinal, diagonal, placement.level), placement.level);
                 }
 
-                repairs.put(placement, result == null ? Blocks.AIR.getDefaultState() : result);
+                repairs.put(placement, result == null ? Blocks.AIR.defaultBlockState() : result);
                 materials.put(placement, replacement);
             }
         }
 
         boolean changed = false;
 
-        for (Map.Entry<Placement, IBlockState> repair : repairs.entrySet()) {
-            Placement placement = repair.getKey();
+        for (Map.Entry<FeatureDecorator, BlockState> repair : repairs.entrySet()) {
+            FeatureDecorator placement = repair.getKey();
 
-            if (!owner.getBlockState(placement.pos).equals(placement.state)) {
+            if (!sameState(owner.getBlockState(placement.pos), placement.state)) {
                 continue;
             }
 
-            IBlockState state = repair.getValue();
-            IBlockState supportBefore = owner.getBlockState(placement.pos.down());
+            BlockState state = repair.getValue();
+            BlockState supportBefore = owner.getBlockState(placement.pos.below());
             TerrainMaterial previousMaterial = placement.material;
             boolean ourDirt = placement.dirtifiedSupport != null
                     && supportBefore.equals(placement.dirtifiedSupport)
-                    && previousMaterial.sources.contains(placement.originalSupport);
+                    && catalogue.source(placement.originalSupport) == previousMaterial;
 
-            changed |= setGenerationState(owner, placement.pos, state);
-            placement.state = state;
+            changed |= setGenerationState(world, owner, placement.pos, state);
+            placement.state = owner.getBlockState(placement.pos);
             placement.material = materials.get(placement);
 
-            IBlockState supportAfter = placement.material != null && state.getBlock() != Blocks.AIR
+            BlockState supportAfter = placement.material != null && state.getBlock() != Blocks.AIR
                     ? supportAfterPlacement(placement.material, state) : null;
             if (supportAfter != null) {
                 if (!ourDirt || previousMaterial != placement.material) {
                     placement.originalSupport = supportBefore;
                 }
-                changed |= setGenerationState(owner, placement.pos.down(), supportAfter);
+                changed |= setGenerationState(world, owner, placement.pos.below(), supportAfter);
                 placement.dirtifiedSupport = placement.material.grass
                         && !supportAfter.equals(placement.originalSupport) ? supportAfter : null;
             } else {
                 // Shrinking our own slab exposes its old grass. Never undo a decorator's replacement terrain.
                 if (ourDirt && previousMaterial == placement.material && state.getBlock() != Blocks.AIR) {
-                    changed |= setGenerationState(owner, placement.pos.down(), placement.originalSupport);
+                    changed |= setGenerationState(world, owner, placement.pos.below(), placement.originalSupport);
                 }
                 placement.dirtifiedSupport = null;
             }
         }
         if (changed) {
-            owner.generateSkylightMap();
-            owner.markDirty();
+            owner.markUnsaved();
         }
 
         placements.removeIf(placement -> placement.state.getBlock() == Blocks.AIR);
         // Biome decoration can introduce new grass oases as well as beaches. Re-snapshot registered dry floors only in
         // this tracked fresh owner; occupied targets and existing saved chunks remain untouched.
-        placed += smooth(world, owner, SkysTerrainSmoother.level, true);
+        int additional = smooth(world, owner, SkysTerrainSmoother.level, true);
+        synchronized (this) {
+            placed += additional;
+        }
+        return true;
     }
 
-    /** Calculate all placements before writing. Normal generation calls this through the event. */
-    public int smooth(World world, Chunk owner, int level) {
+    /** Calculate all placements before writing. Normal generation calls this through the feature. */
+    public int smooth(LevelAccessor world, ChunkAccess owner, int level) {
         return smooth(world, owner, level, false);
     }
 
-    private int smooth(World world, Chunk owner, int level, boolean afterDecoration) {
+    private int smooth(LevelAccessor world, ChunkAccess owner, int level, boolean afterDecoration) {
         Footprint.validateLevel(level);
 
-        long key = ExistingChunkIndex.key(owner.x, owner.z);
+        long key = ExistingChunkIndex.key(owner.getPos().x(), owner.getPos().z());
 
         if (afterDecoration && !pending.containsKey(key)) {
             return 0;
@@ -334,10 +322,13 @@ public final class SmoothingEngine {
 
         buffer.clear();
 
-        int startX = owner.x << 4;
-        int startZ = owner.z << 4;
+        int startX = owner.getPos().x() << 4;
+        int startZ = owner.getPos().z() << 4;
 
-        List<StructureBoundingBox> structures = StructureProtection.bounds(world, startX, startZ);
+        StructureProtection structures = structures(world, owner);
+        if (!structures.canInspectSafely()) {
+            return 0;
+        }
         boolean grassAllowed = GrassSlabsApi.grassGenerationAllowed();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 
@@ -346,23 +337,23 @@ public final class SmoothingEngine {
                 int surfaceY = SmoothingFoliage.surfaceHeight(owner, localBlockX, localBlockZ, startX, startZ);
 
                 // Visit upward-facing floors at every depth. Finish every decision before the first world write.
-                if (surfaceY < 0) {
+                if (surfaceY < owner.getMinY()) {
                     continue;
                 }
 
-                IBlockState previous = owner.getBlockState(
-                        cursor.setPos(startX + localBlockX, Math.min(surfaceY, 254) + 1, startZ + localBlockZ));
+                BlockState previous = owner.getBlockState(
+                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxY() - 1) + 1, startZ + localBlockZ));
 
-                for (int floorY = Math.min(surfaceY, 254); floorY >= 0; --floorY) {
-                    IBlockState lower = owner
-                            .getBlockState(cursor.setPos(startX + localBlockX, floorY, startZ + localBlockZ));
-                    IBlockState above = previous;
+                for (int floorY = Math.min(surfaceY, owner.getMaxY() - 1); floorY >= owner.getMinY(); --floorY) {
+                    BlockState lower = owner
+                            .getBlockState(cursor.set(startX + localBlockX, floorY, startZ + localBlockZ));
+                    BlockState above = previous;
 
                     previous = lower;
 
                     // Ignore thin natural cover when finding a floor, but never tunnel through occupied terrain.
-                    if (above.getMaterial() != Material.AIR && !SmoothingFoliage.isCover(above)
-                            || lower.getMaterial() == Material.AIR) {
+                    if (!above.isAir() && !SmoothingFoliage.isCover(above)
+                            || lower.isAir()) {
                         continue;
                     }
 
@@ -374,18 +365,18 @@ public final class SmoothingEngine {
                     }
 
                     BlockPos support = new BlockPos(startX + localBlockX, floorY, startZ + localBlockZ);
-                    BlockPos target = support.up();
+                    BlockPos target = support.above();
 
                     boolean cave = floorY < surfaceY;
 
                     if (cave && !caveHeadroom(world, owner, support)
-                            || !lower.isSideSolid(world, support, EnumFacing.UP)
+                            || !lower.isCollisionShapeFullBlock(world, support)
                             || !SmoothingFoliage.canReplace(world, owner, target)
-                            || lower.getBlock().hasTileEntity(lower)
-                            || owner.getTileEntity(target, Chunk.EnumCreateEntityType.CHECK) != null
-                            || StructureProtection.contains(structures, target)
-                            || StructureProtection.contains(structures, support)
-                            || !catalogue.allows(material, world.getBiome(target), 0, target)) {
+                            || lower.hasBlockEntity()
+                            || owner.getBlockEntity(target) != null
+                            || structures.contains(target)
+                            || structures.contains(support)
+                            || !catalogue.allows(material, world.getBiome(target).value(), 0, target)) {
                         continue;
                     }
 
@@ -406,7 +397,7 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    IBlockState result = transitionResult(world, support, material,
+                    BlockState result = transitionResult(world, support, material,
                             Footprint.mask(cardinal, diagonal, level), level);
 
                     if (result != null) {
@@ -417,92 +408,99 @@ public final class SmoothingEngine {
         }
 
         int count = 0;
-        List<Placement> placements = new ArrayList<>();
+        List<FeatureDecorator> placements = new ArrayList<>();
 
         for (int index = 0; index < buffer.size; ++index) {
             int position = buffer.positions[index];
             BlockPos target = new BlockPos(startX + (position & 15), position >> 8, startZ + ((position >> 4) & 15));
-            IBlockState above = owner.getBlockState(target);
+            BlockState above = owner.getBlockState(target);
 
             if (!above.equals(buffer.originalTargets[index]) || !SmoothingFoliage.canReplace(world, owner, target)) {
                 continue;
             }
-            IBlockState originalSupport = owner.getBlockState(target.down());
-            if (setGenerationState(owner, target, buffer.results[index])) {
-                if (above.getBlock() == Blocks.DOUBLE_PLANT) {
-                    setGenerationState(owner, target.up(), Blocks.AIR.getDefaultState());
+            BlockState originalSupport = owner.getBlockState(target.below());
+            if (setGenerationState(world, owner, target, buffer.results[index])) {
+                if (above.getBlock() instanceof DoublePlantBlock) {
+                    setGenerationState(world, owner, target.above(), Blocks.AIR.defaultBlockState());
                 }
                 if (buffer.supports[index] != null) {
-                    setGenerationState(owner, target.down(), buffer.supports[index]);
+                    setGenerationState(world, owner, target.below(), buffer.supports[index]);
                 }
 
-                placements.add(new Placement(target, buffer.results[index], buffer.materials[index], level,
+                placements.add(new FeatureDecorator(target, owner.getBlockState(target), buffer.materials[index], level,
                         buffer.caves[index], originalSupport));
                 ++count;
             }
         }
         if (count > 0) {
-            owner.generateSkylightMap();
-            owner.markDirty();
+            owner.markUnsaved();
         }
         if (afterDecoration) {
             pending.get(key).addAll(placements);
         } else {
             // Decoration can create new floors. Track this owner until its bordering decorators finish.
-            pending.put(key, placements);
+            pending.put(key, Collections.synchronizedList(placements));
             dirtyOwners.add(key);
         }
 
         return count;
     }
 
-    private static boolean setGenerationState(Chunk owner, BlockPos pos, IBlockState state) {
-        if (pos.getY() < 0 || pos.getY() > 255 || pos.getX() >> 4 != owner.x || pos.getZ() >> 4 != owner.z) {
+    private static boolean setGenerationState(LevelAccessor world, ChunkAccess owner, BlockPos position, BlockState state) {
+        if (position.getY() < owner.getMinY() || position.getY() > owner.getMaxY()
+                || position.getX() >> 4 != owner.getPos().x() || position.getZ() >> 4 != owner.getPos().z()) {
             throw new IllegalArgumentException("Terrain smoothing cannot write outside its owning chunk");
         }
-        if (owner.getBlockState(pos).equals(state)) {
+        BlockState before = owner.getBlockState(position);
+        if (before.equals(state)) {
             return false;
         }
-
-        ExtendedBlockStorage[] storage = owner.getBlockStorageArray();
-        int index = pos.getY() >> 4;
-        ExtendedBlockStorage section = storage[index];
-
-        if (section == Chunk.NULL_BLOCK_STORAGE) {
-            section = new ExtendedBlockStorage(index << 4, owner.getWorld().provider.hasSkyLight());
-            storage[index] = section;
+        owner.setBlockState(position, state, 0);
+        BlockState actual = owner.getBlockState(position);
+        if (world instanceof Level && owner.getPersistedStatus() == ChunkStatus.FULL && !before.equals(actual)) {
+            // A late repair may follow the chunk's first packet. Notify tracked clients
+            // without running neighbour placement logic outside this owner.
+            ((Level) world).sendBlockUpdated(position, before, actual, 2);
         }
-
-        // Chunk#setBlockState can start cross-chunk lighting work in 1.12. Update storage here, then rebuild only the
-        // owning chunk's light map.
-        section.set(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, state);
-        return true;
+        return sameState(actual, state);
     }
 
-    private IBlockState transitionResult(World world, BlockPos support, TerrainMaterial material, int mask, int level) {
+    private static boolean sameState(BlockState first, BlockState second) {
+        // Nearby snow can update the visual property between decoration callbacks.
+        // Geometry, material and water state must still match our original cap.
+        if (first.hasProperty(BlockStateProperties.SNOWY)) {
+            first = first.setValue(BlockStateProperties.SNOWY, false);
+        }
+        if (second.hasProperty(BlockStateProperties.SNOWY)) {
+            second = second.setValue(BlockStateProperties.SNOWY, false);
+        }
+        return first.equals(second);
+    }
+
+    private BlockState transitionResult(LevelAccessor world, BlockPos support, TerrainMaterial material, int mask, int level) {
         int lowerEdges = lowerEdges(world, support);
         int safeMask = Footprint.trimDownhillEdges(mask, lowerEdges);
-        IBlockState result = catalogue.result(material, safeMask, level);
+        BlockState result = catalogue.result(material, safeMask, level);
 
         // Missing finer shapes fall back to slabs. Check the real result, not just the requested footprint.
         return result != null && (touchingEdges(result) & lowerEdges) == 0 ? result : null;
     }
 
-    private static IBlockState supportAfterPlacement(TerrainMaterial material, IBlockState piece) {
+    private static BlockState supportAfterPlacement(TerrainMaterial material, BlockState piece) {
         // A slab hides the whole surface. Finer grass pieces must leave the visible ground grassy.
-        return material.grass && !GrassSlabsApi.coversSupport(piece, EmptyAccess.INSTANCE, BlockPos.ORIGIN)
+        return material.grass && !GrassSlabsApi.coversSupport(piece, EmptyAccess.INSTANCE, BlockPos.ZERO)
                 ? null : material.supportAfterPlacement;
     }
 
-    private boolean raisesLowerEdge(World world, BlockPos support, IBlockState result) {
+    private boolean raisesLowerEdge(LevelAccessor world, BlockPos support, BlockState result) {
         return (touchingEdges(result) & lowerEdges(world, support)) != 0;
     }
 
-    private int touchingEdges(IBlockState result) {
+    private int touchingEdges(BlockState result) {
         Integer edges = pieceEdges.get(result);
 
         if (edges == null) {
-            AxisAlignedBB bounds = result.getBoundingBox(EmptyAccess.INSTANCE, BlockPos.ORIGIN);
+            AABB bounds = result.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO).bounds();
             edges = (bounds.minZ == 0 ? 1 : 0) | (bounds.maxX == 1 ? 2 : 0)
                     | (bounds.maxZ == 1 ? 4 : 0) | (bounds.minX == 0 ? 8 : 0);
             pieceEdges.put(result, edges);
@@ -515,30 +513,30 @@ public final class SmoothingEngine {
      * Two caps on consecutive one-block rises recreate a full-block step. Leave the downhill lip alone, but
      * allow the remaining uphill half or quarter where the chosen smoothing level has a matching piece.
      */
-    private int lowerEdges(World world, BlockPos support) {
+    private int lowerEdges(LevelAccessor world, BlockPos support) {
         int edges = 0;
 
         for (int direction = 0; direction < 4; direction++) {
-            BlockPos beside = support.add(DX[direction], 0, DZ[direction]);
-            Chunk neighbour = loaded(world, beside.getX() >> 4, beside.getZ() >> 4);
+            BlockPos beside = support.offset(DX[direction], 0, DZ[direction]);
+            ChunkAccess neighbour = loaded(world, beside.getX() >> 4, beside.getZ() >> 4);
 
             // This is a downhill veto, not another source of higher terrain. Read only the loaded halo.
             if (neighbour == null) {
                 continue;
             }
 
-            IBlockState atLip = neighbour.getBlockState(beside);
+            BlockState atLip = neighbour.getBlockState(beside);
             if (catalogue.piece(atLip) != null) {
                 edges |= 1 << direction;
                 continue;
             }
-            if (atLip.getMaterial() == Material.AIR || SmoothingFoliage.isPlant(atLip)
-                    || atLip.getBlock() == Blocks.SNOW_LAYER) {
-                BlockPos lowerFloor = beside.down();
-                IBlockState below = neighbour.getBlockState(lowerFloor);
+            if (atLip.isAir() || SmoothingFoliage.isPlant(atLip)
+                    || atLip.getBlock() == Blocks.SNOW) {
+                BlockPos lowerFloor = beside.below();
+                BlockState below = neighbour.getBlockState(lowerFloor);
 
-                if (below.isFullCube() && below.isSideSolid(world, lowerFloor, EnumFacing.UP)
-                        && !below.getBlock().hasTileEntity(below)) {
+                if (fullCollision(below) && below.isCollisionShapeFullBlock(world, lowerFloor)
+                        && !below.hasBlockEntity()) {
                     edges |= 1 << direction;
                 }
             }
@@ -547,17 +545,17 @@ public final class SmoothingEngine {
         return edges;
     }
 
-    private boolean caveHeadroom(World world, Chunk owner, BlockPos support) {
+    private boolean caveHeadroom(LevelAccessor world, ChunkAccess owner, BlockPos support) {
         // Three clear blocks leave 2.5 blocks above a new cap. A two-block tunnel must stay walkable.
-        if (support.getY() > 252) {
+        if (support.getY() + 3 > owner.getMaxY()) {
             return false;
         }
         for (int height = 2; height <= 3; height++) {
-            BlockPos pos = support.up(height);
-            IBlockState state = owner.getBlockState(pos);
+            BlockPos pos = support.above(height);
+            BlockState state = owner.getBlockState(pos);
 
-            if (state.getMaterial() != Material.AIR || !state.getBlock().isAir(state, world, pos)
-                    || owner.getTileEntity(pos, Chunk.EnumCreateEntityType.CHECK) != null) {
+            if (!state.isAir()
+                    || owner.getBlockEntity(pos) != null) {
                 return false;
             }
         }
@@ -565,45 +563,30 @@ public final class SmoothingEngine {
         return true;
     }
 
-    private boolean oreSupport(IBlockState state) {
+    private boolean oreSupport(BlockState state) {
         Boolean cached = oreSupports.get(state);
 
         if (cached != null) {
             return cached;
         }
 
-        boolean isOre = false;
-
-        if (state.isFullCube() && !state.getBlock().hasTileEntity(state) && !state.getMaterial().isLiquid()) {
-            isOre = state.getBlock() instanceof BlockOre || state.getBlock() instanceof BlockRedstoneOre;
-
-            if (!isOre) {
-                ItemStack stack = new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state));
-
-                if (stack.getItem() != null) {
-                    for (int oreId : OreDictionary.getOreIDs(stack)) {
-                        if (OreDictionary.getOreName(oreId).startsWith("ore")) {
-                            isOre = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        // The experience-dropping block class also covers non-ores such as sculk.
+        boolean isOre = fullCollision(state) && !state.hasBlockEntity()
+                && !state.liquid() && state.is(Tags.Blocks.ORES);
 
         oreSupports.put(state, isOre);
         return isOre;
     }
 
-    private boolean higher(World world, Chunk owner, int localX, int localZ, int lowerY) {
+    private boolean higher(LevelAccessor world, ChunkAccess owner, int localX, int localZ, int lowerY) {
         if (!Footprint.allowedNeighbour(localX, localZ)) {
             return false;
         }
 
-        int worldX = (owner.x << 4) + localX;
-        int worldZ = (owner.z << 4) + localZ;
+        int worldX = (owner.getPos().x() << 4) + localX;
+        int worldZ = (owner.getPos().z() << 4) + localZ;
 
-        Chunk neighbour = loaded(world, worldX >> 4, worldZ >> 4);
+        ChunkAccess neighbour = loaded(world, worldX >> 4, worldZ >> 4);
 
         if (neighbour == null) {
             return false;
@@ -611,33 +594,53 @@ public final class SmoothingEngine {
 
         // Compare logical floors at this height, including existing caps over BOP's native soil.
         BlockPos floor = new BlockPos(worldX, lowerY + 1, worldZ);
-        IBlockState state = neighbour.getBlockState(floor);
-        IBlockState above = neighbour.getBlockState(floor.up());
+        BlockState state = neighbour.getBlockState(floor);
+        BlockState above = neighbour.getBlockState(floor.above());
 
         TerrainMaterial source = catalogue.source(state);
         TerrainMaterial cap = catalogue.piece(above);
 
         if (cap != null) {
-            return source != null || cap.sources.contains(state)
+            return source != null || catalogue.source(state) == cap
                     || cap.supportAfterPlacement != null && state.equals(cap.supportAfterPlacement)
                     || oreSupport(state);
         }
 
-        return source != null && SmoothingFoliage.canReplace(world, neighbour, floor.up());
+        return source != null && SmoothingFoliage.canReplace(world, neighbour, floor.above());
+    }
+
+    private static boolean isOverworld(LevelAccessor world) {
+        if (world instanceof Level) {
+            return ((Level) world).dimension() == Level.OVERWORLD;
+        }
+        return world instanceof WorldGenLevel && ((WorldGenLevel) world).getLevel().dimension() == Level.OVERWORLD;
     }
 
     /** A missing neighbour is unavailable, never a reason to request or generate another chunk. */
-    private static Chunk loaded(World world, int chunkX, int chunkZ) {
-        return world.getChunkProvider() instanceof ChunkProviderServer
-                ? ((ChunkProviderServer) world.getChunkProvider()).getLoadedChunk(chunkX, chunkZ)
-                : null;
+    private static ChunkAccess loaded(LevelAccessor world, int chunkX, int chunkZ) {
+        if (world instanceof WorldGenRegion) {
+            return world.hasChunk(chunkX, chunkZ) ? world.getChunk(chunkX, chunkZ) : null;
+        }
+        // getChunk(..., false) can still wait for an existing holder's future.
+        // This native lookup uses getNow and returns null while generation is unfinished.
+        return world.getChunkSource() instanceof ServerChunkCache
+                ? ((ServerChunkCache) world.getChunkSource()).getChunkNow(chunkX, chunkZ) : null;
+    }
+
+    private static StructureProtection structures(LevelAccessor world, ChunkAccess owner) {
+        return StructureProtection.read(owner, position -> loaded(world, position.x(), position.z()));
+    }
+
+    private static boolean fullCollision(BlockState state) {
+        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
+                Shapes.block(), BooleanOp.NOT_SAME);
     }
 
     private static final class Decisions {
         int size;
         int[] positions = new int[256];
-        IBlockState[] results = new IBlockState[256], supports = new IBlockState[256];
-        IBlockState[] originalTargets = new IBlockState[256];
+        BlockState[] results = new BlockState[256], supports = new BlockState[256];
+        BlockState[] originalTargets = new BlockState[256];
         TerrainMaterial[] materials = new TerrainMaterial[256];
         boolean[] caves = new boolean[256];
 
@@ -649,7 +652,7 @@ public final class SmoothingEngine {
             size = 0;
         }
 
-        void add(int position, IBlockState result, TerrainMaterial material, boolean cave, IBlockState originalTarget) {
+        void add(int position, BlockState result, TerrainMaterial material, boolean cave, BlockState originalTarget) {
             if (size == positions.length) {
                 int capacity = positions.length * 2;
 
@@ -670,24 +673,24 @@ public final class SmoothingEngine {
         }
     }
 
-    private static final class Placement {
+    private static final class FeatureDecorator {
         final BlockPos pos;
-        IBlockState state;
+        BlockState state;
         TerrainMaterial material;
-        IBlockState originalSupport;
-        IBlockState dirtifiedSupport;
+        BlockState originalSupport;
+        BlockState dirtifiedSupport;
         final int level;
         final boolean cave;
 
-        Placement(BlockPos pos, IBlockState state, TerrainMaterial material, int level, boolean cave,
-                IBlockState originalSupport) {
+        FeatureDecorator(BlockPos pos, BlockState state, TerrainMaterial material, int level, boolean cave,
+                BlockState originalSupport) {
             this.pos = pos;
             this.state = state;
             this.material = material;
             this.level = level;
             this.cave = cave;
             this.originalSupport = originalSupport;
-            IBlockState dirt = supportAfterPlacement(material, state);
+            BlockState dirt = supportAfterPlacement(material, state);
             this.dirtifiedSupport = material.grass && dirt != null && !dirt.equals(originalSupport) ? dirt : null;
         }
     }

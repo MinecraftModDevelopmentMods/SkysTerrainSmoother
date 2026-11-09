@@ -22,6 +22,6 @@ class EclipseDependencyContractTest {
         assertTrue(build.contains("Eclipse Buildship retained an incorrect Building Pieces version override"));
         assertTrue(build.contains("grassLibraries != [grassSlabsDevelopmentJar.canonicalFile]"));
         assertTrue(build.contains("piecesLibraries != [buildingPiecesDevelopmentJar.canonicalFile]"));
-        assertTrue(build.contains("expected ${expectedVersion}, found ${metadata.mod_version}"));
+        assertTrue(build.contains("expected ${selected.version}, found ${metadata.mod_version}"));
     }
 }

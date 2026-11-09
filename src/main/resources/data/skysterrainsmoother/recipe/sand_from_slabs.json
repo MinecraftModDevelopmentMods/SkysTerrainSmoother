@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "skysterrainsmoother/full_blocks",
+  "pattern": [
+    "SS"
+  ],
+  "key": {
+    "S": "skysterrainsmoother:sand_slab"
+  },
+  "result": {
+    "id": "minecraft:sand"
+  }
+}

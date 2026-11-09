@@ -10,7 +10,14 @@ public final class ExistingChunkIndex {
     private final Map<Long, BitSet> regions = new HashMap<>();
 
     public ExistingChunkIndex(File worldDirectory) throws IOException {
-        File folder = new File(worldDirectory, "region");
+        // Minecraft 26.1 moved the Overworld's region files under its dimension directory.
+        // Keep older saves protected too, including any regions still in the old location.
+        readRegions(worldDirectory.toPath().resolve("dimensions").resolve("minecraft")
+                .resolve("overworld").resolve("region").toFile());
+        readRegions(new File(worldDirectory, "region"));
+    }
+
+    private void readRegions(File folder) throws IOException {
 
         if (!folder.exists()) {
             return;
@@ -27,6 +34,11 @@ public final class ExistingChunkIndex {
             if (!matcher.matches()) {
                 continue;
             }
+            // Forge may open a neighbouring region without ever saving a chunk
+            // into it. That leaves an empty file, with no saved entries to index.
+            if (file.length() == 0) {
+                continue;
+            }
 
             int regionX = Integer.parseInt(matcher.group(1));
             int regionZ = Integer.parseInt(matcher.group(2));
@@ -41,7 +53,7 @@ public final class ExistingChunkIndex {
                 }
             }
 
-            regions.put(key(regionX, regionZ), entries);
+            regions.computeIfAbsent(key(regionX, regionZ), ignored -> new BitSet(1024)).or(entries);
         }
     }
 

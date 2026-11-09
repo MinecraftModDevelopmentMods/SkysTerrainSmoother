@@ -3,20 +3,21 @@ package zone.moddev.mc.skysterrainsmoother.api;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.resources.Identifier;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /** Immutable exact-state mapping. Direction order is north, east, south, west. */
 public final class TerrainMaterial {
-    public final ResourceLocation id;
-    public final Set<IBlockState> sources;
+    public final Identifier id;
+    public final Set<BlockState> sources;
     public final boolean grass;
     public final boolean mineralogy;
-    public final IBlockState slab, supportAfterPlacement;
-    private final IBlockState[] steps, corners;
+    public final BlockState slab, supportAfterPlacement;
+    private final BlockState[] steps, corners;
 
-    public TerrainMaterial(ResourceLocation materialId, Set<IBlockState> sources, IBlockState slab, IBlockState[] steps,
-            IBlockState[] corners, boolean grass, IBlockState supportAfterPlacement) {
+    public TerrainMaterial(Identifier materialId, Set<BlockState> sources, BlockState slab, BlockState[] steps,
+            BlockState[] corners, boolean grass, BlockState supportAfterPlacement) {
         if (materialId == null || sources == null || sources.isEmpty() || slab == null) {
             throw new IllegalArgumentException("A material requires an identity, exact full states and a slab");
         }
@@ -31,12 +32,12 @@ public final class TerrainMaterial {
 
         boolean mineral = false;
 
-        for (IBlockState source : this.sources) {
+        for (BlockState source : this.sources) {
             if (source == null) {
                 throw new IllegalArgumentException("A source cannot be null");
             }
 
-            ResourceLocation name = source.getBlock().getRegistryName();
+            Identifier name = ForgeRegistries.BLOCKS.getKey(source.getBlock());
 
             if (name != null && name.getNamespace().equals("mineralogy")) {
                 mineral = true;
@@ -47,9 +48,9 @@ public final class TerrainMaterial {
     }
 
     /** Copy complete directional sets so callers cannot alter a registered material afterwards. */
-    private static IBlockState[] copyShapes(IBlockState[] shapes) {
+    private static BlockState[] copyShapes(BlockState[] shapes) {
         if (shapes == null) {
-            return new IBlockState[4];
+            return new BlockState[4];
         }
         if (shapes.length != 4) {
             throw new IllegalArgumentException("Provide all four directions");
@@ -57,7 +58,7 @@ public final class TerrainMaterial {
 
         int present = 0;
 
-        for (IBlockState state : shapes) {
+        for (BlockState state : shapes) {
             if (state != null) {
                 ++present;
             }
@@ -69,15 +70,15 @@ public final class TerrainMaterial {
         return shapes.clone();
     }
 
-    public IBlockState step(int direction) {
+    public BlockState step(int direction) {
         return steps[direction];
     }
 
-    public IBlockState corner(int direction) {
+    public BlockState corner(int direction) {
         return corners[direction];
     }
 
-    public TerrainMaterial withAdditionalShapes(IBlockState[] addedSteps, IBlockState[] addedCorners) {
+    public TerrainMaterial withAdditionalShapes(BlockState[] addedSteps, BlockState[] addedCorners) {
         if (addedSteps != null && steps[0] != null || addedCorners != null && corners[0] != null) {
             throw new IllegalArgumentException("An add-on may supply missing shapes, not replace existing shapes");
         }

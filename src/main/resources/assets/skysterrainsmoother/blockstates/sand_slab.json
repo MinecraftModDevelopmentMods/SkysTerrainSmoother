@@ -1,16 +1,10 @@
 {
   "variants": {
-    "half=bottom,variant=sand": {
-      "model": "skysterrainsmoother:sand_slab"
+    "type=top": {
+      "model": "skysterrainsmoother:block/sand_slab_top"
     },
-    "half=top,variant=sand": {
-      "model": "skysterrainsmoother:sand_slab_top"
-    },
-    "half=bottom,variant=red_sand": {
-      "model": "skysterrainsmoother:red_sand_slab"
-    },
-    "half=top,variant=red_sand": {
-      "model": "skysterrainsmoother:red_sand_slab_top"
+    "type=bottom": {
+      "model": "skysterrainsmoother:block/sand_slab"
     }
   }
 }
