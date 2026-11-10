@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1.121012
+
+- Gentle surface terraces use full-width slabs at smoothing levels 2 and 3, giving each rise a wider tread.
+
 ## 0.1.0.121012
 
 - Updated for Minecraft 1.21.1 on NeoForge.

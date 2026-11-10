@@ -38,6 +38,12 @@ final class TransitionProbe {
                         BlockPos upperCap = origin.relative(uphill).above(2);
                         RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(lowCap)) == material,
                                 "the foot of a steep slope still receives its matching transition");
+                        BlockState step = material.step(direction(uphill));
+                        if (level >= 2 && step != null) {
+                            RuntimeProbe.require(world.getBlockState(lowCap).equals(step),
+                                    "the foot of consecutive rises keeps its uphill step");
+                            checks++;
+                        }
                         requireOpenDownhillEdge(world, upperCap, uphill.getOpposite(),
                                 "consecutive mountain ledges, level " + level + " / " + uphill);
                         RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loadedBefore,
@@ -48,9 +54,11 @@ final class TransitionProbe {
 
                         prepare(world, origin, uphill, source, true, roofed);
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
-                        RuntimeProbe.require(MaterialCatalogue.instance()
-                                .piece(world.getBlockState(origin.relative(uphill).above())) == material,
-                                "the bottom of a wider terrace is smoothed");
+                        BlockPos terraceCap = origin.relative(uphill).above();
+                        BlockState expected = roofed && level >= 2 && step != null ? step : material.slab;
+                        RuntimeProbe.require(world.getBlockState(terraceCap).equals(expected),
+                                "gentle surface terraces use a slab and cave terraces keep their existing shape: "
+                                        + source + " / " + uphill + " / level " + level + " / roofed " + roofed);
                         RuntimeProbe.require(MaterialCatalogue.instance()
                                 .piece(world.getBlockState(origin.relative(uphill, 3).above(2))) == material,
                                 "a wider upper terrace retains room for its own transition");
@@ -75,7 +83,7 @@ final class TransitionProbe {
             checks += 2;
         }
 
-        checks += borders(world) + lateLowerFloor(world, origin);
+        checks += borders(world) + gentleBorders(world) + lateLowerFloor(world, origin);
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_TRANSITIONS_PASS checks=" + checks);
         return checks;
     }
@@ -115,6 +123,40 @@ final class TransitionProbe {
             }
         }
         return checks;
+    }
+
+    private static int gentleBorders(ServerLevel world) {
+        TerrainMaterial material = MaterialCatalogue.instance().source(Blocks.STONE.defaultBlockState());
+        int checks = 0;
+        for (Direction uphill : new Direction[] { Direction.EAST, Direction.SOUTH }) {
+            BlockPos origin = uphill == Direction.EAST ? new BlockPos(3614, 210, 3656)
+                    : new BlockPos(3656, 210, 3614);
+            BlockPos low = origin.relative(uphill);
+            LevelChunk lowerOwner = world.getChunkAt(low);
+            LevelChunk upperOwner = world.getChunkAt(low.relative(uphill));
+            for (boolean reverse : new boolean[] { false, true }) {
+                prepare(world, origin, uphill, Blocks.STONE.defaultBlockState(), true, false);
+                int loadedBefore = world.getChunkSource().getLoadedChunksCount();
+                SkysTerrainSmoother.engine.smooth(world, reverse ? upperOwner : lowerOwner, 3);
+                SkysTerrainSmoother.engine.smooth(world, reverse ? lowerOwner : upperOwner, 3);
+                RuntimeProbe.require(world.getBlockState(low.above()).equals(material.slab),
+                        "the same gentle slab fits in both chunk orders: " + uphill);
+                RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loadedBefore,
+                        "terrace lookahead never loads a chunk");
+                checks += 2;
+            }
+        }
+        return checks;
+    }
+
+    private static int direction(Direction uphill) {
+        return switch (uphill) {
+            case NORTH -> 0;
+            case EAST -> 1;
+            case SOUTH -> 2;
+            case WEST -> 3;
+            default -> throw new IllegalArgumentException("Expected horizontal uphill direction");
+        };
     }
 
     private static int lateLowerFloor(ServerLevel world, BlockPos origin) {

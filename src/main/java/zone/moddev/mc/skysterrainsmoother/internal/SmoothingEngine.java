@@ -250,8 +250,8 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    result = transitionResult(world, placement.pos.below(), replacement,
-                            Footprint.mask(cardinal, diagonal, placement.level), placement.level);
+                    result = transitionResult(world, owner, placement.pos.below(), replacement,
+                            cardinal, diagonal, placement.level, placement.cave);
                 }
 
                 repairs.put(placement, result == null ? Blocks.AIR.defaultBlockState() : result);
@@ -403,8 +403,8 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    BlockState result = transitionResult(world, support, material,
-                            Footprint.mask(cardinal, diagonal, level), level);
+                    BlockState result = transitionResult(world, owner, support, material,
+                            cardinal, diagonal, level, cave);
 
                     if (result != null) {
                         buffer.add(localBlockX | localBlockZ << 4 | (floorY + 1) << 8, result, material, cave, above);
@@ -483,13 +483,36 @@ public final class SmoothingEngine {
         return first.equals(second);
     }
 
-    private BlockState transitionResult(LevelAccessor world, BlockPos support, TerrainMaterial material, int mask, int level) {
+    private BlockState transitionResult(LevelAccessor world, ChunkAccess owner, BlockPos support,
+            TerrainMaterial material, int cardinal, int diagonal, int level, boolean cave) {
+        int mask = Footprint.mask(cardinal, diagonal, level);
+        if (mask == 0) {
+            return null;
+        }
+
         int lowerEdges = lowerEdges(world, support);
         int safeMask = Footprint.trimDownhillEdges(mask, lowerEdges);
         BlockState result = catalogue.result(material, safeMask, level);
 
-        // Missing finer shapes fall back to slabs. Check the real result, not just the requested footprint.
-        return result != null && (touchingEdges(result) & lowerEdges) == 0 ? result : null;
+        // Missing finer shapes fall back to slabs. Check the actual piece against the downhill edges.
+        if (result == null || (touchingEdges(result) & lowerEdges) != 0) {
+            return null;
+        }
+
+        if (!cave && level >= 2 && lowerEdges == 0 && result != material.slab && Integer.bitCount(cardinal) == 1) {
+            int uphill = Integer.numberOfTrailingZeros(cardinal);
+            if (safeMask == Footprint.EDGES[uphill]) {
+                // A full slab gives a broader tread where both sides of a one-block rise have room.
+                int dx = DX[uphill];
+                int dz = DZ[uphill];
+                if (hasTerrainFloor(world, owner, support.offset(-dx, 0, -dz))
+                        && hasTerrainFloor(world, owner, support.offset(2 * dx, 1, 2 * dz))) {
+                    return material.slab;
+                }
+            }
+        }
+
+        return result;
     }
 
     private static BlockState supportAfterPlacement(TerrainMaterial material, BlockState piece) {
@@ -592,14 +615,19 @@ public final class SmoothingEngine {
         int worldX = (owner.getPos().x << 4) + localX;
         int worldZ = (owner.getPos().z << 4) + localZ;
 
-        ChunkAccess neighbour = loaded(world, worldX >> 4, worldZ >> 4);
+        return hasTerrainFloor(world, owner, new BlockPos(worldX, lowerY + 1, worldZ));
+    }
 
+    private boolean hasTerrainFloor(LevelAccessor world, ChunkAccess owner, BlockPos floor) {
+        int chunkX = floor.getX() >> 4;
+        int chunkZ = floor.getZ() >> 4;
+        ChunkAccess neighbour = chunkX == owner.getPos().x && chunkZ == owner.getPos().z
+                ? owner : loaded(world, chunkX, chunkZ);
         if (neighbour == null) {
             return false;
         }
 
-        // Compare logical floors at this height, including existing caps over BOP's native soil.
-        BlockPos floor = new BlockPos(worldX, lowerY + 1, worldZ);
+        // Read the same logical height before and after a neighbouring column is capped.
         BlockState state = neighbour.getBlockState(floor);
         BlockState above = neighbour.getBlockState(floor.above());
 
@@ -607,8 +635,7 @@ public final class SmoothingEngine {
         TerrainMaterial cap = catalogue.piece(above);
 
         if (cap != null) {
-            return source != null || catalogue.source(state) == cap
-                    || cap.supportAfterPlacement != null && state.equals(cap.supportAfterPlacement)
+            return source != null || cap.supportAfterPlacement != null && state.equals(cap.supportAfterPlacement)
                     || oreSupport(state);
         }
 
