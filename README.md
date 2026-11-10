@@ -14,8 +14,10 @@ Set `worldgen.smoothingLevel` in `config/skysterrainsmoother-common.toml`:
 3. **Slabs, steps and corners** - also uses pieces covering a quarter of a
    slab's footprint.
 
-Every smoothing piece is half a block tall. If a material doesn't have steps
-or corners, it uses its slab at higher levels wherever a slab fits safely.
+Every smoothing piece is half a block tall. Gentle surface terraces use a
+full-width slab when there is room on both sides of a one-block rise. If a
+material doesn't have steps or corners, it uses its slab at higher levels
+wherever a slab fits safely.
 
 Narrow mountain ledges keep their downhill edge at its original height, rather
 than gaining a row of slabs that recreates a full-block step. Wider terraces
@@ -52,7 +54,7 @@ For **Minecraft 26.3**, use **Forge 66.0.2** and **Java 25**, with:
 
 - Sky's Grass Slabs **1.2.0.2603001**.
 - Sky's Building Pieces **0.3.9.2603001**.
-- Sky's Terrain Smoother **0.1.0.2603001**.
+- Sky's Terrain Smoother **0.1.1.2603001**.
 
 Install all three main jars on both the client and server.
 

@@ -760,6 +760,11 @@ eclipse {
         downloadSources = true
         downloadJavadoc = true
         file.whenMerged { classpath ->
+            // Forge supplies MixinExtras at launch. Its common jar is only needed for compilation.
+            classpath.entries.removeAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.Library &&
+                        file(entry.path).name.startsWith('mixinextras-common-')
+            }
             // Eclipse copies these files on every build. Use Gradle's expanded metadata, never the template.
             def resources = classpath.entries.findAll {
                 it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder &&
@@ -889,6 +894,12 @@ tasks.register('verifyEclipseProductionClasspath') {
         }
         File metadata = file('bin/main/META-INF/mods.toml')
         def eclipseClasspath = new groovy.xml.XmlSlurper().parse(file('.classpath'))
+        def mixinExtrasLibraries = eclipseClasspath.classpathentry.findAll {
+            it.@kind == 'lib' && file(it.@path.text()).name.startsWith('mixinextras-')
+        }.collect { file(it.@path.text()).name }
+        if (mixinExtrasLibraries.size() != 1 || !mixinExtrasLibraries.first().startsWith('mixinextras-forge-')) {
+            throw new GradleException('Eclipse must use the MixinExtras runtime supplied by Forge')
+        }
         def piecesLibraries = eclipseClasspath.classpathentry.findAll {
             it.@kind == 'lib' && it.@path.text().tokenize('/\\').last().startsWith('SkysBuildingPieces-')
         }*.@path*.text().collect { file(it).canonicalFile }
