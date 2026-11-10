@@ -3,6 +3,7 @@
 ## 0.1.1.121012
 
 - Gentle surface terraces use full-width slabs at smoothing levels 2 and 3, giving each rise a wider tread.
+- Grass slabs, steps and corners take on their snowy look as the surrounding terrain generates.
 
 ## 0.1.0.121012
 

@@ -296,14 +296,25 @@ public final class SmoothingEngine {
                 placement.dirtifiedSupport = null;
             }
         }
-        if (changed) {
-            owner.setUnsaved(true);
-        }
-
         placements.removeIf(placement -> placement.state.getBlock() == Blocks.AIR);
         // Biome decoration can introduce new grass oases as well as beaches. Re-snapshot registered dry floors only in
         // this tracked fresh owner; occupied targets and existing saved chunks remain untouched.
         int additional = smooth(world, owner, SkysTerrainSmoother.level, true);
+
+        // Vanilla can add snow after our vegetation pass. Refresh the appearance once the terrain repairs are done.
+        for (FeatureDecorator placement : placements) {
+            if (placement.material.grass && placement.state.hasProperty(SnowyDirtBlock.SNOWY)) {
+                BlockState current = owner.getBlockState(placement.pos);
+                if (sameState(current, placement.state)) {
+                    BlockState snowy = withSnowAppearance(world, owner, placement.pos, current);
+                    changed |= setGenerationState(world, owner, placement.pos, snowy);
+                }
+            }
+        }
+        if (changed) {
+            owner.setUnsaved(true);
+        }
+
         synchronized (this) {
             placed += additional;
         }
@@ -407,6 +418,9 @@ public final class SmoothingEngine {
                             cardinal, diagonal, level, cave);
 
                     if (result != null) {
+                        if (material.grass && result.hasProperty(SnowyDirtBlock.SNOWY)) {
+                            result = withSnowAppearance(world, owner, target, result);
+                        }
                         buffer.add(localBlockX | localBlockZ << 4 | (floorY + 1) << 8, result, material, cave, above);
                     }
                 }
@@ -469,6 +483,26 @@ public final class SmoothingEngine {
             ((Level) world).sendBlockUpdated(position, before, actual, 2);
         }
         return sameState(actual, state);
+    }
+
+    private static BlockState withSnowAppearance(LevelAccessor world, ChunkAccess owner, BlockPos position,
+            BlockState state) {
+        // Use the same snow neighbours as the pieces' normal appearance updates.
+        if (isSnow(owner.getBlockState(position.above()))) {
+            return state.setValue(SnowyDirtBlock.SNOWY, true);
+        }
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            BlockPos neighbour = position.relative(side);
+            ChunkAccess chunk = ownerOrLoaded(world, owner, neighbour);
+            if (chunk != null && isSnow(chunk.getBlockState(neighbour))) {
+                return state.setValue(SnowyDirtBlock.SNOWY, true);
+            }
+        }
+        return state.setValue(SnowyDirtBlock.SNOWY, false);
+    }
+
+    private static boolean isSnow(BlockState state) {
+        return state.is(Blocks.SNOW) || state.is(Blocks.SNOW_BLOCK);
     }
 
     private static boolean sameState(BlockState first, BlockState second) {
@@ -619,10 +653,7 @@ public final class SmoothingEngine {
     }
 
     private boolean hasTerrainFloor(LevelAccessor world, ChunkAccess owner, BlockPos floor) {
-        int chunkX = floor.getX() >> 4;
-        int chunkZ = floor.getZ() >> 4;
-        ChunkAccess neighbour = chunkX == owner.getPos().x && chunkZ == owner.getPos().z
-                ? owner : loaded(world, chunkX, chunkZ);
+        ChunkAccess neighbour = ownerOrLoaded(world, owner, floor);
         if (neighbour == null) {
             return false;
         }
@@ -647,6 +678,12 @@ public final class SmoothingEngine {
             return ((Level) world).dimension() == Level.OVERWORLD;
         }
         return world instanceof WorldGenLevel && ((WorldGenLevel) world).getLevel().dimension() == Level.OVERWORLD;
+    }
+
+    private static ChunkAccess ownerOrLoaded(LevelAccessor world, ChunkAccess owner, BlockPos position) {
+        int chunkX = position.getX() >> 4;
+        int chunkZ = position.getZ() >> 4;
+        return chunkX == owner.getPos().x && chunkZ == owner.getPos().z ? owner : loaded(world, chunkX, chunkZ);
     }
 
     /** A missing neighbour is unavailable, never a reason to request or generate another chunk. */
