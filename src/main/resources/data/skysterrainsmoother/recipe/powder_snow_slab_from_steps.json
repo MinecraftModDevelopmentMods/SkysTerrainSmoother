@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "X",
+    "X"
+  ],
+  "key": {
+    "X": "skysterrainsmoother:powder_snow_step"
+  },
+  "category": "building",
+  "group": "skys/result/skysterrainsmoother/powder_snow_slab",
+  "result": {
+    "id": "skysterrainsmoother:powder_snow_slab",
+    "count": 1
+  }
+}

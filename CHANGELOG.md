@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2.2603001
+
+- Smooth snow-block and packed-ice terrain with matching pieces.
+- Add powder-snow slabs, steps and corners that retain sinking and freezing.
+- Give new grass pieces their snowy appearance straight away, including after snow decoration.
+- Keep different crafting results on separate recipe-book buttons.
+
+
 ## 0.1.1.2603001
 
 - Gentle surface terraces use full-width slabs at smoothing levels 2 and 3, giving each rise a wider tread.

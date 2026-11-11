@@ -214,7 +214,7 @@ public final class MaterialCatalogue {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
-        VoxelShape shape = state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO);
+        VoxelShape shape = TerrainGeometry.shape(state);
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
@@ -247,8 +247,7 @@ public final class MaterialCatalogue {
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                Shapes.block(), BooleanOp.NOT_SAME);
+        return TerrainGeometry.full(state);
     }
 
     private static BlockState canonical(BlockState state) {

@@ -6,5 +6,8 @@
   "config.skysterrainsmoother.enableMineralogy": "Use Mineralogy slabs",
   "config.skysterrainsmoother.enabled.tooltip": "Smooth new dry Overworld slopes and cave floors. Turning this off also stops the separate Grass Slabs pass. Existing chunks stay unchanged. Restart Minecraft.",
   "config.skysterrainsmoother.smoothingLevel.tooltip": "1: slabs. 2: slabs and steps. 3: slabs, steps and corners. Missing shapes use a slab only where it fits safely. Restart Minecraft.",
-  "config.skysterrainsmoother.enableMineralogy.tooltip": "Use available natural Mineralogy rock slabs when the mod is installed. Disabled slab types are skipped. Restart Minecraft."
+  "config.skysterrainsmoother.enableMineralogy.tooltip": "Use available natural Mineralogy rock slabs when the mod is installed. Disabled slab types are skipped. Restart Minecraft.",
+  "block.skysterrainsmoother.powder_snow_slab": "Powder Snow Slab",
+  "block.skysterrainsmoother.powder_snow_step": "Powder Snow Step",
+  "block.skysterrainsmoother.powder_snow_corner": "Powder Snow Corner"
 }

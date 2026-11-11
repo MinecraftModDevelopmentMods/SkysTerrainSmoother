@@ -3,7 +3,7 @@
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
 and Sky's Building Pieces, with matching materials for grass, dirt, stone,
-sandstone, sand and hardened clay.
+sandstone, sand, hardened clay, snow and packed ice.
 
 ## Smoothing levels
 
@@ -32,6 +32,9 @@ ceilings stay unchanged. Cave passages need three clear blocks above the floor,
 so low tunnels keep their headroom. To see the effect in an existing world,
 travel beyond the terrain you've already generated.
 
+New grass pieces pick up the surrounding snow straight away. Snow added later
+during world generation is checked again before that new chunk is finished.
+
 ## Sand and other materials
 
 Ordinary sand and red sand get their own horizontal slabs. Three matching sand
@@ -43,6 +46,11 @@ Mineralogy is supported without another add-on. When it's installed, the
 smoother uses its natural rock slabs and the matching steps and corners
 included in Building Pieces. Disabled native slab types are skipped.
 
+Powder snow gets its own slabs, steps and corners, so it stays soft and keeps
+its sinking and freezing behaviour. Leather boots work on the actual partial
+surface. Empty parts of a piece do not freeze you or add powder-snow fog.
+See [snow and frozen terrain](docs/FROZEN-TERRAIN.md) for the recipes.
+
 Ores, gravel, wood and decorative stone aren't smoothing materials.
 
 For BOP grass and soils, add the
@@ -52,9 +60,9 @@ For BOP grass and soils, add the
 
 For **Minecraft 26.3**, use **Forge 66.0.2** and **Java 25**, with:
 
-- Sky's Grass Slabs **1.2.0.2603001**.
-- Sky's Building Pieces **0.3.9.2603001**.
-- Sky's Terrain Smoother **0.1.1.2603001**.
+- Sky's Grass Slabs **1.2.1.2603001**.
+- Sky's Building Pieces **0.3.10.2603001**.
+- Sky's Terrain Smoother **0.1.2.2603001**.
 
 Install all three main jars on both the client and server.
 

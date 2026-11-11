@@ -1135,3 +1135,9 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+tasks.register('verifyCraftingResources', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'), 'tools/test_powder_snow_resources.py'
+}
+tasks.named('check') { dependsOn tasks.named('verifyCraftingResources') }

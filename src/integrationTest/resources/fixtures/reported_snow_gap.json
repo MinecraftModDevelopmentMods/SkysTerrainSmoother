@@ -1,0 +1,422 @@
+{
+  "origin": [
+    7876,
+    63,
+    -3745
+  ],
+  "blocks": [
+    {
+      "offset": [
+        -1,
+        -1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        0,
+        -1
+      ],
+      "state": {
+        "Name": "skysgrassslabs:grass_slab",
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom",
+          "snowy": "false"
+        }
+      }
+    },
+    {
+      "offset": [
+        -1,
+        1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        2,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        -1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        0,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        -1,
+        1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:snow",
+        "Properties": {
+          "layers": "1"
+        }
+      }
+    },
+    {
+      "offset": [
+        -1,
+        2,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        -1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        -1,
+        0,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        -1,
+        1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:snow",
+        "Properties": {
+          "layers": "1"
+        }
+      }
+    },
+    {
+      "offset": [
+        -1,
+        2,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        0,
+        -1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "false"
+        }
+      }
+    },
+    {
+      "offset": [
+        0,
+        0,
+        -1
+      ],
+      "state": {
+        "Name": "skysbuildingpieces:grass_corner",
+        "Properties": {
+          "orientation": "bottom_south_west",
+          "waterlogged": "false",
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        0,
+        1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        0,
+        2,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        0,
+        -1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "state": {
+        "Name": "skysgrassslabs:grass_slab",
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom",
+          "snowy": "false"
+        }
+      }
+    },
+    {
+      "offset": [
+        0,
+        1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        0,
+        2,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        0,
+        -1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        0,
+        0,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        0,
+        1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:snow",
+        "Properties": {
+          "layers": "1"
+        }
+      }
+    },
+    {
+      "offset": [
+        0,
+        2,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        1,
+        -1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        1,
+        0,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:snow",
+        "Properties": {
+          "layers": "1"
+        }
+      }
+    },
+    {
+      "offset": [
+        1,
+        1,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        1,
+        2,
+        -1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        1,
+        -1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        1,
+        0,
+        0
+      ],
+      "state": {
+        "Name": "skysgrassslabs:grass_slab",
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom",
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        1,
+        1,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        1,
+        2,
+        0
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    },
+    {
+      "offset": [
+        1,
+        -1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:dirt"
+      }
+    },
+    {
+      "offset": [
+        1,
+        0,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:grass_block",
+        "Properties": {
+          "snowy": "true"
+        }
+      }
+    },
+    {
+      "offset": [
+        1,
+        1,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:snow",
+        "Properties": {
+          "layers": "1"
+        }
+      }
+    },
+    {
+      "offset": [
+        1,
+        2,
+        1
+      ],
+      "state": {
+        "Name": "minecraft:air"
+      }
+    }
+  ]
+}

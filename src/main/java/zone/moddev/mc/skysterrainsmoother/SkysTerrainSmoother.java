@@ -29,7 +29,7 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.1.2603001";
+    public static final String VERSION = "0.1.2.2603001";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
@@ -45,7 +45,9 @@ public final class SkysTerrainSmoother {
         FMLLoadCompleteEvent.getBus(modBus).addListener(this::complete);
         TerrainSmoothingFeature.register(modBus);
         RegisterEvent.getBus(modBus).addListener(SandContent::register);
+        RegisterEvent.getBus(modBus).addListener(zone.moddev.mc.skysterrainsmoother.content.PowderSnowContent::register);
         BuildCreativeModeTabContentsEvent.BUS.addListener(SandContent::buildCreativeTab);
+        BuildCreativeModeTabContentsEvent.BUS.addListener(zone.moddev.mc.skysterrainsmoother.content.PowderSnowContent::creative);
         ChunkEvent.Load.BUS.addListener(engine::loaded);
         ChunkEvent.Unload.BUS.addListener(engine::unload);
         TickEvent.LevelTickEvent.Post.BUS.addListener(Priority.LOWEST, engine::endWorldTick);

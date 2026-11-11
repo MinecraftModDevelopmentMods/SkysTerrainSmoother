@@ -4,7 +4,9 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "items": ["minecraft:sand"]
+        "items": [
+          "minecraft:sand"
+        ]
       }
     ]
   },
@@ -13,7 +15,9 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "items": ["skysterrainsmoother:sand_slab"]
+        "items": [
+          "skysterrainsmoother:sand_slab"
+        ]
       }
     ]
   },
@@ -22,7 +26,9 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "items": ["minecraft:red_sand"]
+        "items": [
+          "minecraft:red_sand"
+        ]
       }
     ]
   },
@@ -31,7 +37,75 @@
     "owner": "skysterrainsmoother",
     "ingredients": [
       {
-        "items": ["skysterrainsmoother:red_sand_slab"]
+        "items": [
+          "skysterrainsmoother:red_sand_slab"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_slab",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "minecraft:powder_snow_bucket"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_step",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:powder_snow_slab"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_corner",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:powder_snow_step"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_step_from_corners",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:powder_snow_corner"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_slab_from_steps",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:powder_snow_step"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:powder_snow_from_slabs",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:powder_snow_slab"
+        ]
       }
     ]
   }

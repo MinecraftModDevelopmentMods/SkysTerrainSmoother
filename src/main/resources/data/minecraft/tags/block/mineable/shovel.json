@@ -2,6 +2,9 @@
   "replace": false,
   "values": [
     "skysterrainsmoother:sand_slab",
-    "skysterrainsmoother:red_sand_slab"
+    "skysterrainsmoother:red_sand_slab",
+    "skysterrainsmoother:powder_snow_slab",
+    "skysterrainsmoother:powder_snow_step",
+    "skysterrainsmoother:powder_snow_corner"
   ]
 }

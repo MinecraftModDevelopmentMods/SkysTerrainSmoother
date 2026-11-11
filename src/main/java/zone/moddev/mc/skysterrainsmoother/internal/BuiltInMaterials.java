@@ -17,6 +17,9 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 import zone.moddev.mc.skysterrainsmoother.content.SandContent;
+import zone.moddev.mc.skysterrainsmoother.content.PowderSnowContent;
+import zone.moddev.mc.skysterrainsmoother.content.PowderSnowPieceBlock;
+import net.minecraft.world.level.block.state.properties.Half;
 
 /** Exact natural surfaces; ores and decorative variants are never inferred from tags. */
 public final class BuiltInMaterials {
@@ -52,6 +55,20 @@ public final class BuiltInMaterials {
         vanilla("sandstone", Blocks.SANDSTONE.defaultBlockState(), false, null);
         vanilla("red_sandstone", Blocks.RED_SANDSTONE.defaultBlockState(), false, null);
         vanilla("hardened_clay", Blocks.TERRACOTTA.defaultBlockState(), false, null);
+        vanilla("snow", Blocks.SNOW_BLOCK.defaultBlockState(), false, null);
+        vanilla("packed_ice", Blocks.PACKED_ICE.defaultBlockState(), false, null);
+        BlockState[] powderSteps = new BlockState[4];
+        BlockState[] powderCorners = new BlockState[4];
+        for (int direction = 0; direction < DIRECTIONS.length; direction++) {
+            powderSteps[direction] = PowderSnowContent.state(PowderSnowPieceBlock.Kind.STEP,
+                    Half.BOTTOM, DIRECTIONS[direction]);
+            powderCorners[direction] = PowderSnowContent.state(PowderSnowPieceBlock.Kind.CORNER,
+                    Half.BOTTOM, DIRECTIONS[direction]);
+        }
+        MaterialCatalogue.instance().register(new TerrainMaterial(Identifier.withDefaultNamespace("powder_snow"),
+                Collections.singleton(Blocks.POWDER_SNOW.defaultBlockState()),
+                PowderSnowContent.state(PowderSnowPieceBlock.Kind.SLAB, Half.BOTTOM, Direction.NORTH),
+                powderSteps, powderCorners, false, null));
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(
