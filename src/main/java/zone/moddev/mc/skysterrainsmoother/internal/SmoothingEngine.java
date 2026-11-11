@@ -494,7 +494,8 @@ public final class SmoothingEngine {
         for (Direction side : Direction.Plane.HORIZONTAL) {
             BlockPos neighbour = position.relative(side);
             ChunkAccess chunk = ownerOrLoaded(world, owner, neighbour);
-            if (chunk != null && isSnow(chunk.getBlockState(neighbour))) {
+            if (chunk != null && (isSnow(chunk.getBlockState(neighbour))
+                    || fullCollision(chunk.getBlockState(neighbour)) && isSnow(chunk.getBlockState(neighbour.above())))) {
                 return state.setValue(SnowyDirtBlock.SNOWY, true);
             }
         }
@@ -502,7 +503,7 @@ public final class SmoothingEngine {
     }
 
     private static boolean isSnow(BlockState state) {
-        return state.is(Blocks.SNOW) || state.is(Blocks.SNOW_BLOCK);
+        return state.is(BlockTags.SNOW);
     }
 
     private static boolean sameState(BlockState first, BlockState second) {

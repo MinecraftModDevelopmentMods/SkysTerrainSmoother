@@ -75,9 +75,9 @@ final class FineGrassProbe {
             for (boolean lateSnow : new boolean[] { false, true }) {
                 prepare(world, floor);
                 world.setBlock(higher, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
-                world.setBlock(higher.above(), snow, 2);
                 LevelChunk snowChunk = world.getChunkAt(lowerSnow);
                 if (!lateSnow) {
+                    world.setBlock(higher.above(), snow, 2);
                     snowChunk.setBlockState(lowerSnow, snow, false);
                 }
 
@@ -90,6 +90,9 @@ final class FineGrassProbe {
                 if (lateSnow) {
                     // Match decoration writes that haven't notified the piece of its new neighbour.
                     snowChunk.setBlockState(lowerSnow, snow, false);
+                    world.getChunkAt(higher).setBlockState(higher.above(), snow, false);
+                    world.getChunkAt(higher).setBlockState(higher,
+                            Blocks.GRASS_BLOCK.defaultBlockState().setValue(GrassBlock.SNOWY, true), false);
                     owner.setBlockState(floor, Blocks.DIAMOND_ORE.defaultBlockState(), false);
                     RuntimeProbe.require(world.getBlockState(target).equals(dry),
                             "late snow test starts with the generated piece still green");
@@ -107,8 +110,15 @@ final class FineGrassProbe {
                 RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loaded,
                         "snow appearance reads never load chunks");
                 world.setBlock(lowerSnow, Blocks.AIR.defaultBlockState(), 3);
+                if (level != 3) {
+                    RuntimeProbe.require(world.getBlockState(target).getValue(GrassBlock.SNOWY),
+                            "the higher terrace still supplies snow after the lower snow is removed");
+                    checks++;
+                }
+                world.setBlock(higher.above(), Blocks.AIR.defaultBlockState(), 3);
+                world.getBlockState(target).randomTick(world, target, RandomSource.create(1));
                 RuntimeProbe.require(world.getBlockState(target).equals(dry),
-                        "removing the adjacent snow restores the green piece at level " + level);
+                        "removing the surrounding snow restores the green piece at level " + level);
                 checks += 4;
             }
         }

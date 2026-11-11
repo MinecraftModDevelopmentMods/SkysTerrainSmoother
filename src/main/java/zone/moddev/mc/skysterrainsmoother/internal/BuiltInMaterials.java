@@ -52,6 +52,7 @@ public final class BuiltInMaterials {
         vanilla("sandstone", Blocks.SANDSTONE.defaultBlockState(), false, null);
         vanilla("red_sandstone", Blocks.RED_SANDSTONE.defaultBlockState(), false, null);
         vanilla("hardened_clay", Blocks.TERRACOTTA.defaultBlockState(), false, null);
+        vanilla("snow", Blocks.SNOW_BLOCK.defaultBlockState(), false, null);
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(

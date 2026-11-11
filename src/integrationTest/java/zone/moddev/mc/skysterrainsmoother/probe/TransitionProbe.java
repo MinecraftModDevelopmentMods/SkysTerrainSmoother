@@ -20,7 +20,8 @@ final class TransitionProbe {
         int checks = 0;
 
         for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
-                Blocks.SANDSTONE.defaultBlockState(), Blocks.SAND.defaultBlockState(), Blocks.GRASS_BLOCK.defaultBlockState() }) {
+                Blocks.SANDSTONE.defaultBlockState(), Blocks.SAND.defaultBlockState(), Blocks.GRASS_BLOCK.defaultBlockState(),
+                Blocks.SNOW_BLOCK.defaultBlockState() }) {
             if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }

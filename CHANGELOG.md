@@ -2,6 +2,8 @@
 
 ## 0.1.1.121012
 
+- Smooth full snow-block terrain with matching snow slabs, steps and corners.
+- Keep grass transitions snowy beside higher snow-covered ground.
 - Gentle surface terraces use full-width slabs at smoothing levels 2 and 3, giving each rise a wider tread.
 - Grass slabs, steps and corners take on their snowy look as the surrounding terrain generates.
 
