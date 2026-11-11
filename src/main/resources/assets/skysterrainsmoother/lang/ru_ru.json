@@ -6,5 +6,8 @@
   "config.skysterrainsmoother.enableMineralogy": "Использовать плиты Mineralogy",
   "config.skysterrainsmoother.enabled.tooltip": "Сглаживает новые сухие склоны и полы пещер обычного мира. Выключение также останавливает отдельную генерацию Grass Slabs. Существующие чанки не меняются. Перезапустите Minecraft.",
   "config.skysterrainsmoother.smoothingLevel.tooltip": "1: плиты. 2: плиты и четверти блока. 3: также восьмые доли блока. Недостающую форму заменяет плита только там, где она безопасно помещается. Перезапустите Minecraft.",
-  "config.skysterrainsmoother.enableMineralogy.tooltip": "Использует доступные плиты природных пород Mineralogy, если мод установлен. Отключённые виды плит пропускаются. Перезапустите Minecraft."
+  "config.skysterrainsmoother.enableMineralogy.tooltip": "Использует доступные плиты природных пород Mineralogy, если мод установлен. Отключённые виды плит пропускаются. Перезапустите Minecraft.",
+  "block.skysterrainsmoother.powder_snow_slab": "Плита из рыхлого снега",
+  "block.skysterrainsmoother.powder_snow_step": "Ступень из рыхлого снега",
+  "block.skysterrainsmoother.powder_snow_corner": "Уголок из рыхлого снега"
 }

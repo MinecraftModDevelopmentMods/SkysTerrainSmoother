@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1.121012
+
+- Smooth packed ice and powder snow with matching pieces.
+- Keep powder snow's sinking, freezing, leather-boot support and fog within each piece's footprint.
+- Add powder-snow slab, step and corner recipes with bucket returns and volume-preserving rebuilding.
+- Keep different crafting results on separate recipe-book buttons.
+- Smooth full snow-block terrain with matching snow slabs, steps and corners.
+- Keep grass transitions snowy beside higher snow-covered ground.
+- Gentle surface terraces use full-width slabs at smoothing levels 2 and 3, giving each rise a wider tread.
+- Grass slabs, steps and corners take on their snowy look as the surrounding terrain generates.
+
 ## 0.1.0.121012
 
 - Updated for Minecraft 1.21.1 on NeoForge.
