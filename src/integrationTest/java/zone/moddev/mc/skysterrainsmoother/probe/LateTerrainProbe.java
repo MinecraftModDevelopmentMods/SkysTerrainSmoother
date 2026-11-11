@@ -155,6 +155,7 @@ final class LateTerrainProbe {
 
                 for (int order = 0; order < 2; order++) {
                     int origin = order == 0 ? 128 : 256;
+                    ProbeWorld.coldBiome(world, origin, 128, 9);
                     List<LevelChunk> chunks = new ArrayList<>();
 
                     for (int blockZ = 0; blockZ < 9; blockZ++) {

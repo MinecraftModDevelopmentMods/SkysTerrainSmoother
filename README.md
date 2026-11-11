@@ -25,9 +25,9 @@ still get transitions. At levels 2 and 3, the engine keeps a fitting uphill step
 or corner even when a whole slab would raise the downhill edge.
 
 A single layer of snow doesn't block an otherwise valid transition. Grass
-slabs, steps and corners take on their snowy look alongside nearby snow as
-the terrain generates. Deeper snow, trees, crops and occupied blocks stay
-untouched.
+slabs, steps and corners take on their snowy look alongside nearby snow and
+on exposed cold ground as the terrain generates. Deeper snow, trees, crops
+and occupied blocks stay untouched.
 
 Only new, dry terrain is smoothed. Existing chunks, underwater floors and cave
 ceilings stay unchanged. Cave passages need three clear blocks above the floor,

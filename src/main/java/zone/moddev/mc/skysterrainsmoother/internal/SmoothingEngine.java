@@ -16,6 +16,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
@@ -499,7 +500,11 @@ public final class SmoothingEngine {
                 return state.setValue(SnowyDirtBlock.SNOWY, true);
             }
         }
-        return state.setValue(SnowyDirtBlock.SNOWY, false);
+        boolean exposedColdSurface = world.getBiome(position).value().coldEnoughToSnow(position)
+                && position.getY() >= SmoothingFoliage.surfaceHeight(owner, position.getX() & 15,
+                        position.getZ() & 15, owner.getPos().x << 4, owner.getPos().z << 4)
+                && world.getBrightness(LightLayer.BLOCK, position.above()) < 10;
+        return state.setValue(SnowyDirtBlock.SNOWY, exposedColdSurface);
     }
 
     private static boolean isSnow(BlockState state) {
