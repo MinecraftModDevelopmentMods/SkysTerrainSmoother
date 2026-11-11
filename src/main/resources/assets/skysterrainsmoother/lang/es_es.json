@@ -6,5 +6,8 @@
   "config.skysterrainsmoother.enableMineralogy": "Usar losas de Mineralogy",
   "config.skysterrainsmoother.enabled.tooltip": "Suaviza pendientes secas y suelos de cuevas nuevos del mundo normal. Al desactivarlo también se detiene la generación separada de Grass Slabs. Los chunks existentes no cambian. Reinicia Minecraft.",
   "config.skysterrainsmoother.smoothingLevel.tooltip": "1: losas. 2: losas y peldaños. 3: losas, peldaños y esquinas. Las formas que faltan solo se sustituyen por losas donde encajan sin empeorar el desnivel. Reinicia Minecraft.",
-  "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa las losas disponibles de rocas naturales de Mineralogy si está instalado. Omite los tipos de losa desactivados. Reinicia Minecraft."
+  "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa las losas disponibles de rocas naturales de Mineralogy si está instalado. Omite los tipos de losa desactivados. Reinicia Minecraft.",
+  "block.skysterrainsmoother.powder_snow_slab": "Losa de nieve en polvo",
+  "block.skysterrainsmoother.powder_snow_step": "Escalón de nieve en polvo",
+  "block.skysterrainsmoother.powder_snow_corner": "Esquina de nieve en polvo"
 }

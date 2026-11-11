@@ -224,7 +224,7 @@ public final class SmoothingEngine {
 
                 if (!blocked && replacement != null && (!replacement.grass || GrassSlabsApi.grassGenerationAllowed())
                         && (!replacement.mineralogy || SkysTerrainSmoother.mineralogy)
-                        && support.isCollisionShapeFullBlock(world, placement.pos.below())
+                        && TerrainGeometry.full(support, world, placement.pos.below())
                         && !support.hasBlockEntity()
                         && owner.getBlockEntity(placement.pos) == null
                         && !structures.contains(placement.pos)
@@ -388,7 +388,7 @@ public final class SmoothingEngine {
                     boolean cave = floorY < surfaceY;
 
                     if (cave && !caveHeadroom(world, owner, support)
-                            || !lower.isCollisionShapeFullBlock(world, support)
+                            || !TerrainGeometry.full(lower, world, support)
                             || !SmoothingFoliage.canReplace(world, owner, target)
                             || lower.hasBlockEntity()
                             || owner.getBlockEntity(target) != null
@@ -569,7 +569,7 @@ public final class SmoothingEngine {
         Integer edges = pieceEdges.get(result);
 
         if (edges == null) {
-            AABB bounds = result.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO).bounds();
+            AABB bounds = TerrainGeometry.shape(result).bounds();
             edges = (bounds.minZ == 0 ? 1 : 0) | (bounds.maxX == 1 ? 2 : 0)
                     | (bounds.maxZ == 1 ? 4 : 0) | (bounds.minX == 0 ? 8 : 0);
             pieceEdges.put(result, edges);
@@ -604,7 +604,7 @@ public final class SmoothingEngine {
                 BlockPos lowerFloor = beside.below();
                 BlockState below = neighbour.getBlockState(lowerFloor);
 
-                if (fullCollision(below) && below.isCollisionShapeFullBlock(world, lowerFloor)
+                if (TerrainGeometry.full(below) && TerrainGeometry.full(below, world, lowerFloor)
                         && !below.hasBlockEntity()) {
                     edges |= 1 << direction;
                 }

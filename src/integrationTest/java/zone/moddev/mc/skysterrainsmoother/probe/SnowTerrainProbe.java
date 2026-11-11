@@ -71,8 +71,8 @@ final class SnowTerrainProbe {
                 "snow appearance does not load chunks");
         RuntimeProbe.require(MaterialCatalogue.instance().source(Blocks.SNOW_BLOCK.defaultBlockState()) != null,
                 "full snow blocks have a registered smoothing material");
-        RuntimeProbe.require(MaterialCatalogue.instance().source(Blocks.POWDER_SNOW.defaultBlockState()) == null,
-                "powder snow keeps its native behaviour");
+        RuntimeProbe.require(MaterialCatalogue.instance().source(Blocks.POWDER_SNOW.defaultBlockState()) != null,
+                "powder snow has its own non-solid smoothing pieces");
         checks += coldSurfaces(world);
         SkysTerrainSmoother.logger.info("TERRAIN_SNOW_TERRAIN_PASS checks={}", checks + 3);
         return checks + 3;

@@ -3,7 +3,7 @@
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
 and Sky's Building Pieces, with matching materials for grass, dirt, stone,
-sandstone, sand, hardened clay and full snow blocks.
+sandstone, sand, hardened clay, packed ice, full snow blocks and powder snow.
 
 ## Smoothing levels
 
@@ -45,6 +45,23 @@ Install the NeoForge build of Mineralogy to smooth its natural rock. When
 its slabs are enabled, Building Pieces provides the matching steps and corners.
 
 Ores, gravel, wood and decorative stone aren't smoothing materials.
+
+## Snow and powder snow
+
+Packed ice and snow blocks use matching Building Pieces slabs, steps and corners.
+Powder snow has its own horizontal pieces: they retain sinking, freezing and
+slow movement, while leather boots let you stand on them. The empty part of a
+step or corner stays empty, including its fog and freezing effects.
+
+One powder-snow bucket makes two slabs and returns an empty bucket. To fill it
+again, craft two slabs with an empty bucket. Slabs cut into steps, steps cut
+into corners, and matching vertical pairs rebuild the larger pieces. Breaking
+a partial piece returns that piece; it cannot fill a whole bucket on its own.
+Matching halves placed together become an ordinary full powder-snow block.
+
+For ordinary snow slabs, craft two snow blocks diagonally to make four slabs.
+Vanilla's three-block row still makes snow layers. Recipe-book buttons show one
+result each; right-click for alternative ways to make the same item.
 
 For BOP grass and soils, add the
 [Terrain Smoother Biomes O' Plenty add-on](https://github.com/MinecraftModDevelopmentMods/SkysTerrainSmoother-BiomesOPlenty-Addon).

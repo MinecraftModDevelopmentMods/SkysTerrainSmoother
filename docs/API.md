@@ -15,6 +15,11 @@ southwest. Steps occupy one quarter of a block's volume and corners one eighth.
 Every output must be half a block tall, dry, non-tile, and fill that footprint.
 Sources and converted supports must be dry full blocks without tile entities.
 
+Powder snow is the one non-solid exception. Planning validates its full outline
+and the partial outlines of the built-in powder pieces, while their actual
+entity collision remains native powder snow. Other non-solid sources and
+empty-collision outputs are still rejected.
+
 ```java
 TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
     ResourceLocation.fromNamespaceAndPath("example", "natural_rock"),

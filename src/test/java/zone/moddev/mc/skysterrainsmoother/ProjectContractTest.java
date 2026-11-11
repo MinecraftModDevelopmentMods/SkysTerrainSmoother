@@ -58,7 +58,8 @@ class ProjectContractTest {
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
         Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
-            assertEquals(4, files.count());
+            assertEquals(4, files.filter(path -> path.getFileName().toString().startsWith("sand_")
+                    || path.getFileName().toString().startsWith("red_sand_")).count());
         }
         for (String sand : new String[] { "sand", "red_sand" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
@@ -87,7 +88,11 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(8, values.size());
+                assertEquals(11, values.size());
+                for (String shape : new String[] { "slab", "step", "corner" }) {
+                    assertFalse(values.get("block.skysterrainsmoother.powder_snow_" + shape)
+                            .getAsString().trim().isEmpty());
+                }
                 for (String sand : new String[] { "sand", "red_sand" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }
