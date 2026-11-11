@@ -30,6 +30,13 @@ class PowderSnowResources(unittest.TestCase):
         self.assertEqual(6, len(actual))
         self.assertEqual(expected, actual)
 
+    def test_shovels_keep_their_native_advantage_on_all_powder_pieces(self):
+        tag = json.loads((ROOT / 'src/main/resources/data/minecraft/tags/block/mineable/shovel.json')
+                         .read_text(encoding='utf-8'))
+        self.assertFalse(tag['replace'])
+        for shape in ('slab', 'step', 'corner'):
+            self.assertIn('skysterrainsmoother:powder_snow_' + shape, tag['values'])
+
 
 if __name__ == '__main__':
     unittest.main()
