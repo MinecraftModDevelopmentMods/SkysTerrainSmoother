@@ -10,8 +10,8 @@ Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.0.2603001 and Building Pieces
-0.3.9.2603001.
+The source lock records Grass Slabs 1.2.1.2603001 and Building Pieces
+0.3.10.2603001, with the checksums of their released jars.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
@@ -56,10 +56,10 @@ do not prevent an ordinary build; `prepareMineralogyDevelopmentRun` explains
 what is needed before the combined profile can run. The jars are copied, not
 modified. Development and packaged runs use the same jars.
 
-If a sibling build has moved on, keep the qualified jars under
-`.gradle/qualification-dependencies/` with their original filenames.
-The profiles prefer those copies, but still require the locked checksums.
-An explicit runtime-jar property takes precedence over either location.
+The profiles keep verified copies under `.gradle/qualification-dependencies/`,
+keyed by their locked checksums. Later sibling builds can then change without
+breaking Eclipse refreshes. An explicit runtime-jar property takes precedence;
+it must still match the lock.
 
 New configurations use smoothing level 3. An existing saved level is kept, so
 choose level 3 in Mods > Config and restart if that test folder already has a
@@ -75,7 +75,7 @@ resources there. Neither task opens the manual profile's saved worlds.
 The build generates unlock advancements from `src/main/recipe-book/recipes.json`.
 The runtime checks compare those entries with the registered recipes and exercise
 inventory discovery, crafting-table discovery and recipe-book persistence.
-All four sand recipes retain their original IDs.
+Sand and gravel recipes retain their existing IDs.
 
 Recipe unlocks have no shared advancement parent. This avoids a long recursive
 visibility chain when loading completed progress. Inventory and crafting-table

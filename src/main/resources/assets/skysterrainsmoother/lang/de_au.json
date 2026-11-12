@@ -6,5 +6,9 @@
   "config.skysterrainsmoother.enableMineralogy": "Mineralogy-Stufen verwenden",
   "config.skysterrainsmoother.enabled.tooltip": "Glättet neue trockene Hänge und Höhlenböden der Oberwelt. Ausschalten stoppt auch den separaten Grass-Slabs-Durchlauf. Bestehende Chunks bleiben unverändert. Minecraft neu starten.",
   "config.skysterrainsmoother.smoothingLevel.tooltip": "1: Platten. 2: Platten und Viertelblöcke. 3: zusätzlich Achtelblöcke. Fehlende Formen werden nur durch sicher passende Platten ersetzt. Minecraft neu starten.",
-  "config.skysterrainsmoother.enableMineralogy.tooltip": "Nutzt verfügbare Platten natürlicher Mineralogy-Gesteine, wenn die Mod installiert ist. Deaktivierte Plattentypen werden übersprungen. Minecraft neu starten."
+  "config.skysterrainsmoother.enableMineralogy.tooltip": "Nutzt verfügbare Platten natürlicher Mineralogy-Gesteine, wenn die Mod installiert ist. Deaktivierte Plattentypen werden übersprungen. Minecraft neu starten.",
+  "block.skysterrainsmoother.powder_snow_slab": "Pulverschneestufe",
+  "block.skysterrainsmoother.powder_snow_step": "Pulverschnee-Viertelstufe",
+  "block.skysterrainsmoother.powder_snow_corner": "Pulverschnee-Eckstück",
+  "block.skysterrainsmoother.gravel_slab": "Kiesstufe"
 }

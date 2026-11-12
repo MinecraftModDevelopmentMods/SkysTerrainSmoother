@@ -6,5 +6,9 @@
   "config.skysterrainsmoother.enableMineralogy": "Usar lajes do Mineralogy",
   "config.skysterrainsmoother.enabled.tooltip": "Suaviza novas encostas secas e pisos de grutas do mundo normal. Desativar também interrompe a geração separada do Grass Slabs. Os chunks existentes não mudam. Reinicie o Minecraft.",
   "config.skysterrainsmoother.smoothingLevel.tooltip": "1: meios blocos. 2: meios blocos e quartos de bloco. 3: também oitavos de bloco. Formas em falta só usam um meio bloco onde caiba em segurança. Reinicie o Minecraft.",
-  "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa os degraus disponíveis de rochas naturais do Mineralogy quando está instalado. Os tipos desativados são ignorados. Reinicie o Minecraft."
+  "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa os degraus disponíveis de rochas naturais do Mineralogy quando está instalado. Os tipos desativados são ignorados. Reinicie o Minecraft.",
+  "block.skysterrainsmoother.powder_snow_slab": "Laje de neve fofa",
+  "block.skysterrainsmoother.powder_snow_step": "Degrau de neve fofa",
+  "block.skysterrainsmoother.powder_snow_corner": "Canto de neve fofa",
+  "block.skysterrainsmoother.gravel_slab": "Degrau de Cascalho"
 }

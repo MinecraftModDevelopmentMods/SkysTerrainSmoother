@@ -50,7 +50,79 @@ final class FineGrassProbe {
             checks += checkSupport(world, floor, corner, false, true);
         }
         checks += shrinkingSlab(world, material);
+        checks += snowyTransitions(world, material);
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_FINE_GRASS_SUPPORT_PASS checks=" + checks);
+        return checks;
+    }
+
+    private static int snowyTransitions(ServerLevel world, TerrainMaterial material) {
+        BlockPos floor = new BlockPos(4207, 210, 4200);
+        BlockPos target = floor.above();
+        BlockPos lowerSnow = target.east();
+        LevelChunk owner = world.getChunkAt(floor);
+        BlockState snow = Blocks.SNOW.defaultBlockState();
+        int checks = 0;
+
+        for (int level = 1; level <= 3; level++) {
+            BlockPos higher = level == 3 ? target.north().west() : target.north();
+            BlockState dry = switch (level) {
+                case 1 -> material.slab;
+                case 2 -> material.step(0);
+                default -> material.corner(0);
+            };
+            BlockState snowy = dry.setValue(GrassBlock.SNOWY, true);
+
+            for (boolean lateSnow : new boolean[] { false, true }) {
+                prepare(world, floor);
+                world.setBlock(higher, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+                LevelChunk snowChunk = world.getChunkAt(lowerSnow);
+                if (!lateSnow) {
+                    world.setBlock(higher.above(), snow, 2);
+                    snowChunk.setBlockState(lowerSnow, snow, 0);
+                }
+
+                int loaded = world.getChunkSource().getLoadedChunksCount();
+                SkysTerrainSmoother.engine.smooth(world, owner, level);
+                RuntimeProbe.require(world.getBlockState(target).equals(lateSnow ? dry : snowy),
+                        "generated grass has the right snow appearance before ticking at level " + level
+                                + " / snow placed later: " + lateSnow);
+
+                if (lateSnow) {
+                    // Match decoration writes that haven't notified the piece of its new neighbour.
+                    snowChunk.setBlockState(lowerSnow, snow, 0);
+                    world.getChunkAt(higher).setBlockState(higher.above(), snow, 0);
+                    world.getChunkAt(higher).setBlockState(higher,
+                            Blocks.GRASS_BLOCK.defaultBlockState().setValue(GrassBlock.SNOWY, true), 0);
+                    owner.setBlockState(floor, Blocks.DIAMOND_ORE.defaultBlockState(), 0);
+                    RuntimeProbe.require(world.getBlockState(target).equals(dry),
+                            "late snow test starts with the generated piece still green");
+                    ProbeWorld.repair(world, floor);
+                    RuntimeProbe.require(world.getBlockState(target).equals(snowy),
+                            "late decoration gives the same piece its snow cap at level " + level);
+                    RuntimeProbe.require(world.getBlockState(floor).is(Blocks.DIAMOND_ORE),
+                            "refreshing the snow appearance preserves an ore placed under the piece");
+                    checks += 3;
+                }
+
+                RuntimeProbe.require(world.getBlockState(lowerSnow).equals(snow)
+                                && world.getBlockState(higher.above()).equals(snow),
+                        "the grass cap uses the snow around it without removing either layer");
+                RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loaded,
+                        "snow appearance reads never load chunks");
+                world.setBlock(lowerSnow, Blocks.AIR.defaultBlockState(), 3);
+                if (level != 3) {
+                    RuntimeProbe.require(world.getBlockState(target).getValue(GrassBlock.SNOWY),
+                            "the higher terrace still supplies snow after the lower snow is removed");
+                    checks++;
+                }
+                world.setBlock(higher.above(), Blocks.AIR.defaultBlockState(), 3);
+                world.getBlockState(target).randomTick(world, target, RandomSource.create(1));
+                RuntimeProbe.require(world.getBlockState(target).equals(dry),
+                        "removing the surrounding snow restores the green piece at level " + level);
+                checks += 4;
+            }
+        }
+        SkysTerrainSmoother.logger.info("TERRAIN_SNOWY_TRANSITIONS_PASS checks={}", checks);
         return checks;
     }
 

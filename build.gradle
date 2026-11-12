@@ -593,7 +593,7 @@ tasks.named('jar', Jar) {
                 'Implementation-Title': base.archivesName.get(),
                 'Implementation-Version': project.version,
                 'Implementation-Vendor': project.mod_authors,
-                'Built-On-Java': '21',
+                'Built-On-Java': project.java_version,
                 'Built-On': "${project.minecraft_version}-${project.forge_version}"
         ])
     }
@@ -649,6 +649,10 @@ tasks.register('verifyReleaseArtifacts') {
         }
         ZipFile zip = new ZipFile(new File(libs, releaseFiles.get()[0]))
         try {
+            def manifest = new java.util.jar.Manifest(zip.getInputStream(zip.getEntry('META-INF/MANIFEST.MF')))
+            if (manifest.mainAttributes.getValue('Built-On-Java') != project.java_version.toString()) {
+                throw new GradleException('The production manifest has the wrong Java version')
+            }
             Set<String> names = zip.entries().collect { it.name } as Set<String>
             ['META-INF/mods.toml', 'META-INF/LICENSE', 'META-INF/LICENSE.spdx', 'META-INF/NOTICE',
              'zone/moddev/mc/skysterrainsmoother/SkysTerrainSmoother.class'].each { required ->
@@ -676,7 +680,7 @@ tasks.register('verifyReleaseArtifacts') {
                     byte[] auditBytes = zip.getInputStream(entry).bytes
                     if (entry.name.endsWith('.class') &&
                             (((auditBytes[6] & 255) << 8) | (auditBytes[7] & 255)) != 69) {
-                        throw new GradleException("Non-Java-21 production class: ${entry.name}")
+                        throw new GradleException("Non-Java-25 production class: ${entry.name}")
                     }
                     String content = new String(zip.getInputStream(entry).bytes,
                             StandardCharsets.ISO_8859_1).toLowerCase(Locale.ROOT)
@@ -1135,3 +1139,9 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+tasks.register('verifyCraftingResources', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'), 'tools/test_powder_snow_resources.py'
+}
+tasks.named('check') { dependsOn tasks.named('verifyCraftingResources') }

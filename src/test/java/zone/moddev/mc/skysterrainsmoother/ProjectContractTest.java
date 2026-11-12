@@ -15,7 +15,7 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.1.2603001", metadata.getProperty("mod_version"));
+        assertEquals("0.1.2.2603001", metadata.getProperty("mod_version"));
         assertEquals(metadata.getProperty("mod_version"), SkysTerrainSmoother.VERSION);
         assertEquals("26.3", metadata.getProperty("minecraft_version"));
         assertEquals("66.0.2", metadata.getProperty("forge_version"));
@@ -36,7 +36,7 @@ class ProjectContractTest {
     @Test
     void bothSandColoursHaveNativeModelsAndTheirOwnLoot() throws Exception {
         Path root = Paths.get("src/main/resources");
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             Path assets = root.resolve("assets/skysterrainsmoother");
             JsonObject variants = json(assets.resolve("blockstates/" + sand + "_slab.json")).getAsJsonObject("variants");
             assertEquals(2, variants.size());
@@ -64,9 +64,10 @@ class ProjectContractTest {
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
         Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
-            assertEquals(4, files.count());
+            assertEquals(4, files.filter(path -> path.getFileName().toString().startsWith("sand_")
+                    || path.getFileName().toString().startsWith("red_sand_")).count());
         }
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
             assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
             assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").get("S").getAsString());
@@ -93,8 +94,11 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(8, values.size());
-                for (String sand : new String[] { "sand", "red_sand" }) {
+                assertEquals(12, values.size());
+                for (String shape : new String[] {"slab", "step", "corner"}) {
+                    assertFalse(values.get("block.skysterrainsmoother.powder_snow_" + shape).getAsString().isBlank());
+                }
+                for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }
             }
