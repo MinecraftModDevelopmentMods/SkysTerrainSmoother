@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Mineralogy가 설치되어 있으면 사용 가능한 자연 암석 반 블록을 사용합니다. 비활성화된 종류는 건너뜁니다. Minecraft를 다시 시작해야 합니다.",
   "block.skysterrainsmoother.powder_snow_slab": "가루눈 반 블록",
   "block.skysterrainsmoother.powder_snow_step": "가루눈 단",
-  "block.skysterrainsmoother.powder_snow_corner": "가루눈 모서리"
+  "block.skysterrainsmoother.powder_snow_corner": "가루눈 모서리",
+  "block.skysterrainsmoother.gravel_slab": "자갈 반 블록"
 }

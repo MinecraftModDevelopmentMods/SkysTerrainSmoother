@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Utilise les dalles disponibles des roches naturelles de Mineralogy si le mod est installé. Les types désactivés sont ignorés. Redémarrez Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Dalle de neige poudreuse",
   "block.skysterrainsmoother.powder_snow_step": "Quart de neige poudreuse",
-  "block.skysterrainsmoother.powder_snow_corner": "Coin de neige poudreuse"
+  "block.skysterrainsmoother.powder_snow_corner": "Coin de neige poudreuse",
+  "block.skysterrainsmoother.gravel_slab": "Dalle de gravier"
 }

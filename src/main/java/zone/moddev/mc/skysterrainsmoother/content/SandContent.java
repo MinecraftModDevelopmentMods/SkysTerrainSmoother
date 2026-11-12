@@ -13,8 +13,10 @@ import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 public final class SandContent {
     private static final Identifier SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
     private static final Identifier RED_SAND_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
+    private static final Identifier GRAVEL_SLAB = Identifier.fromNamespaceAndPath(SkysTerrainSmoother.ID, "gravel_slab");
     public static SandSlabBlock slab;
     public static SandSlabBlock redSlab;
+    public static SandSlabBlock gravelSlab;
 
     private SandContent() {
     }
@@ -25,12 +27,15 @@ public final class SandContent {
             SandLegacyRecovery.register();
             slab = new SandSlabBlock(false, SAND_SLAB);
             redSlab = new SandSlabBlock(true, RED_SAND_SLAB);
+            gravelSlab = new SandSlabBlock(net.minecraft.world.level.block.Blocks.GRAVEL, GRAVEL_SLAB);
             registry.register(SAND_SLAB, slab);
             registry.register(RED_SAND_SLAB, redSlab);
+            registry.register(GRAVEL_SLAB, gravelSlab);
         });
         event.register(ForgeRegistries.Keys.ITEMS, registry -> {
             registry.register(SAND_SLAB, new SandSlabItem(slab, SAND_SLAB));
             registry.register(RED_SAND_SLAB, new SandSlabItem(redSlab, RED_SAND_SLAB));
+            registry.register(GRAVEL_SLAB, new SandSlabItem(gravelSlab, GRAVEL_SLAB));
         });
     }
 
@@ -38,6 +43,7 @@ public final class SandContent {
         if (CreativeModeTabs.BUILDING_BLOCKS.equals(event.getTabKey())) {
             event.accept(slab);
             event.accept(redSlab);
+            event.accept(gravelSlab);
         }
     }
 

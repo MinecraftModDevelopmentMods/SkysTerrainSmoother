@@ -2,6 +2,7 @@
 
 ## 0.1.2.2603001
 
+- Add falling gravel slabs for gravel slopes and sand/gravel transitions, with cutting and combining recipes.
 - Smooth snow-block and packed-ice terrain with matching pieces.
 - Add powder-snow slabs, steps and corners that retain sinking and freezing.
 - Give new grass pieces their snowy appearance straight away, including after snow decoration.

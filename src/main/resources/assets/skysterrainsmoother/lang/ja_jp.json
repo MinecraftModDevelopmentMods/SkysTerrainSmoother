@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Mineralogy導入時に、利用可能な自然岩のハーフブロックを使います。無効にされた種類は使いません。Minecraftの再起動が必要です。",
   "block.skysterrainsmoother.powder_snow_slab": "粉雪のハーフブロック",
   "block.skysterrainsmoother.powder_snow_step": "粉雪の段",
-  "block.skysterrainsmoother.powder_snow_corner": "粉雪の角"
+  "block.skysterrainsmoother.powder_snow_corner": "粉雪の角",
+  "block.skysterrainsmoother.gravel_slab": "砂利のハーフブロック"
 }

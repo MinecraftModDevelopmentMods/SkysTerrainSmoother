@@ -108,5 +108,27 @@
         ]
       }
     ]
+  },
+  {
+    "recipe": "skysterrainsmoother:gravel_slab",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "minecraft:gravel"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmoother:gravel_from_slabs",
+    "owner": "skysterrainsmoother",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmoother:gravel_slab"
+        ]
+      }
+    ]
   }
 ]

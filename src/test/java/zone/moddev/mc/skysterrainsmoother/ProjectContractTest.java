@@ -36,7 +36,7 @@ class ProjectContractTest {
     @Test
     void bothSandColoursHaveNativeModelsAndTheirOwnLoot() throws Exception {
         Path root = Paths.get("src/main/resources");
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             Path assets = root.resolve("assets/skysterrainsmoother");
             JsonObject variants = json(assets.resolve("blockstates/" + sand + "_slab.json")).getAsJsonObject("variants");
             assertEquals(2, variants.size());
@@ -67,7 +67,7 @@ class ProjectContractTest {
             assertEquals(4, files.filter(path -> path.getFileName().toString().startsWith("sand_")
                     || path.getFileName().toString().startsWith("red_sand_")).count());
         }
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
             assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
             assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").get("S").getAsString());
@@ -94,11 +94,11 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(11, values.size());
+                assertEquals(12, values.size());
                 for (String shape : new String[] {"slab", "step", "corner"}) {
                     assertFalse(values.get("block.skysterrainsmoother.powder_snow_" + shape).getAsString().isBlank());
                 }
-                for (String sand : new String[] { "sand", "red_sand" }) {
+                for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }
             }

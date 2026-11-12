@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Использует доступные плиты природных пород Mineralogy, если мод установлен. Отключённые виды плит пропускаются. Перезапустите Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Плита из рыхлого снега",
   "block.skysterrainsmoother.powder_snow_step": "Ступень из рыхлого снега",
-  "block.skysterrainsmoother.powder_snow_corner": "Уголок из рыхлого снега"
+  "block.skysterrainsmoother.powder_snow_corner": "Уголок из рыхлого снега",
+  "block.skysterrainsmoother.gravel_slab": "Гравийная плита"
 }

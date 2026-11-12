@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa as lajes disponíveis de rochas naturais do Mineralogy quando ele está instalado. Tipos de laje desativados são ignorados. Reinicie o Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Laje de neve fofa",
   "block.skysterrainsmoother.powder_snow_step": "Degrau de neve fofa",
-  "block.skysterrainsmoother.powder_snow_corner": "Canto de neve fofa"
+  "block.skysterrainsmoother.powder_snow_corner": "Canto de neve fofa",
+  "block.skysterrainsmoother.gravel_slab": "Laje de Cascalho"
 }
