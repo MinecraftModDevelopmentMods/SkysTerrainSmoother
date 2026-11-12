@@ -3,7 +3,7 @@
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
 and Sky's Building Pieces, with matching materials for grass, dirt, stone,
-sandstone, sand, hardened clay, snow and packed ice.
+sandstone, sand, gravel, hardened clay, snow and packed ice.
 
 ## Smoothing levels
 
