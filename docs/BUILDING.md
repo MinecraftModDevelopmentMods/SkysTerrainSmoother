@@ -34,6 +34,11 @@ game in `run-mineralogy`. These runs use the NeoForge jars pinned in
 `-PmineralogyRuntimeJar=<jar>` and `-PorespawnRuntimeJar=<jar>` if you keep them
 elsewhere. Eclipse also generates Mineralogy client and server launches.
 
+Preparing these runs keeps a checksum-verified copy of each optional jar in the
+project cache. Rebuilding a sibling mod will not change the version used by this
+profile. An explicit jar override must still match the pinned checksum.
+Use the same Gradle user home in Eclipse and at the command line.
+
 With Mineralogy installed and its slabs enabled, natural rock has steps and
 corners from Building Pieces at smoothing levels 2 and 3. New configurations
 start at level 3; existing choices are kept.
@@ -48,7 +53,7 @@ directory under `build/` for the first load. The tool retains the logs and
 checks that the source archive stays unchanged.
 
 The recipe unlocks are generated from `src/main/recipe-book/recipes.json`.
-The four sand recipes keep their IDs. The runtime checks exercise crafting,
+The four sand recipes keep their IDs. Gravel has matching cutting and joining recipes. The runtime checks exercise crafting,
 inventory discovery and recipe-book persistence.
 
 See [the release guide](RELEASING.md) for release preparation.

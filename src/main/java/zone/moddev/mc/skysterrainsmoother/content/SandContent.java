@@ -11,11 +11,13 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
-/** Sand colours have separate identities after flattening, including when a falling slab drops. */
+/** Each falling material keeps its own block, item and full-block result. */
 @EventBusSubscriber(modid = SkysTerrainSmoother.ID, bus = EventBusSubscriber.Bus.MOD)
 public final class SandContent {
     private static final ResourceLocation SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "sand_slab");
     private static final ResourceLocation RED_SAND_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "red_sand_slab");
+    private static final ResourceLocation GRAVEL_SLAB = ResourceLocation.fromNamespaceAndPath(SkysTerrainSmoother.ID, "gravel_slab");
+    public static SandSlabBlock gravelSlab;
     public static SandSlabBlock slab;
     public static SandSlabBlock redSlab;
 
@@ -29,10 +31,13 @@ public final class SandContent {
             SandLegacyRecovery.register();
             slab = new SandSlabBlock(false);
             redSlab = new SandSlabBlock(true);
+            gravelSlab = new SandSlabBlock(net.minecraft.world.level.block.Blocks.GRAVEL);
+            registry.register(GRAVEL_SLAB, gravelSlab);
             registry.register(SAND_SLAB, slab);
             registry.register(RED_SAND_SLAB, redSlab);
         });
         event.register(Registries.ITEM, registry -> {
+            registry.register(GRAVEL_SLAB, new SandSlabItem(gravelSlab));
             registry.register(SAND_SLAB, new SandSlabItem(slab));
             registry.register(RED_SAND_SLAB, new SandSlabItem(redSlab));
         });
@@ -43,6 +48,7 @@ public final class SandContent {
         if (CreativeModeTabs.BUILDING_BLOCKS.equals(event.getTabKey())) {
             event.accept(slab);
             event.accept(redSlab);
+            event.accept(gravelSlab);
         }
     }
 

@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Use available natural Mineralogy rock slabs when the mod is installed. Disabled slab types are skipped. Restart Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Powder Snow Slab",
   "block.skysterrainsmoother.powder_snow_step": "Powder Snow Step",
-  "block.skysterrainsmoother.powder_snow_corner": "Powder Snow Corner"
+  "block.skysterrainsmoother.powder_snow_corner": "Powder Snow Corner",
+  "block.skysterrainsmoother.gravel_slab": "Gravel Slab"
 }

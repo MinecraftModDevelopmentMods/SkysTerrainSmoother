@@ -103,7 +103,7 @@ final class LateTerrainProbe {
                     for (BlockState occupied : new BlockState[] { Blocks.SHORT_GRASS.defaultBlockState(),
                             Blocks.OAK_SAPLING.defaultBlockState(),
                             Blocks.WATER.defaultBlockState(), Blocks.GLASS.defaultBlockState() }) {
-                        fixture(world, floor, Blocks.GRAVEL.defaultBlockState());
+                        fixture(world, floor, Blocks.COAL_BLOCK.defaultBlockState());
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         world.setBlock(floor, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
                         world.setBlock(floor.offset(DX[direction], 1, DZ[direction]), clay, 2);

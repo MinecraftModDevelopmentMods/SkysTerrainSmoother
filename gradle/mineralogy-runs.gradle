@@ -1,11 +1,18 @@
 import java.security.MessageDigest
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 // Optional mods belong to a separate game folder, outside the production classpath.
 def lock = new Properties()
 file('gradle/mineralogy-runtime.properties').withInputStream { lock.load(it) }
+def retainedRuntimeJars = ['mineralogy', 'orespawn'].collectEntries { name ->
+    File siblingJar = file(lock.getProperty(name + '.path'))
+    String checksum = lock.getProperty(name + '.sha256')
+    [(name): file(".gradle/qualification-dependencies/${checksum}/${siblingJar.name}")]
+}
 def runtimeSources = ['mineralogy', 'orespawn'].collectEntries { name ->
     File siblingJar = file(lock.getProperty(name + '.path'))
-    File retainedJar = file('.gradle/qualification-dependencies/' + siblingJar.name)
+    File retainedJar = retainedRuntimeJars[name]
     [(name): file(providers.gradleProperty(name + 'RuntimeJar')
             .getOrElse((retainedJar.isFile() ? retainedJar : siblingJar).path))]
 }
@@ -19,7 +26,7 @@ def prepare = {
         }
         String actual = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
         String expected = lock.getProperty(name + '.sha256')
-        if (!actual.equalsIgnoreCase(expected)) {
+        if (!(expected ==~ /(?i)[a-f0-9]{64}/) || !actual.equalsIgnoreCase(expected)) {
             throw new GradleException('The optional ' + name + ' jar does not match gradle/mineralogy-runtime.properties')
         }
     }
@@ -35,10 +42,23 @@ def prepare = {
             throw new GradleException('The Mineralogy play profile must not contain test mods: ' + candidate)
         }
     }
+    runtimeSources.each { name, source ->
+        File retained = retainedRuntimeJars[name]
+        if (source.canonicalFile != retained.canonicalFile) {
+            // A sibling rebuild must not replace the verified jar used by this profile.
+            Files.createDirectories(retained.parentFile.toPath())
+            Files.copy(source.toPath(), retained.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+    // Copy declared jars only; keep the player's settings and saves.
     project.stageTerrainContentJars(gameDirectory.asFile)
-    copy {
-        from runtimeSources.values()
-        into mods
+    Files.createDirectories(mods.toPath())
+    runtimeSources.each { name, source ->
+        File destination = new File(mods, source.name)
+        // An explicit override may already be inside this profile's mods folder.
+        if (source.canonicalFile != destination.canonicalFile) {
+            Files.copy(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 }
 

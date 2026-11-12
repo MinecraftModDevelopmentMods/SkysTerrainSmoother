@@ -118,7 +118,7 @@ final class CaveProbe {
         checks++;
 
         for (BlockState source : new BlockState[] { Blocks.COAL_ORE.defaultBlockState(),
-                Blocks.GRAVEL.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
+                Blocks.COAL_BLOCK.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
                 Blocks.CHEST.defaultBlockState() }) {
             fixture(world, floor, 6);
             world.setBlock(floor, source, 2);

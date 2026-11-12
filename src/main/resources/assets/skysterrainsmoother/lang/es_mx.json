@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa las losas disponibles de rocas naturales de Mineralogy si está instalado. Omite los tipos de losa desactivados. Reinicia Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Losa de nieve en polvo",
   "block.skysterrainsmoother.powder_snow_step": "Escalón de nieve en polvo",
-  "block.skysterrainsmoother.powder_snow_corner": "Esquina de nieve en polvo"
+  "block.skysterrainsmoother.powder_snow_corner": "Esquina de nieve en polvo",
+  "block.skysterrainsmoother.gravel_slab": "Losa de grava"
 }

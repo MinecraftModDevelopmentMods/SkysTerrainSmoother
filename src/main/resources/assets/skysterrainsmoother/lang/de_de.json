@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Nutzt verfügbare Platten natürlicher Mineralogy-Gesteine, wenn die Mod installiert ist. Deaktivierte Plattentypen werden übersprungen. Minecraft neu starten.",
   "block.skysterrainsmoother.powder_snow_slab": "Pulverschneestufe",
   "block.skysterrainsmoother.powder_snow_step": "Pulverschnee-Viertelstufe",
-  "block.skysterrainsmoother.powder_snow_corner": "Pulverschnee-Eckstück"
+  "block.skysterrainsmoother.powder_snow_corner": "Pulverschnee-Eckstück",
+  "block.skysterrainsmoother.gravel_slab": "Kiesstufe"
 }

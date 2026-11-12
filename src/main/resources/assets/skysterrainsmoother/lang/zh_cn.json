@@ -9,5 +9,6 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "安装Mineralogy后使用可用的天然岩石台阶。已禁用的台阶类型会跳过。需要重启Minecraft。",
   "block.skysterrainsmoother.powder_snow_slab": "细雪台阶",
   "block.skysterrainsmoother.powder_snow_step": "细雪小台阶",
-  "block.skysterrainsmoother.powder_snow_corner": "细雪角块"
+  "block.skysterrainsmoother.powder_snow_corner": "细雪角块",
+  "block.skysterrainsmoother.gravel_slab": "沙砾台阶"
 }

@@ -76,6 +76,9 @@ public final class BuiltInMaterials {
                     Collections.singleton(sand.defaultBlockState()),
                     SandContent.legacyState(variant * 2 + 1), null, null, false, null));
         }
+        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.withDefaultNamespace("gravel"),
+                Collections.singleton(Blocks.GRAVEL.defaultBlockState()),
+                SandContent.gravelSlab.defaultBlockState(), null, null, false, null));
         registerMineralogy();
         registered = true;
     }

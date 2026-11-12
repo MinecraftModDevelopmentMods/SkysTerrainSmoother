@@ -70,7 +70,8 @@ public final class ClientProbe extends ProbeProxy {
 
                 for (net.minecraft.world.level.block.Block block : new net.minecraft.world.level.block.Block[] {
                         zone.moddev.mc.skysterrainsmoother.content.SandContent.slab,
-                        zone.moddev.mc.skysterrainsmoother.content.SandContent.redSlab }) {
+                        zone.moddev.mc.skysterrainsmoother.content.SandContent.redSlab,
+                        zone.moddev.mc.skysterrainsmoother.content.SandContent.gravelSlab }) {
                     for (net.minecraft.world.level.block.state.BlockState state : block.getStateDefinition().getPossibleStates()) {
                         checkModel(minecraft, state);
                     }

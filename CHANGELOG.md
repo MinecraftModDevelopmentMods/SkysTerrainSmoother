@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2.121012
+
+- Smooth gravel slopes with falling gravel slabs.
+- Craft six gravel slabs from three gravel blocks, or combine two slabs back into gravel.
+- Keep the pinned Mineralogy and OreSpawn jars available for Eclipse after sibling rebuilds.
+
 ## 0.1.1.121012
 
 - Smooth packed ice and powder snow with matching pieces.
