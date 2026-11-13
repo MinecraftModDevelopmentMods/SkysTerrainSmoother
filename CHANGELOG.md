@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3.2603001
+
+- Choose separate smoothing settings for soil, sand and gravel, stone, snow, ice and other add-on materials.
+- Use the Materials and Mod support config pages, with tooltips and restart-safe saving.
+- Keep existing terrain and recipes when a material group is switched off.
+
 ## 0.1.2.2603001
 
 - Add falling gravel slabs for gravel slopes and sand/gravel transitions, with cutting and combining recipes.

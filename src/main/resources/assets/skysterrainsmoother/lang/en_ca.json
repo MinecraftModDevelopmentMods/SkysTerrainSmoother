@@ -10,5 +10,21 @@
   "block.skysterrainsmoother.powder_snow_slab": "Powder Snow Slab",
   "block.skysterrainsmoother.powder_snow_step": "Powder Snow Step",
   "block.skysterrainsmoother.powder_snow_corner": "Powder Snow Corner",
-  "block.skysterrainsmoother.gravel_slab": "Gravel Slab"
+  "block.skysterrainsmoother.gravel_slab": "Gravel Slab",
+  "config.skysterrainsmoother.materials": "Materials",
+  "config.skysterrainsmoother.materials.tooltip": "Choose which material families can be smoothed. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.compatibility": "Mod support",
+  "config.skysterrainsmoother.compatibility.tooltip": "Choose optional mod support. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.soil": "Dirt and grass",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Smooth registered grass and dirt terrain. The Grass Slabs grass-generation switch still applies. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Sand and gravel",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Smooth sand, red sand and gravel. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.stone": "Stone and rocks",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Smooth stone, sandstone, terracotta and modded rocks, including Mineralogy and BOP. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.snow": "Snow",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Smooth snow blocks and powder snow. Snowy grass appearance is controlled separately by the terrain. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.ice": "Ice",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Smooth registered ice terrain, including packed ice. Applies to new slopes and cave floors. Restart Minecraft.",
+  "config.skysterrainsmoother.materials.other": "Other add-ons",
+  "config.skysterrainsmoother.materials.other.tooltip": "Smooth add-on materials not assigned to another group. Applies to new slopes and cave floors. Restart Minecraft."
 }

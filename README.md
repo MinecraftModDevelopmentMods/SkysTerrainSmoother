@@ -62,14 +62,17 @@ For **Minecraft 26.3**, use **Forge 66.0.2** and **Java 25**, with:
 
 - Sky's Grass Slabs **1.2.1.2603001**.
 - Sky's Building Pieces **0.3.10.2603001**.
-- Sky's Terrain Smoother **0.1.2.2603001**.
+- Sky's Terrain Smoother **0.1.3.2603001**.
 
 Install all three main jars on both the client and server.
 
 The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
-level, turn smoothing off or disable Mineralogy support, then restart Minecraft.
+level, turn smoothing off or open the Materials and Mod support pages, then
+restart Minecraft. You can switch soil, sand and gravel, stone, snow, ice and
+other add-on materials separately. Turn **Stone and rocks** off to keep softer
+ground smoothed without changing rock terrain, including Mineralogy and BOP rocks.
 For a dedicated server, edit its configuration file and restart the server.
 See [configuration](docs/CONFIGURATION.md).
 

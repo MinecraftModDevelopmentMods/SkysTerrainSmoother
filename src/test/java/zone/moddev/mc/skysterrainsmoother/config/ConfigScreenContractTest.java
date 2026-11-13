@@ -1,5 +1,17 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
+import java.lang.reflect.Field;
+import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Set;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Blocks;
+import zone.moddev.mc.skysterrainsmoother.api.MaterialGroup;
+import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
+import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
+import zone.moddev.mc.skysterrainsmoother.MinecraftTestBootstrap;
+
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -14,13 +26,70 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigScreenContractTest {
+    @Test
+    void everyMaterialCombinationSavesWithoutChangingTheRunningSession() throws Exception {
+        var all = EnumSet.allOf(MaterialGroup.class);
+        assertEquals(all, TerrainSmootherConfig.configuredGroups());
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        var runningGroups = all.clone();
+        var groups = MaterialGroup.values();
+        var catalogue = new MaterialCatalogue();
+        MinecraftTestBootstrap.registerVanilla();
+
+        for (int mask = 0; mask < 1 << groups.length; mask++) {
+            var enabled = EnumSet.noneOf(MaterialGroup.class);
+            for (var group : groups) {
+                if ((mask & 1 << group.ordinal()) != 0) {
+                    enabled.add(group);
+                }
+            }
+            TerrainSmootherConfig.saveForNextStart(true, 3, true, enabled);
+            assertEquals(enabled, TerrainSmootherConfig.configuredGroups());
+            for (var group : groups) {
+                assertEquals(runningGroups.contains(group), TerrainSmootherConfig.groupEnabled(group),
+                        "Saving choices does not change running generation");
+            }
+
+            // Reload the saved choices as a new session would, using Forge's own spec.
+            var active = TerrainSmootherConfig.class.getDeclaredField("active");
+            active.setAccessible(true);
+            active.set(null, null);
+            TerrainSmootherConfig.activateSettingsForThisRun();
+            for (var group : groups) {
+                assertEquals(enabled.contains(group), TerrainSmootherConfig.groupEnabled(group));
+                var mapping = new TerrainMaterial(
+                        Identifier.parse("test:" + group.configKey().toLowerCase(Locale.ROOT)),
+                        Set.of(Blocks.DIRT.defaultBlockState()),
+                        Blocks.STONE_SLAB.defaultBlockState(),
+                        null, null, false, null, group);
+                assertEquals(enabled.contains(group), catalogue.allows(mapping, null, 0, BlockPos.ZERO));
+            }
+            runningGroups = enabled;
+        }
+    }
+
+    @Test
+    void upgradingThreeKeyTomlKeepsItsChoicesAndEnablesEveryNewGroup() throws Exception {
+        Path oldFile = directory.resolve("old-settings.toml");
+        Files.writeString(oldFile, "[worldgen]\nenabled=false\nsmoothingLevel=2\n[compat]\nenableMineralogy=false\n");
+        try (CommentedFileConfig config = CommentedFileConfig.builder(oldFile).sync().build()) {
+            config.load();
+            spec.setConfig(config);
+            assertFalse(TerrainSmootherConfig.configuredEnabled());
+            assertEquals(2, TerrainSmootherConfig.configuredLevel());
+            assertFalse(TerrainSmootherConfig.configuredMineralogy());
+            assertEquals(EnumSet.allOf(MaterialGroup.class),
+                    TerrainSmootherConfig.configuredGroups());
+        }
+    }
+
     @TempDir
     Path directory;
     private ForgeConfigSpec spec;
 
     @BeforeEach
     void loadDefaults() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("SPEC");
+        Field field = TerrainSmootherConfig.class.getDeclaredField("SPEC");
         field.setAccessible(true);
         spec = (ForgeConfigSpec) field.get(null);
         field = TerrainSmootherConfig.class.getDeclaredField("active");
@@ -53,7 +122,7 @@ class ConfigScreenContractTest {
 
     @Test
     void savingChoicesPreservesOtherSettingsAndComments() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
+        Field field = TerrainSmootherConfig.class.getDeclaredField("loadedValues");
         field.setAccessible(true);
         com.electronwill.nightconfig.core.CommentedConfig values =
                 (com.electronwill.nightconfig.core.CommentedConfig) field.get(null);
@@ -116,7 +185,9 @@ class ConfigScreenContractTest {
         try (java.util.stream.Stream<Path> languages = Files.list(Paths.get("src/main/resources/assets/skysterrainsmoother/lang"))) {
             for (Path language : languages.collect(java.util.stream.Collectors.toList())) {
                 JsonObject values = new JsonParser().parse(new String(Files.readAllBytes(language), StandardCharsets.UTF_8)).getAsJsonObject();
-                for (String key : new String[] { "enabled", "smoothingLevel", "enableMineralogy" }) {
+                for (String key : new String[] { "enabled", "smoothingLevel", "enableMineralogy", "materials", "compatibility",
+                        "materials.soil", "materials.sandAndGravel", "materials.stone", "materials.snow",
+                        "materials.ice", "materials.other" }) {
                     assertFalse(values.get("config.skysterrainsmoother." + key + ".tooltip").getAsString().trim().isEmpty(), language.toString());
                 }
             }
