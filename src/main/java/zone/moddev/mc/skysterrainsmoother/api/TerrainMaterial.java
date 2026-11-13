@@ -12,16 +12,23 @@ public final class TerrainMaterial {
     public final Set<IBlockState> sources;
     public final boolean grass;
     public final boolean mineralogy;
+    public final MaterialGroup group;
     public final IBlockState slab, supportAfterPlacement;
     private final IBlockState[] steps, corners;
 
     public TerrainMaterial(ResourceLocation materialId, Set<IBlockState> sources, IBlockState slab, IBlockState[] steps,
             IBlockState[] corners, boolean grass, IBlockState supportAfterPlacement) {
+        this(materialId, sources, slab, steps, corners, grass, supportAfterPlacement, legacyGroup(sources, grass));
+    }
+
+    public TerrainMaterial(ResourceLocation materialId, Set<IBlockState> sources, IBlockState slab, IBlockState[] steps,
+            IBlockState[] corners, boolean grass, IBlockState supportAfterPlacement, MaterialGroup group) {
         if (materialId == null || sources == null || sources.isEmpty() || slab == null) {
             throw new IllegalArgumentException("A material requires an identity, exact full states and a slab");
         }
 
         this.id = materialId;
+        this.group = java.util.Objects.requireNonNull(group, "A material needs a configuration group");
         this.sources = Collections.unmodifiableSet(new LinkedHashSet<>(sources));
         this.slab = slab;
         this.steps = copyShapes(steps);
@@ -44,6 +51,52 @@ public final class TerrainMaterial {
         }
 
         this.mineralogy = mineral;
+    }
+
+    /** Keep the original constructor usable by older add-ons without guessing unknown modded materials. */
+    private static MaterialGroup legacyGroup(Set<IBlockState> sources, boolean grass) {
+        if (grass) {
+            return MaterialGroup.SOIL;
+        }
+        MaterialGroup result = null;
+        if (sources != null) {
+            for (IBlockState state : sources) {
+                if (state == null) {
+                    continue;
+                }
+                ResourceLocation block = state.getBlock().getRegistryName();
+                MaterialGroup candidate = knownGroup(block);
+                if (result != null && result != candidate) {
+                    return MaterialGroup.OTHER;
+                }
+                result = candidate;
+            }
+        }
+        return result == null ? MaterialGroup.OTHER : result;
+    }
+
+    private static MaterialGroup knownGroup(ResourceLocation block) {
+        if (block == null) {
+            return MaterialGroup.OTHER;
+        }
+        if (block.getNamespace().equals("mineralogy")) {
+            return MaterialGroup.STONE;
+        }
+        if (!block.getNamespace().equals("minecraft")) {
+            return MaterialGroup.OTHER;
+        }
+        switch (block.getPath()) {
+            case "grass": case "dirt": case "podzol": case "mycelium":
+                return MaterialGroup.SOIL;
+            case "sand": case "gravel":
+                return MaterialGroup.SAND_AND_GRAVEL;
+            case "snow": return MaterialGroup.SNOW;
+            case "ice": case "packed_ice": case "frosted_ice": return MaterialGroup.ICE;
+            case "stone": case "sandstone": case "red_sandstone": case "hardened_clay":
+            case "stained_hardened_clay": case "obsidian": case "netherrack": case "end_stone":
+            case "cobblestone": case "mossy_cobblestone": return MaterialGroup.STONE;
+            default: return MaterialGroup.OTHER;
+        }
     }
 
     /** Copy complete directional sets so callers cannot alter a registered material afterwards. */
@@ -83,6 +136,6 @@ public final class TerrainMaterial {
         }
 
         return new TerrainMaterial(id, sources, slab, addedSteps == null ? steps : addedSteps,
-                addedCorners == null ? corners : addedCorners, grass, supportAfterPlacement);
+                addedCorners == null ? corners : addedCorners, grass, supportAfterPlacement, group);
     }
 }

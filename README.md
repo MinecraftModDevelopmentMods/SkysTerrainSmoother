@@ -3,7 +3,7 @@
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
 and Sky's Building Pieces, with matching materials for grass, dirt, stone,
-sandstone, sand and hardened clay.
+sandstone, sand, gravel, hardened clay, snow and packed ice.
 
 ## Smoothing levels
 
@@ -19,7 +19,7 @@ or corners, it uses its slab at higher levels wherever a slab fits safely.
 
 Narrow mountain ledges keep their downhill edge at its original height, rather
 than gaining a row of slabs that recreates a full-block step. Wider terraces
-still get transitions. At levels 2 and 3, the engine keeps a fitting uphill step
+use full slabs where there is room for a broader tread on both sides of the rise. At levels 2 and 3, the engine keeps a fitting uphill step
 or corner even when a whole slab would raise the downhill edge.
 
 A single layer of snow doesn't block an otherwise valid transition. Deeper
@@ -32,7 +32,7 @@ travel beyond the terrain you've already generated.
 
 ## Sand and other materials
 
-Ordinary sand and red sand get their own horizontal slabs. Three matching sand
+Ordinary sand, red sand and gravel get their own horizontal slabs. Three matching sand
 blocks in a row make six slabs, and two slabs side by side make a full block.
 Like sand blocks, the slabs fall when unsupported. Sand uses slabs at every
 smoothing level.
@@ -41,7 +41,7 @@ Mineralogy is supported without another add-on. When it's installed, the
 smoother uses its natural rock slabs and the matching steps and corners
 included in Building Pieces. Disabled native slab types are skipped.
 
-Ores, gravel, wood and decorative stone aren't smoothing materials.
+Ores, wood and decorative stone aren't smoothing materials.
 
 For BOP grass and soils, add the
 [Terrain Smoother Biomes O' Plenty add-on](https://github.com/MinecraftModDevelopmentMods/SkysTerrainSmoother-BiomesOPlenty-Addon).
@@ -50,15 +50,15 @@ For BOP grass and soils, add the
 
 For **Minecraft 1.12.2**, use **Forge 14.23.5.2859** and **Java 8**, with:
 
-- Sky's Grass Slabs **1.1.2.112021**.
-- Sky's Building Pieces **0.3.8.112021**.
-- Sky's Terrain Smoother **0.1.0.112021**.
+- Sky's Grass Slabs **1.2.0.112021**.
+- Sky's Building Pieces **0.3.10.112021**.
+- Sky's Terrain Smoother **0.1.1.112021**.
 
 Install all three main jars on both the client and server.
 
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
-level, turn smoothing off or disable Mineralogy support, then restart Minecraft.
+level, choose which material families to smooth, turn smoothing off or disable Mineralogy support, then restart Minecraft.
 For a dedicated server, edit its configuration file and restart the server.
 See [configuration](docs/CONFIGURATION.md).
 

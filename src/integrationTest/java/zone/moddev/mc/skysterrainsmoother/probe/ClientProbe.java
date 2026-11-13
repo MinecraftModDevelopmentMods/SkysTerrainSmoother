@@ -12,6 +12,13 @@ public final class ClientProbe extends ProbeProxy {
 
     @Override
     public void init() {
+        if (org.lwjgl.opengl.Display.isCreated()) {
+            org.lwjgl.opengl.Display.setLocation(-10000, -10000);
+        }
+        if (org.lwjgl.input.Mouse.isCreated()) {
+            org.lwjgl.input.Mouse.setGrabbed(false);
+        }
+        Minecraft.getMinecraft().getSession().setProperties(new com.mojang.authlib.properties.PropertyMap());
         net.minecraftforge.client.model.ModelLoader.setCustomModelResourceLocation(
                 net.minecraft.item.Item.getItemFromBlock(RuntimeProbe.probeOre), 0,
                 new net.minecraft.client.renderer.block.model.ModelResourceLocation("minecraft:stone", "inventory"));
@@ -54,6 +61,13 @@ public final class ClientProbe extends ProbeProxy {
             FineGrassModelProbe.run(minecraft);
             ConfigScreenProbe.run(minecraft);
             checkModel(minecraft, RuntimeProbe.probeOre.getDefaultState());
+            for (net.minecraft.block.Block falling : new net.minecraft.block.Block[] {
+                    zone.moddev.mc.skysterrainsmoother.content.SandContent.slab,
+                    zone.moddev.mc.skysterrainsmoother.content.SandContent.gravelSlab }) {
+                for (net.minecraft.block.state.IBlockState state : falling.getBlockState().getValidStates()) {
+                    checkModel(minecraft, state);
+                }
+            }
 
             for (net.minecraft.block.state.IBlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB
                     .getBlockState().getValidStates()) {

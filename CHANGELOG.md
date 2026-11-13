@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1.112021
+
+- Added separate controls for dirt and grass, sand and gravel, stone, snow, ice and other add-on materials.
+- Used broader slab treads on gentle terraces, while retaining steps and corners on narrow or steep slopes.
+- Added smoothing for snow blocks and packed ice using the existing Building Pieces shapes.
+- Added falling gravel slabs, with placement, crafting and two-slab recombination.
+- Kept recipe-book entries separate for each material and result.
+- Used the updated Grass Slabs snow appearance for cold terrain and snowy supports.
+
 ## 0.1.0.112021
 
 - Added ingredient-based recipe unlocks, including slab recombination.

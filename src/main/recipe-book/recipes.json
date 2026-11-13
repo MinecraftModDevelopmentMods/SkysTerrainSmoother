@@ -38,5 +38,25 @@
         "data": 2
       }
     ]
+  },
+  {
+    "owner": "skysterrainsmoother",
+    "recipe": "skysterrainsmoother:gravel_slab",
+    "ingredients": [
+      {
+        "item": "minecraft:gravel",
+        "data": 0
+      }
+    ]
+  },
+  {
+    "owner": "skysterrainsmoother",
+    "recipe": "skysterrainsmoother:gravel_from_slabs",
+    "ingredients": [
+      {
+        "item": "skysterrainsmoother:gravel_slab",
+        "data": 0
+      }
+    ]
   }
 ]

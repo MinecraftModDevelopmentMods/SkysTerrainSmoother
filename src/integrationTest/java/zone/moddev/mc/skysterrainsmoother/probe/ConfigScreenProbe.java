@@ -27,13 +27,27 @@ final class ConfigScreenProbe {
             net.minecraft.client.gui.ScaledResolution resolution = new net.minecraft.client.gui.ScaledResolution(minecraft);
             screen.setWorldAndResolution(minecraft, resolution.getScaledWidth(), resolution.getScaledHeight());
             GuiConfig configScreen = (GuiConfig) screen;
-            int expectedEntries = modId.equals("skysgrassslabs") ? 2 : 3;
+            int expectedEntries = modId.equals("skysgrassslabs") ? 2 : 4;
             RuntimeProbe.require(configScreen.configElements.size() == expectedEntries
                     && configScreen.entryList.listEntries.size() == expectedEntries
                     && configScreen.allRequireMcRestart, "all settings have widgets and require restart");
             for (net.minecraftforge.fml.client.config.IConfigElement element : configScreen.configElements) {
                 RuntimeProbe.require(!I18n.format(element.getLanguageKey()).equals(element.getLanguageKey()),
                         "setting has a readable translated label: " + element.getName());
+                if (!element.isProperty() && modId.equals("skysterrainsmoother")) {
+                    GuiConfig page = new GuiConfig(screen, element.getChildElements(), modId,
+                            false, true, I18n.format(element.getLanguageKey()));
+                    page.setWorldAndResolution(minecraft, resolution.getScaledWidth(), resolution.getScaledHeight());
+                    RuntimeProbe.require(page.entryList.listEntries.size() == element.getChildElements().size(),
+                            "each material or compatibility choice has a widget");
+                    for (net.minecraftforge.fml.client.config.IConfigElement setting : page.configElements) {
+                        RuntimeProbe.require(!I18n.format(setting.getLanguageKey()).equals(setting.getLanguageKey())
+                                && !I18n.format(setting.getLanguageKey() + ".tooltip").equals(setting.getLanguageKey() + ".tooltip"),
+                                "nested settings have translated labels and help");
+                    }
+                    page.drawScreen(0, 0, 0);
+                    page.onGuiClosed();
+                }
             }
             minecraft.getFramebuffer().bindFramebuffer(true);
             minecraft.entityRenderer.setupOverlayRendering();

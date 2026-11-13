@@ -60,7 +60,7 @@ final class ModMenuProbe {
             minecraft.displayGuiScreen(parent);
         }
 
-        RuntimeProbe.require(tooltips == 5, "all five settings have usable tooltips");
+        RuntimeProbe.require(tooltips == 6, "both settings screens and their pages have usable tooltips");
         System.out.println("SKY_MOD_MENU_PASS metadata=2 config_buttons=2 tooltips=" + tooltips);
     }
 

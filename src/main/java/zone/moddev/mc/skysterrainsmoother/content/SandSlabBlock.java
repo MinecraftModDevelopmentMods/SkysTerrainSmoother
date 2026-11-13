@@ -16,19 +16,17 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.*;
 import net.minecraft.world.*;
 
-/** Two fixed sand slots and two horizontal halves; gravity retains the complete state. */
-public final class SandSlabBlock extends BlockFalling {
+/** The two permanent sand slots keep their original material and half bits. */
+public final class SandSlabBlock extends FallingSlabBlock {
     public SandSlabBlock() {
-        super(Material.SAND);
-        setRegistryName("skysterrainsmoother", "sand_slab");
-        setTranslationKey("skysterrainsmoother.sand_slab");
+        super("sand_slab", .5f, SoundType.SAND);
         setDefaultState(blockState.getBaseState().withProperty(BlockSand.VARIANT, BlockSand.EnumType.SAND)
                 .withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM));
-        setHardness(.5f);
-        setSoundType(SoundType.SAND);
-        setLightOpacity(0);
-        setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
-        useNeighborBrightness = true;
+    }
+
+    @Override
+    public IBlockState fullState(IBlockState state) {
+        return Blocks.SAND.getDefaultState().withProperty(BlockSand.VARIANT, state.getValue(BlockSand.VARIANT));
     }
 
     @Override
@@ -62,81 +60,4 @@ public final class SandSlabBlock extends BlockFalling {
         items.add(new ItemStack(this, 1, 2));
     }
 
-    @Override
-    public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing face, float hitX, float hitY,
-            float hitZ, int meta, EntityLivingBase placer, EnumHand hand) {
-        return getStateFromMeta(meta).withProperty(BlockSlab.HALF,
-                face == EnumFacing.DOWN || face != EnumFacing.UP && hitY > .5 ? BlockSlab.EnumBlockHalf.TOP
-                        : BlockSlab.EnumBlockHalf.BOTTOM);
-    }
-
-    @Override
-    public boolean isOpaqueCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isFullCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isSideSolid(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        return side == (state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.TOP ? EnumFacing.UP
-                : EnumFacing.DOWN);
-    }
-
-    @Override
-    public boolean doesSideBlockRendering(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        return isSideSolid(state, world, pos, side);
-    }
-
-    @Override
-    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        return true;
-    }
-
-    @Override
-    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.TOP ? new AxisAlignedBB(0, .5, 0, 1, 1, 1)
-                : new AxisAlignedBB(0, 0, 0, 1, .5, 1);
-    }
-
-    @Override
-    public AxisAlignedBB getCollisionBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return getBoundingBox(state, world, pos);
-    }
-
-    @Override
-    public String getHarvestTool(IBlockState state) {
-        return "shovel";
-    }
-
-    @Override
-    protected ItemStack getSilkTouchDrop(IBlockState state) {
-        return new ItemStack(this, 1, damageDropped(state));
-    }
-
-    @Override
-    public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
-        if (world.isRemote || !world.getBlockState(pos).equals(state) || pos.getY() <= 0
-                || !canFallThrough(world.getBlockState(pos.down()))) {
-            return;
-        }
-        if (!fallInstantly && world.isAreaLoaded(pos.add(-32, -32, -32), pos.add(32, 32, 32))) {
-            world.spawnEntity(new EntityFallingBlock(world, pos.getX() + .5, pos.getY(), pos.getZ() + .5, state));
-        } else {
-            // Vanilla's instant path uses a default state. Keep red sand and the half here.
-            world.setBlockToAir(pos);
-
-            BlockPos landing = pos.down();
-
-            while (landing.getY() > 0 && canFallThrough(world.getBlockState(landing))) {
-                landing = landing.down();
-            }
-            if (landing.getY() > 0) {
-                world.setBlockState(landing.up(), state, 3);
-            }
-        }
-    }
 }

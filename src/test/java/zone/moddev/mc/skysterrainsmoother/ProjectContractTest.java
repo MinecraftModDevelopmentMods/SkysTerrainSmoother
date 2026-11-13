@@ -8,11 +8,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectContractTest {
     @Test
-    void onlySandPaletteIsNewAndMigrationStateAndToolchainArePreserved() throws Exception {
+    void contentAndMigrationStateAndToolchainArePreserved() throws Exception {
         String properties = text("gradle.properties");
         String build = text("build.gradle");
 
-        assertTrue(properties.contains("mod_version=0.1.0.112021"));
+        assertTrue(properties.contains("mod_version=0.1.1.112021"));
         assertTrue(properties.contains("mapping_version=39-1.12"));
         assertTrue(build.contains("version '7.0.34'"));
         assertTrue(build.contains("verifyEclipseProductionClasspath"));
@@ -94,8 +94,10 @@ class ProjectContractTest {
     void sandResourcesAndGravityContract() throws Exception {
         String block = text("src/main/java/zone/moddev/mc/skysterrainsmoother/content/SandSlabBlock.java");
 
-        assertTrue(block.contains("extends BlockFalling"));
-        assertTrue(block.contains("EntityFallingBlock"));
+        assertTrue(block.contains("extends FallingSlabBlock"));
+        String gravity = text("src/main/java/zone/moddev/mc/skysterrainsmoother/content/FallingSlabBlock.java");
+        assertTrue(gravity.contains("extends BlockFalling"));
+        assertTrue(gravity.contains("EntityFallingBlock"));
         assertTrue(block.contains("BlockSand.VARIANT"));
         assertTrue(block.contains("BlockSlab.HALF"));
         assertFalse(block.contains("VERTICAL"));
@@ -122,7 +124,8 @@ class ProjectContractTest {
                 assertTrue(content.endsWith("\n"));
                 assertFalse(content.contains("\r"));
                 assertFalse(content.contains("\uFEFF"));
-                assertEquals(8, content.split("\n").length);
+                assertTrue(content.contains("tile.skysterrainsmoother.gravel_slab.name="));
+                assertTrue(content.contains("config.skysterrainsmoother.materials.stone.tooltip="));
             }
         }
     }

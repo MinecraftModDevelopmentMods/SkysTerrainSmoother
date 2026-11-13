@@ -12,7 +12,15 @@ client's Config screen does not change a remote server.
 |---|---|---|
 | `worldgen.enabled` | `true` | Enables combined smoothing in new Overworld chunks. |
 | `worldgen.smoothingLevel` | `3` | Slabs (1), slabs and steps (2), or slabs, steps and corners (3). |
+| `materials.soil` | `true` | Includes registered dirt and grass. The Grass Slabs grass switch still applies. |
+| `materials.sandAndGravel` | `true` | Includes sand, red sand and gravel. |
+| `materials.stone` | `true` | Includes stone, sandstone, hardened clay and registered modded rocks. |
+| `materials.snow` | `true` | Includes snow blocks. Snowy grass appearance is independent. |
+| `materials.ice` | `true` | Includes packed ice. |
+| `materials.other` | `true` | Includes add-on materials without another family. |
 | `compat.enableMineralogy` | `true` | Includes available natural Mineralogy rock slabs when installed. |
+
+The **Materials** and **Mod support** pages use these same saved settings. Turning a family off leaves its existing pieces and crafting recipes intact, and affects new slopes and cave floors only. All settings require a restart.
 
 Levels outside 1–3 are constrained to that range.
 Existing level choices are preserved; the new default applies only when the

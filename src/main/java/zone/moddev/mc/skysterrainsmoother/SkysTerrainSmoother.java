@@ -17,10 +17,10 @@ import zone.moddev.mc.skysterrainsmoother.internal.*;
         name = "Sky's Terrain Smoother",
         version = SkysTerrainSmoother.VERSION,
         acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "required-before:skysgrassslabs@[1.1.1.112021,2);required-before:skysbuildingpieces@[0.3.8.112021,0.4)",
+        dependencies = "required-before:skysgrassslabs@[1.2.0.112021,2);required-before:skysbuildingpieces@[0.3.10.112021,0.4)",
         guiFactory = "zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherGuiFactory")
 public final class SkysTerrainSmoother {
-    public static final String ID = "skysterrainsmoother", VERSION = "0.1.0.112021";
+    public static final String ID = "skysterrainsmoother", VERSION = "0.1.1.112021";
     public static boolean enabled = true, mineralogy = true;
     public static int level = 3;
     public static Logger logger;
@@ -51,7 +51,7 @@ public final class SkysTerrainSmoother {
     @Mod.EventHandler
     public void complete(FMLLoadCompleteEvent event) {
         MaterialCatalogue.instance().freeze();
-        logger.info("Terrain smoothing level {}: {} registered materials; one sand slab palette", level,
+        logger.info("Terrain smoothing level {}: {} registered materials; sand and gravel slabs", level,
                 MaterialCatalogue.instance().size());
     }
 
