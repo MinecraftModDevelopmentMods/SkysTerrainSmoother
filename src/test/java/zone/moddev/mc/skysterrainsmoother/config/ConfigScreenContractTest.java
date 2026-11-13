@@ -10,6 +10,8 @@ import net.minecraft.core.BlockPos;
 import java.util.EnumSet;
 import java.util.Set;
 import java.lang.reflect.Field;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.toml.TomlParser;
@@ -27,6 +29,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ConfigTracker;
 import net.neoforged.fml.config.IConfigSpec;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforgespi.language.IModInfo;
 import org.junit.jupiter.api.AfterEach;
@@ -51,7 +54,7 @@ class ConfigScreenContractTest {
                     enabled.add(group);
                 }
             }
-            TerrainSmootherConfig.saveForNextStart(true, 3, true, enabled);
+            saveChoices(true, 3, true, enabled);
             assertEquals(enabled, TerrainSmootherConfig.configuredGroups());
             for (var group : groups) {
                 assertTrue(TerrainSmootherConfig.groupEnabled(group), "Running settings remain unchanged");
@@ -68,7 +71,7 @@ class ConfigScreenContractTest {
                         Blocks.STONE_SLAB.defaultBlockState(), null, null, false, null, group);
                 assertEquals(enabled.contains(group), catalogue.allows(mapping, null, 0, BlockPos.ZERO));
             }
-            TerrainSmootherConfig.saveForNextStart(true, 3, true, all);
+            saveChoices(true, 3, true, all);
             active.set(null, null);
             TerrainSmootherConfig.activateSettingsForThisRun();
         }
@@ -89,6 +92,7 @@ class ConfigScreenContractTest {
     Path directory;
     private TestContainer container;
     private Path configFile;
+    private final LinkedBlockingQueue<ModConfigEvent.Reloading> fileReloads = new LinkedBlockingQueue<>();
 
     @BeforeEach
     void loadDefaults() throws Exception {
@@ -100,6 +104,12 @@ class ConfigScreenContractTest {
         configFile = configDirectory.resolve(TerrainSmootherConfig.FILE_NAME);
         FMLPaths.loadAbsolutePaths(configDirectory);
         container = new TestContainer();
+        Thread testThread = Thread.currentThread();
+        container.getEventBus().addListener((ModConfigEvent.Reloading event) -> {
+            if (Thread.currentThread() != testThread) {
+                fileReloads.add(event);
+            }
+        });
         TerrainSmootherConfig.register(container.getEventBus(), container);
         CommentedConfig defaults = CommentedConfig.inMemory();
         container.config.getSpec().correct(defaults);
@@ -107,6 +117,22 @@ class ConfigScreenContractTest {
             new TomlWriter().write(defaults, writer);
         }
         container.tracker.loadConfigs(ModConfig.Type.COMMON, configDirectory);
+    }
+
+    private void saveChoices(boolean enabled, int level, boolean mineralogy,
+                             Set<MaterialGroup> groups) throws InterruptedException {
+        boolean changed = enabled != TerrainSmootherConfig.configuredEnabled()
+                || level != TerrainSmootherConfig.configuredLevel()
+                || mineralogy != TerrainSmootherConfig.configuredMineralogy()
+                || !groups.equals(TerrainSmootherConfig.configuredGroups());
+        fileReloads.clear();
+        TerrainSmootherConfig.saveForNextStart(enabled, level, mineralogy, groups);
+
+        // Let NeoForge finish reloading this save before simulating a restart or editing again.
+        // The exhaustive matrix otherwise races 128 saves against the asynchronous watcher.
+        if (changed) {
+            assertNotNull(fileReloads.poll(10, TimeUnit.SECONDS), "NeoForge did not reload " + groups);
+        }
     }
 
     @AfterEach
