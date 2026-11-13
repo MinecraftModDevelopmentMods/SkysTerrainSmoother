@@ -14,6 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
+import com.electronwill.nightconfig.core.file.FileWatcher;
 import com.electronwill.nightconfig.toml.TomlParser;
 import com.electronwill.nightconfig.toml.TomlWriter;
 import com.google.gson.JsonObject;
@@ -44,6 +45,7 @@ class ConfigScreenContractTest {
         var all = EnumSet.allOf(MaterialGroup.class);
         assertEquals(all, TerrainSmootherConfig.configuredGroups());
         TerrainSmootherConfig.activateSettingsForThisRun();
+        Set<MaterialGroup> runningGroups = all;
         var groups = MaterialGroup.values();
         var catalogue = new MaterialCatalogue();
         MinecraftTestBootstrap.registerVanilla();
@@ -57,7 +59,8 @@ class ConfigScreenContractTest {
             saveChoices(true, 3, true, enabled);
             assertEquals(enabled, TerrainSmootherConfig.configuredGroups());
             for (var group : groups) {
-                assertTrue(TerrainSmootherConfig.groupEnabled(group), "Running settings remain unchanged");
+                assertEquals(runningGroups.contains(group), TerrainSmootherConfig.groupEnabled(group),
+                        "Running settings remain unchanged until restart");
             }
             Field active = TerrainSmootherConfig.class.getDeclaredField("active");
             active.setAccessible(true);
@@ -71,9 +74,7 @@ class ConfigScreenContractTest {
                         Blocks.STONE_SLAB.defaultBlockState(), null, null, false, null, group);
                 assertEquals(enabled.contains(group), catalogue.allows(mapping, null, 0, BlockPos.ZERO));
             }
-            saveChoices(true, 3, true, all);
-            active.set(null, null);
-            TerrainSmootherConfig.activateSettingsForThisRun();
+            runningGroups = enabled;
         }
     }
 
@@ -117,22 +118,18 @@ class ConfigScreenContractTest {
             new TomlWriter().write(defaults, writer);
         }
         container.tracker.loadConfigs(ModConfig.Type.COMMON, configDirectory);
+        // ADD keeps NeoForge's handler and confirms that its queued watch is ready.
+        FileWatcher.defaultInstance().addWatchFuture(configFile, () -> {}).get(10, TimeUnit.SECONDS);
     }
 
     private void saveChoices(boolean enabled, int level, boolean mineralogy,
                              Set<MaterialGroup> groups) throws InterruptedException {
-        boolean changed = enabled != TerrainSmootherConfig.configuredEnabled()
-                || level != TerrainSmootherConfig.configuredLevel()
-                || mineralogy != TerrainSmootherConfig.configuredMineralogy()
-                || !groups.equals(TerrainSmootherConfig.configuredGroups());
         fileReloads.clear();
         TerrainSmootherConfig.saveForNextStart(enabled, level, mineralogy, groups);
 
         // Let NeoForge finish reloading this save before simulating a restart or editing again.
-        // The exhaustive matrix otherwise races 128 saves against the asynchronous watcher.
-        if (changed) {
-            assertNotNull(fileReloads.poll(10, TimeUnit.SECONDS), "NeoForge did not reload " + groups);
-        }
+        // Each matrix entry changes the choices, so it must produce a real file reload.
+        assertNotNull(fileReloads.poll(10, TimeUnit.SECONDS), "NeoForge did not reload " + groups);
     }
 
     @AfterEach
