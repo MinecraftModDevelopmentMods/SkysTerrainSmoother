@@ -104,6 +104,12 @@ public final class RuntimeProbe {
                 null, null, false, null));
         TerrainSmoothingApi.addShapes(registryId, steps, corners);
 
+        if (Boolean.getBoolean("skysterrainsmoother.materialConfigProbe")) {
+            TerrainSmoothingApi.registerMaterial(new TerrainMaterial(Identifier.parse("probe:other"),
+                    java.util.Set.of(Blocks.OAK_PLANKS.defaultBlockState()), Blocks.OAK_SLAB.defaultBlockState(),
+                    null, null, false, null, zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.OTHER));
+        }
+
 
         TerrainSmoothingApi.addAreaProtection((dimension, pos, biome) -> pos.getY() == 241);
     }
@@ -150,6 +156,14 @@ public final class RuntimeProbe {
 
         try {
             ServerLevel world = server.getLevel(Level.OVERWORLD);
+            if (Boolean.getBoolean("skysterrainsmoother.materialConfigProbe")) {
+                int checks = MaterialConfigProbe.run(world);
+                ran = true;
+                SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + phase()
+                        + " material_checks=" + checks);
+                server.halt(false);
+                return;
+            }
         if (Boolean.getBoolean("skysterrainsmoother.forwardFixture")) {
             try {
                 if (!forwardPrepared) {

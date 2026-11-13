@@ -3,31 +3,32 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.core.Direction;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.server.level.ServerChunkCache;
-import net.minecraft.server.level.WorldGenRegion;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraftforge.event.TickEvent;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.*;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
 /** Plans dry floor transitions before writing them, using only chunks already loaded. */
 public final class SmoothingEngine {
@@ -371,7 +372,8 @@ public final class SmoothingEngine {
 
                     TerrainMaterial material = catalogue.source(lower);
 
-                    if (material == null || material.grass && !grassAllowed
+                    if (material == null || !TerrainSmootherConfig.groupEnabled(material.group)
+                            || material.grass && !grassAllowed
                             || material.mineralogy && !SkysTerrainSmoother.mineralogy) {
                         continue;
                     }

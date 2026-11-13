@@ -10,5 +10,21 @@
   "block.skysterrainsmoother.powder_snow_slab": "粉雪のハーフブロック",
   "block.skysterrainsmoother.powder_snow_step": "粉雪の段",
   "block.skysterrainsmoother.powder_snow_corner": "粉雪の角",
-  "block.skysterrainsmoother.gravel_slab": "砂利のハーフブロック"
+  "block.skysterrainsmoother.gravel_slab": "砂利のハーフブロック",
+  "config.skysterrainsmoother.materials": "素材",
+  "config.skysterrainsmoother.materials.tooltip": "滑らかにする素材のグループを選びます。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.compatibility": "Mod連携",
+  "config.skysterrainsmoother.compatibility.tooltip": "任意Modとの連携を選びます。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.soil": "土と草",
+  "config.skysterrainsmoother.materials.soil.tooltip": "草と土の地形を滑らかにします。Grass Slabsの草の生成設定も適用されます。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.sandAndGravel": "砂と砂利",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "砂、赤い砂、砂利を滑らかにします。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.stone": "石と岩石",
+  "config.skysterrainsmoother.materials.stone.tooltip": "石、砂岩、テラコッタ、MineralogyやBOPなどのModの岩石を滑らかにします。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.snow": "雪",
+  "config.skysterrainsmoother.materials.snow.tooltip": "雪ブロックと粉雪を滑らかにします。草の雪表示は周囲の地形に従います。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.ice": "氷",
+  "config.skysterrainsmoother.materials.ice.tooltip": "氷塊など、対応する氷の地形を滑らかにします。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。",
+  "config.skysterrainsmoother.materials.other": "その他のアドオン",
+  "config.skysterrainsmoother.materials.other.tooltip": "他のグループに分類されていないアドオンの素材を滑らかにします。 新しい斜面と洞窟の床に適用します。Minecraftの再起動が必要です。"
 }
