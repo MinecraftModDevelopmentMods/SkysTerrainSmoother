@@ -10,5 +10,21 @@
   "block.skysterrainsmoother.powder_snow_slab": "Плита из рыхлого снега",
   "block.skysterrainsmoother.powder_snow_step": "Ступень из рыхлого снега",
   "block.skysterrainsmoother.powder_snow_corner": "Уголок из рыхлого снега",
-  "block.skysterrainsmoother.gravel_slab": "Гравийная плита"
+  "block.skysterrainsmoother.gravel_slab": "Гравийная плита",
+  "config.skysterrainsmoother.materials": "Материалы",
+  "config.skysterrainsmoother.materials.tooltip": "Выберите группы материалов для сглаживания. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.compatibility": "Совместимость",
+  "config.skysterrainsmoother.compatibility.tooltip": "Выберите поддержку дополнительных модов. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.soil": "Земля и дёрн",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Сглаживает землю и дёрн. Настройка генерации травы Grass Slabs также учитывается. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Песок и гравий",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Сглаживает песок, красный песок и гравий. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.stone": "Камень и породы",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Сглаживает камень, песчаник, терракоту и породы из модов, включая Mineralogy и BOP. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.snow": "Снег",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Сглаживает снежные блоки и рыхлый снег. Заснеженный вид дёрна по-прежнему зависит от окружения. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.ice": "Лёд",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Сглаживает поддерживаемые виды льда, включая плотный лёд. Применяется к новым склонам и полам пещер. Перезапустите Minecraft.",
+  "config.skysterrainsmoother.materials.other": "Другие дополнения",
+  "config.skysterrainsmoother.materials.other.tooltip": "Сглаживает материалы дополнений, не отнесённые к другим группам. Применяется к новым склонам и полам пещер. Перезапустите Minecraft."
 }

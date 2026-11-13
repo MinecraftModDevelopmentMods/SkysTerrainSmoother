@@ -88,7 +88,7 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(12, values.size());
+                assertEquals(28, values.size());
                 for (String shape : new String[] { "slab", "step", "corner" }) {
                     assertFalse(values.get("block.skysterrainsmoother.powder_snow_" + shape)
                             .getAsString().trim().isEmpty());

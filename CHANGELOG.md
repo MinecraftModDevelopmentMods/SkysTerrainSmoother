@@ -2,6 +2,8 @@
 
 ## 0.1.2.121012
 
+- Choose separate smoothing settings for soil, sand and gravel, stone, snow, ice and other add-on materials.
+- Add material and mod-support config pages with restart-safe saving and tooltips.
 - Smooth gravel slopes with falling gravel slabs.
 - Craft six gravel slabs from three gravel blocks, or combine two slabs back into gravel.
 - Keep the pinned Mineralogy and OreSpawn jars available for Eclipse after sibling rebuilds.

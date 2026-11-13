@@ -24,6 +24,7 @@ final class ConfigScreenProbe {
     private static boolean activeGrass;
     private static boolean activeTerrain;
     private static int activeLevel;
+    private static java.util.Set<zone.moddev.mc.skysterrainsmoother.api.MaterialGroup> activeGroups;
     private static List<String> original;
     private static String[] keys;
 
@@ -32,25 +33,31 @@ final class ConfigScreenProbe {
         activeGrass = SkysGrassSlabsConfig.generateGrassSlabs();
         activeTerrain = TerrainSmootherConfig.enabled();
         activeLevel = TerrainSmootherConfig.level();
+        cancelPendingPages(minecraft);
+        activeGroups = java.util.Arrays.stream(zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values())
+                .filter(TerrainSmootherConfig::groupEnabled).collect(java.util.stream.Collectors.toSet());
         modIndex = 0;
         tooltips = 0;
         stage = 0;
     }
 
     static boolean tick(Minecraft minecraft) {
-        if (modIndex == 2) {
+        if (modIndex == 4) {
             minecraft.setScreen(parent);
-            RuntimeProbe.require(tooltips == 6, "All six settings were exercised");
-            zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 widgets=6 restart_safe=true");
+            RuntimeProbe.require(tooltips == 12, "All twelve settings and both child pages were exercised");
+            zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("SKY_CONFIG_SCREENS_PASS factories=2 pages=4 widgets=12 restart_safe=true");
             return true;
         }
         String modId = modIndex == 0 ? "skysgrassslabs" : "skysterrainsmoother";
         if (stage == 0) {
-            screen = ModMenuProbe.open(minecraft, modId, parent);
+            screen = openPage(minecraft, modId);
             keys = modIndex == 0 ? new String[] { "generateGrassSlabs", "forceReplaceBuildingBricksSlabs",
                         "forceReplaceGrassSlabsModContent" }
-                    : new String[] { "enabled", "smoothingLevel", "enableMineralogy" };
-            RuntimeProbe.require(buttons(screen).size() == keys.length + 1, "Each setting has its own control");
+                    : modIndex == 1 ? new String[] { "enabled", "smoothingLevel" }
+                    : modIndex == 2 ? new String[] { "materials.soil", "materials.sandAndGravel", "materials.stone",
+                            "materials.snow", "materials.ice", "materials.other" }
+                    : new String[] { "enableMineralogy" };
+            RuntimeProbe.require(buttons(screen).size() == (modIndex == 1 ? 5 : keys.length + 1), "Each setting has its own control");
             original = new ArrayList<>();
             for (int index = 0; index < keys.length; index++) {
                 original.add(buttons(screen).get(index).getMessage().getString());
@@ -68,7 +75,7 @@ final class ConfigScreenProbe {
             RuntimeProbe.require(!button.getMessage().getString().equals(original.get(choiceIndex)), "The pending choice changes");
             tooltips++;
             if (++choiceIndex == keys.length) {
-                buttons(screen).get(keys.length).onPress();
+                saveChoices();
                 deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
                 settleTicks = 0;
                 stage = 2;
@@ -88,7 +95,7 @@ final class ConfigScreenProbe {
                 return false;
             }
             if (++settleTicks < 20) return false;
-            screen = ModMenuProbe.open(minecraft, modId, parent);
+            screen = openPage(minecraft, modId);
             for (int index = 0; index < keys.length; index++) {
                 Button button = buttons(screen).get(index);
                 RuntimeProbe.require(!button.getMessage().getString().equals(original.get(index)), "Saved choices are reloaded: " + keys[index]);
@@ -97,7 +104,7 @@ final class ConfigScreenProbe {
                 }
                 RuntimeProbe.require(button.getMessage().getString().equals(original.get(index)), "Restore the disposable configuration");
             }
-            buttons(screen).get(keys.length).onPress();
+            saveChoices();
             settleTicks = 0;
             stage = 3;
         } else {
@@ -118,16 +125,89 @@ final class ConfigScreenProbe {
             RuntimeProbe.require(SkysGrassSlabsConfig.generateGrassSlabs() == activeGrass
                             && TerrainSmootherConfig.enabled() == activeTerrain && TerrainSmootherConfig.level() == activeLevel,
                     "Saving choices leaves this session unchanged");
+            RuntimeProbe.require(activeGroups.equals(java.util.Arrays.stream(
+                    zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values())
+                    .filter(TerrainSmootherConfig::groupEnabled).collect(java.util.stream.Collectors.toSet())),
+                    "Saving material choices leaves running generation unchanged");
             modIndex++;
             stage = 0;
         }
         return false;
     }
 
+    private static void cancelPendingPages(Minecraft minecraft) {
+        var originalGroups = TerrainSmootherConfig.configuredGroups();
+        var draft = new zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherConfigScreen(parent);
+        minecraft.setScreen(draft);
+        buttons(draft).get(2).onPress();
+        String originalSoil = buttons(draft).get(0).getMessage().getString();
+        buttons(draft).get(0).onPress();
+        String pendingSoil = buttons(draft).get(0).getMessage().getString();
+        draft.resize(minecraft, 320, 240);
+        RuntimeProbe.require(buttons(draft).get(0).getMessage().getString().equals(pendingSoil),
+                "Resizing a material page preserves pending choices");
+        var controls = buttons(draft);
+        for (Button control : controls) {
+            RuntimeProbe.require(control.getX() >= 0 && control.getY() >= 0
+                            && control.getX() + control.getWidth() <= 320 && control.getY() + control.getHeight() <= 240,
+                    "Material controls fit the minimum supported UI size");
+            for (Button other : controls) {
+                if (other == control) continue;
+                RuntimeProbe.require(control.getX() + control.getWidth() <= other.getX()
+                                || other.getX() + other.getWidth() <= control.getX()
+                                || control.getY() + control.getHeight() <= other.getY()
+                                || other.getY() + other.getHeight() <= control.getY(),
+                        "Material controls do not overlap");
+            }
+        }
+        draft.onClose();
+        buttons(draft).get(3).onPress();
+        buttons(draft).get(0).onPress();
+        draft.onClose();
+        buttons(draft).get(2).onPress();
+        RuntimeProbe.require(buttons(draft).get(0).getMessage().getString().equals(pendingSoil),
+                "Page navigation retains pending material choices");
+        draft.onClose();
+        draft.onClose();
+        RuntimeProbe.require(TerrainSmootherConfig.configuredGroups().equals(originalGroups),
+                "Escape from the main page discards every pending edit");
+        var reopened = new zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherConfigScreen(parent);
+        minecraft.setScreen(reopened);
+        buttons(reopened).get(2).onPress();
+        RuntimeProbe.require(buttons(reopened).get(0).getMessage().getString().equals(originalSoil),
+                "Cancelled choices are not saved");
+        reopened.onClose();
+        reopened.onClose();
+        zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info(
+                "TERRAIN_CONFIG_PAGES_PASS navigation=true resize=true cancel=true");
+    }
+
     private static Screen newConfigScreen(String modId) {
-        return modId.equals("skysgrassslabs")
+        Screen result = modId.equals("skysgrassslabs")
                 ? new zone.moddev.mc.skysgrassslabs.client.GrassSlabsConfigScreen(parent)
                 : new zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherConfigScreen(parent);
+        Minecraft.getInstance().setScreen(result);
+        selectPage(result);
+        return result;
+    }
+
+    private static Screen openPage(Minecraft minecraft, String modId) {
+        Screen result = ModMenuProbe.open(minecraft, modId, parent);
+        selectPage(result);
+        return result;
+    }
+
+    private static void selectPage(Screen result) {
+        if (modIndex >= 2) {
+            buttons(result).get(modIndex == 2 ? 2 : 3).onPress();
+        }
+    }
+
+    private static void saveChoices() {
+        if (modIndex >= 2) {
+            buttons(screen).get(buttons(screen).size() - 1).onPress();
+        }
+        buttons(screen).get(buttons(screen).size() - 1).onPress();
     }
 
     private static boolean configuredValuesMatchDisk(String modId) {
@@ -137,17 +217,19 @@ final class ConfigScreenProbe {
                     Boolean.toString(SkysGrassSlabsConfig.configuredLegacyReplacement()),
                     Boolean.toString(SkysGrassSlabsConfig.configuredGrassSlabsReplacement())
                 }
-                : new String[] {
+                : modIndex == 1 ? new String[] {
                     Boolean.toString(TerrainSmootherConfig.configuredEnabled()),
-                    Integer.toString(TerrainSmootherConfig.configuredLevel()),
-                    Boolean.toString(TerrainSmootherConfig.configuredMineralogy())
-                };
+                    Integer.toString(TerrainSmootherConfig.configuredLevel())
+                } : modIndex == 2 ? java.util.Arrays.stream(zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values())
+                        .map(group -> Boolean.toString(TerrainSmootherConfig.configuredGroups().contains(group)))
+                        .toArray(String[]::new)
+                : new String[] {Boolean.toString(TerrainSmootherConfig.configuredMineralogy())};
         try {
             String contents = java.nio.file.Files.readString(java.nio.file.Paths.get(
                     "config", modId + "-common.toml"), java.nio.charset.StandardCharsets.UTF_8);
             for (int index = 0; index < keys.length; index++) {
                 java.util.regex.Matcher value = java.util.regex.Pattern.compile(
-                        "(?m)^\\h*" + java.util.regex.Pattern.quote(keys[index])
+                        "(?m)^\\h*" + java.util.regex.Pattern.quote(keys[index].replace("materials.", ""))
                                 + "\\h*=\\h*(true|false|[1-3])\\h*$").matcher(contents);
                 if (!value.find() || !value.group(1).equals(values[index]) || value.find()) {
                     return false;

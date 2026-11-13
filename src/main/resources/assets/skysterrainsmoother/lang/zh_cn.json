@@ -10,5 +10,21 @@
   "block.skysterrainsmoother.powder_snow_slab": "细雪台阶",
   "block.skysterrainsmoother.powder_snow_step": "细雪小台阶",
   "block.skysterrainsmoother.powder_snow_corner": "细雪角块",
-  "block.skysterrainsmoother.gravel_slab": "沙砾台阶"
+  "block.skysterrainsmoother.gravel_slab": "沙砾台阶",
+  "config.skysterrainsmoother.materials": "材料",
+  "config.skysterrainsmoother.materials.tooltip": "选择需要平滑处理的材料组。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.compatibility": "模组兼容",
+  "config.skysterrainsmoother.compatibility.tooltip": "选择可选模组支持。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.soil": "泥土和草方块",
+  "config.skysterrainsmoother.materials.soil.tooltip": "平滑处理草方块和泥土地形。仍遵循 Grass Slabs 的草台阶生成设置。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.sandAndGravel": "沙子和沙砾",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "平滑处理沙子、红沙和沙砾。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.stone": "石头和岩石",
+  "config.skysterrainsmoother.materials.stone.tooltip": "平滑处理石头、砂岩、陶瓦和模组岩石，包括 Mineralogy 和 BOP。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.snow": "雪",
+  "config.skysterrainsmoother.materials.snow.tooltip": "平滑处理雪块和细雪。草方块的覆雪外观仍取决于周围地形。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.ice": "冰",
+  "config.skysterrainsmoother.materials.ice.tooltip": "平滑处理支持的冰类地形，包括浮冰。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。",
+  "config.skysterrainsmoother.materials.other": "其他附属模组",
+  "config.skysterrainsmoother.materials.other.tooltip": "平滑处理未归入其他组的附属模组材料。 适用于新生成的坡面和洞穴地面。需要重启 Minecraft。"
 }

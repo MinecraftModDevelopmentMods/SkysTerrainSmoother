@@ -1,5 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -377,7 +379,8 @@ public final class SmoothingEngine {
 
                     TerrainMaterial material = catalogue.source(lower);
 
-                    if (material == null || material.grass && !grassAllowed
+                    if (material == null || !TerrainSmootherConfig.groupEnabled(material.group)
+                            || material.grass && !grassAllowed
                             || material.mineralogy && !SkysTerrainSmoother.mineralogy) {
                         continue;
                     }

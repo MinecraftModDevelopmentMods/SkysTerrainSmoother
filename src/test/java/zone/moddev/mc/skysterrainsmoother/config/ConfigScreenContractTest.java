@@ -1,5 +1,16 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
+import zone.moddev.mc.skysterrainsmoother.api.MaterialGroup;
+import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
+import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
+import zone.moddev.mc.skysterrainsmoother.MinecraftTestBootstrap;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import java.util.EnumSet;
+import java.util.Set;
+import java.lang.reflect.Field;
+
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.toml.TomlParser;
 import com.electronwill.nightconfig.toml.TomlWriter;
@@ -25,6 +36,55 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigScreenContractTest {
+    @Test
+    void everyMaterialCombinationSavesWithoutChangingTheRunningSession() throws Exception {
+        var all = EnumSet.allOf(MaterialGroup.class);
+        assertEquals(all, TerrainSmootherConfig.configuredGroups());
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        var groups = MaterialGroup.values();
+        var catalogue = new MaterialCatalogue();
+        MinecraftTestBootstrap.registerVanilla();
+        for (int mask = 0; mask < 1 << groups.length; mask++) {
+            var enabled = EnumSet.noneOf(MaterialGroup.class);
+            for (var group : groups) {
+                if ((mask & 1 << group.ordinal()) != 0) {
+                    enabled.add(group);
+                }
+            }
+            TerrainSmootherConfig.saveForNextStart(true, 3, true, enabled);
+            assertEquals(enabled, TerrainSmootherConfig.configuredGroups());
+            for (var group : groups) {
+                assertTrue(TerrainSmootherConfig.groupEnabled(group), "Running settings remain unchanged");
+            }
+            Field active = TerrainSmootherConfig.class.getDeclaredField("active");
+            active.setAccessible(true);
+            active.set(null, null);
+            TerrainSmootherConfig.activateSettingsForThisRun();
+            for (var group : groups) {
+                assertEquals(enabled.contains(group), TerrainSmootherConfig.groupEnabled(group));
+                var mapping = new TerrainMaterial(
+                        ResourceLocation.parse("test:" + group.configKey().toLowerCase()),
+                        Set.of(Blocks.DIRT.defaultBlockState()),
+                        Blocks.STONE_SLAB.defaultBlockState(), null, null, false, null, group);
+                assertEquals(enabled.contains(group), catalogue.allows(mapping, null, 0, BlockPos.ZERO));
+            }
+            TerrainSmootherConfig.saveForNextStart(true, 3, true, all);
+            active.set(null, null);
+            TerrainSmootherConfig.activateSettingsForThisRun();
+        }
+    }
+
+    @Test
+    void upgradingThreeKeyTomlKeepsItsChoicesAndEnablesEveryNewGroup() throws Exception {
+        container.tracker.unloadConfigs(ModConfig.Type.COMMON);
+        Files.writeString(configFile, "[worldgen]\nenabled=false\nsmoothingLevel=2\n[compat]\nenableMineralogy=false\n");
+        container.tracker.loadConfigs(ModConfig.Type.COMMON, configFile.getParent());
+        assertFalse(TerrainSmootherConfig.configuredEnabled());
+        assertEquals(2, TerrainSmootherConfig.configuredLevel());
+        assertFalse(TerrainSmootherConfig.configuredMineralogy());
+        assertEquals(EnumSet.allOf(MaterialGroup.class),
+                TerrainSmootherConfig.configuredGroups());
+    }
     @TempDir
     Path directory;
     private TestContainer container;
@@ -32,7 +92,7 @@ class ConfigScreenContractTest {
 
     @BeforeEach
     void loadDefaults() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("active");
+        Field field = TerrainSmootherConfig.class.getDeclaredField("active");
         field.setAccessible(true);
         field.set(null, null);
         Path configDirectory = directory.resolve("config-test");

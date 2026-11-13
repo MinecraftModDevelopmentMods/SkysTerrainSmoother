@@ -80,7 +80,10 @@ the BOP add-on, keep its matching dependencies installed too.
 The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
-level, turn smoothing off or disable Mineralogy support, then restart Minecraft.
+level, turn smoothing off or open the material and mod-support pages, then restart Minecraft.
+You can switch soil, sand and gravel, stone, snow and ice smoothing separately.
+For example, turn **Stone and rocks** off to keep the softer ground smoothed
+without changing rock terrain. This also covers Mineralogy and BOP rocks.
 For a dedicated server, edit its configuration file and restart the server.
 See [configuration](docs/CONFIGURATION.md).
 
