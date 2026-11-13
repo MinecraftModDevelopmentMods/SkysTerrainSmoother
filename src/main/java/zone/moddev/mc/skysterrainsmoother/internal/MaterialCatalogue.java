@@ -1,5 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+
 import java.util.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.SnowyDirtBlock;
@@ -119,6 +121,9 @@ public final class MaterialCatalogue {
     }
 
     public boolean allows(TerrainMaterial material, Biome biome, int dimension, BlockPos target) {
+        if (!TerrainSmootherConfig.groupEnabled(material.group)) {
+            return false;
+        }
         for (TerrainSmoothingApi.BiomeRule rule : biomeRules) {
             if (!rule.allows(material.id, biome)) {
                 return false;

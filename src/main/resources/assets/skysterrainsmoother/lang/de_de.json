@@ -9,5 +9,22 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Nutzt verfügbare Platten natürlicher Mineralogy-Gesteine, wenn die Mod installiert ist. Deaktivierte Plattentypen werden übersprungen. Minecraft neu starten.",
   "block.skysterrainsmoother.powder_snow_slab": "Pulverschneestufe",
   "block.skysterrainsmoother.powder_snow_step": "Pulverschnee-Viertelstufe",
-  "block.skysterrainsmoother.powder_snow_corner": "Pulverschnee-Eckstück"
+  "block.skysterrainsmoother.powder_snow_corner": "Pulverschnee-Eckstück",
+  "block.skysterrainsmoother.gravel_slab": "Kiesstufe",
+  "config.skysterrainsmoother.materials": "Materialien",
+  "config.skysterrainsmoother.materials.tooltip": "Wähle, welche Materialgruppen geglättet werden. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.compatibility": "Mod-Unterstützung",
+  "config.skysterrainsmoother.compatibility.tooltip": "Wähle die Unterstützung optionaler Mods. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.soil": "Erde und Gras",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Glättet Gras- und Erdböden. Die Einstellung für Graserzeugung in Grass Slabs gilt weiterhin. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Sand und Kies",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Glättet Sand, roten Sand und Kies. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.stone": "Steine und Felsen",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Glättet Stein, Sandstein, Terrakotta und Mod-Gesteine, einschließlich Mineralogy und BOP. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.snow": "Schnee",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Glättet Schneeblöcke und Pulverschnee. Verschneites Gras richtet sich weiterhin nach der Umgebung. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.ice": "Eis",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Glättet unterstütztes Eis, einschließlich Packeis. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten.",
+  "config.skysterrainsmoother.materials.other": "Andere Add-ons",
+  "config.skysterrainsmoother.materials.other.tooltip": "Glättet Add-on-Materialien ohne andere Gruppenzuordnung. Gilt für neue Hänge und Höhlenböden. Minecraft neu starten."
 }

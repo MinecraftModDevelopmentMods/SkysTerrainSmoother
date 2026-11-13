@@ -9,5 +9,22 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa as lajes disponíveis de rochas naturais do Mineralogy quando ele está instalado. Tipos de laje desativados são ignorados. Reinicie o Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Laje de neve fofa",
   "block.skysterrainsmoother.powder_snow_step": "Degrau de neve fofa",
-  "block.skysterrainsmoother.powder_snow_corner": "Canto de neve fofa"
+  "block.skysterrainsmoother.powder_snow_corner": "Canto de neve fofa",
+  "block.skysterrainsmoother.gravel_slab": "Laje de Cascalho",
+  "config.skysterrainsmoother.materials": "Materiais",
+  "config.skysterrainsmoother.materials.tooltip": "Escolha as famílias de materiais a suavizar. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.compatibility": "Compatibilidade",
+  "config.skysterrainsmoother.compatibility.tooltip": "Escolha o suporte a mods opcionais. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.soil": "Terra e relva",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Suaviza terrenos de terra e relva. A opção de geração do Grass Slabs continua a ser respeitada. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Areia e cascalho",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Suaviza areia, areia vermelha e cascalho. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.stone": "Pedra e rochas",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Suaviza pedra, arenito, terracota e rochas de mods, incluindo Mineralogy e BOP. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.snow": "Neve",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Suaviza blocos de neve e neve fofa. A aparência nevada da relva continua a depender do terreno. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.ice": "Gelo",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Suaviza gelo compatível, incluindo gelo compactado. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft.",
+  "config.skysterrainsmoother.materials.other": "Outros complementos",
+  "config.skysterrainsmoother.materials.other.tooltip": "Suaviza materiais de complementos sem outro grupo atribuído. Aplica-se a novas encostas e pisos de cavernas. Reinicie o Minecraft."
 }

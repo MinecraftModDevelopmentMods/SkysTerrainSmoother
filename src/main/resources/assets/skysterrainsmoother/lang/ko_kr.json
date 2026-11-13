@@ -9,5 +9,22 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Mineralogy가 설치되어 있으면 사용 가능한 자연 암석 반 블록을 사용합니다. 비활성화된 종류는 건너뜁니다. Minecraft를 다시 시작해야 합니다.",
   "block.skysterrainsmoother.powder_snow_slab": "가루눈 반 블록",
   "block.skysterrainsmoother.powder_snow_step": "가루눈 단",
-  "block.skysterrainsmoother.powder_snow_corner": "가루눈 모서리"
+  "block.skysterrainsmoother.powder_snow_corner": "가루눈 모서리",
+  "block.skysterrainsmoother.gravel_slab": "자갈 반 블록",
+  "config.skysterrainsmoother.materials": "재료",
+  "config.skysterrainsmoother.materials.tooltip": "매끄럽게 만들 재료 그룹을 선택합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.compatibility": "모드 호환",
+  "config.skysterrainsmoother.compatibility.tooltip": "선택 모드의 지원 여부를 설정합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.soil": "흙과 잔디",
+  "config.skysterrainsmoother.materials.soil.tooltip": "흙과 잔디 지형을 매끄럽게 합니다. Grass Slabs의 잔디 생성 설정도 적용됩니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "모래와 자갈",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "모래, 붉은 모래와 자갈을 매끄럽게 합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.stone": "돌과 암석",
+  "config.skysterrainsmoother.materials.stone.tooltip": "돌, 사암, 테라코타와 Mineralogy 및 BOP 등의 모드 암석을 매끄럽게 합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.snow": "눈",
+  "config.skysterrainsmoother.materials.snow.tooltip": "눈 블록과 가루눈을 매끄럽게 합니다. 잔디의 눈 덮인 모습은 주변 지형을 따릅니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.ice": "얼음",
+  "config.skysterrainsmoother.materials.ice.tooltip": "꽁꽁 언 얼음을 포함한 지원 얼음 지형을 매끄럽게 합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요.",
+  "config.skysterrainsmoother.materials.other": "기타 애드온",
+  "config.skysterrainsmoother.materials.other.tooltip": "다른 그룹에 속하지 않는 애드온 재료를 매끄럽게 합니다. 새로운 경사면과 동굴 바닥에 적용됩니다. Minecraft를 다시 시작하세요."
 }

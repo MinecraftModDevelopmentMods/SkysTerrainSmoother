@@ -9,5 +9,22 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Usa las losas disponibles de rocas naturales de Mineralogy si está instalado. Omite los tipos de losa desactivados. Reinicia Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Losa de nieve en polvo",
   "block.skysterrainsmoother.powder_snow_step": "Escalón de nieve en polvo",
-  "block.skysterrainsmoother.powder_snow_corner": "Esquina de nieve en polvo"
+  "block.skysterrainsmoother.powder_snow_corner": "Esquina de nieve en polvo",
+  "block.skysterrainsmoother.gravel_slab": "Losa de grava",
+  "config.skysterrainsmoother.materials": "Materiales",
+  "config.skysterrainsmoother.materials.tooltip": "Elige qué grupos de materiales se suavizan. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.compatibility": "Compatibilidad",
+  "config.skysterrainsmoother.compatibility.tooltip": "Elige la compatibilidad con mods opcionales. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.soil": "Tierra y césped",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Suaviza terrenos de tierra y césped. Se respeta la opción de generación de Grass Slabs. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Arena y grava",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Suaviza arena, arena roja y grava. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.stone": "Piedra y rocas",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Suaviza piedra, arenisca, terracota y rocas de mods, incluidos Mineralogy y BOP. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.snow": "Nieve",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Suaviza bloques de nieve y nieve en polvo. El aspecto nevado del césped sigue dependiendo del entorno. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.ice": "Hielo",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Suaviza hielo compatible, incluido el hielo compacto. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft.",
+  "config.skysterrainsmoother.materials.other": "Otros complementos",
+  "config.skysterrainsmoother.materials.other.tooltip": "Suaviza materiales de complementos sin otro grupo asignado. Se aplica a pendientes y suelos de cuevas nuevos. Reinicia Minecraft."
 }

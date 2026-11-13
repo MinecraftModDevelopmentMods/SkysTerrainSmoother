@@ -9,5 +9,22 @@
   "config.skysterrainsmoother.enableMineralogy.tooltip": "Utilise les dalles disponibles des roches naturelles de Mineralogy si le mod est installé. Les types désactivés sont ignorés. Redémarrez Minecraft.",
   "block.skysterrainsmoother.powder_snow_slab": "Dalle de neige poudreuse",
   "block.skysterrainsmoother.powder_snow_step": "Quart de neige poudreuse",
-  "block.skysterrainsmoother.powder_snow_corner": "Coin de neige poudreuse"
+  "block.skysterrainsmoother.powder_snow_corner": "Coin de neige poudreuse",
+  "block.skysterrainsmoother.gravel_slab": "Dalle de gravier",
+  "config.skysterrainsmoother.materials": "Matériaux",
+  "config.skysterrainsmoother.materials.tooltip": "Choisissez les familles de matériaux à adoucir. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.compatibility": "Compatibilité",
+  "config.skysterrainsmoother.compatibility.tooltip": "Choisissez la prise en charge des mods optionnels. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.soil": "Terre et herbe",
+  "config.skysterrainsmoother.materials.soil.tooltip": "Adoucit les terrains en terre et en herbe. Le réglage de génération de Grass Slabs reste prioritaire. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.sandAndGravel": "Sable et gravier",
+  "config.skysterrainsmoother.materials.sandAndGravel.tooltip": "Adoucit le sable, le sable rouge et le gravier. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.stone": "Pierre et roches",
+  "config.skysterrainsmoother.materials.stone.tooltip": "Adoucit la pierre, le grès, la terre cuite et les roches des mods, dont Mineralogy et BOP. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.snow": "Neige",
+  "config.skysterrainsmoother.materials.snow.tooltip": "Adoucit les blocs de neige et la neige poudreuse. L’aspect enneigé de l’herbe dépend toujours du terrain voisin. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.ice": "Glace",
+  "config.skysterrainsmoother.materials.ice.tooltip": "Adoucit la glace compatible, dont la glace compactée. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft.",
+  "config.skysterrainsmoother.materials.other": "Autres extensions",
+  "config.skysterrainsmoother.materials.other.tooltip": "Adoucit les matériaux des extensions sans autre groupe attribué. Concerne les nouvelles pentes et les sols de grottes. Redémarrez Minecraft."
 }

@@ -1,6 +1,20 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
+import zone.moddev.mc.skysterrainsmoother.api.MaterialGroup;
+import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
+import zone.moddev.mc.skysterrainsmoother.internal.MaterialCatalogue;
+import zone.moddev.mc.skysterrainsmoother.MinecraftTestBootstrap;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import java.util.EnumSet;
+import java.util.Set;
+import java.lang.reflect.Field;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import com.electronwill.nightconfig.core.CommentedConfig;
+import com.electronwill.nightconfig.core.file.FileWatcher;
 import com.electronwill.nightconfig.toml.TomlParser;
 import com.electronwill.nightconfig.toml.TomlWriter;
 import com.google.gson.JsonObject;
@@ -16,6 +30,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ConfigTracker;
 import net.neoforged.fml.config.IConfigSpec;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforgespi.language.IModInfo;
 import org.junit.jupiter.api.AfterEach;
@@ -25,14 +40,64 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigScreenContractTest {
+    @Test
+    void everyMaterialCombinationSavesWithoutChangingTheRunningSession() throws Exception {
+        var all = EnumSet.allOf(MaterialGroup.class);
+        assertEquals(all, TerrainSmootherConfig.configuredGroups());
+        TerrainSmootherConfig.activateSettingsForThisRun();
+        Set<MaterialGroup> runningGroups = all;
+        var groups = MaterialGroup.values();
+        var catalogue = new MaterialCatalogue();
+        MinecraftTestBootstrap.registerVanilla();
+        for (int mask = 0; mask < 1 << groups.length; mask++) {
+            var enabled = EnumSet.noneOf(MaterialGroup.class);
+            for (var group : groups) {
+                if ((mask & 1 << group.ordinal()) != 0) {
+                    enabled.add(group);
+                }
+            }
+            saveChoices(true, 3, true, enabled);
+            assertEquals(enabled, TerrainSmootherConfig.configuredGroups());
+            for (var group : groups) {
+                assertEquals(runningGroups.contains(group), TerrainSmootherConfig.groupEnabled(group),
+                        "Running settings remain unchanged until restart");
+            }
+            Field active = TerrainSmootherConfig.class.getDeclaredField("active");
+            active.setAccessible(true);
+            active.set(null, null);
+            TerrainSmootherConfig.activateSettingsForThisRun();
+            for (var group : groups) {
+                assertEquals(enabled.contains(group), TerrainSmootherConfig.groupEnabled(group));
+                var mapping = new TerrainMaterial(
+                        ResourceLocation.parse("test:" + group.configKey().toLowerCase()),
+                        Set.of(Blocks.DIRT.defaultBlockState()),
+                        Blocks.STONE_SLAB.defaultBlockState(), null, null, false, null, group);
+                assertEquals(enabled.contains(group), catalogue.allows(mapping, null, 0, BlockPos.ZERO));
+            }
+            runningGroups = enabled;
+        }
+    }
+
+    @Test
+    void upgradingThreeKeyTomlKeepsItsChoicesAndEnablesEveryNewGroup() throws Exception {
+        container.tracker.unloadConfigs(ModConfig.Type.COMMON);
+        Files.writeString(configFile, "[worldgen]\nenabled=false\nsmoothingLevel=2\n[compat]\nenableMineralogy=false\n");
+        container.tracker.loadConfigs(ModConfig.Type.COMMON, configFile.getParent());
+        assertFalse(TerrainSmootherConfig.configuredEnabled());
+        assertEquals(2, TerrainSmootherConfig.configuredLevel());
+        assertFalse(TerrainSmootherConfig.configuredMineralogy());
+        assertEquals(EnumSet.allOf(MaterialGroup.class),
+                TerrainSmootherConfig.configuredGroups());
+    }
     @TempDir
     Path directory;
     private TestContainer container;
     private Path configFile;
+    private final LinkedBlockingQueue<ModConfigEvent.Reloading> fileReloads = new LinkedBlockingQueue<>();
 
     @BeforeEach
     void loadDefaults() throws Exception {
-        java.lang.reflect.Field field = TerrainSmootherConfig.class.getDeclaredField("active");
+        Field field = TerrainSmootherConfig.class.getDeclaredField("active");
         field.setAccessible(true);
         field.set(null, null);
         Path configDirectory = directory.resolve("config-test");
@@ -40,6 +105,12 @@ class ConfigScreenContractTest {
         configFile = configDirectory.resolve(TerrainSmootherConfig.FILE_NAME);
         FMLPaths.loadAbsolutePaths(configDirectory);
         container = new TestContainer();
+        Thread testThread = Thread.currentThread();
+        container.getEventBus().addListener((ModConfigEvent.Reloading event) -> {
+            if (Thread.currentThread() != testThread) {
+                fileReloads.add(event);
+            }
+        });
         TerrainSmootherConfig.register(container.getEventBus(), container);
         CommentedConfig defaults = CommentedConfig.inMemory();
         container.config.getSpec().correct(defaults);
@@ -47,6 +118,18 @@ class ConfigScreenContractTest {
             new TomlWriter().write(defaults, writer);
         }
         container.tracker.loadConfigs(ModConfig.Type.COMMON, configDirectory);
+        // ADD keeps NeoForge's handler and confirms that its queued watch is ready.
+        FileWatcher.defaultInstance().addWatchFuture(configFile, () -> {}).get(10, TimeUnit.SECONDS);
+    }
+
+    private void saveChoices(boolean enabled, int level, boolean mineralogy,
+                             Set<MaterialGroup> groups) throws InterruptedException {
+        fileReloads.clear();
+        TerrainSmootherConfig.saveForNextStart(enabled, level, mineralogy, groups);
+
+        // Let NeoForge finish reloading this save before simulating a restart or editing again.
+        // Each matrix entry changes the choices, so it must produce a real file reload.
+        assertNotNull(fileReloads.poll(10, TimeUnit.SECONDS), "NeoForge did not reload " + groups);
     }
 
     @AfterEach
