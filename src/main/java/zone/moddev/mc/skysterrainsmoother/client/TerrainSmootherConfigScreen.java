@@ -17,7 +17,8 @@ public final class TerrainSmootherConfigScreen extends GuiConfig {
     private static List<IConfigElement> elements() {
         List<IConfigElement> elements = new ArrayList<>();
         elements.addAll(new ConfigElement(TerrainSmootherConfig.configuration().getCategory("worldgen")).getChildElements());
-        elements.addAll(new ConfigElement(TerrainSmootherConfig.configuration().getCategory("compat")).getChildElements());
+        elements.add(new ConfigElement(TerrainSmootherConfig.configuration().getCategory("materials")));
+        elements.add(new ConfigElement(TerrainSmootherConfig.configuration().getCategory("compat")));
         return elements;
     }
 }

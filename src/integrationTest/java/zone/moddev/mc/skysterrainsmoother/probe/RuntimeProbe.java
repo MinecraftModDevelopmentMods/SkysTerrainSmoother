@@ -108,6 +108,11 @@ public final class RuntimeProbe {
         try {
             WorldServer world = server.getWorld(0);
 
+            if (phase().equals("upgrade-existing")) {
+                new ExistingWorldProbe(world);
+                return;
+            }
+
             world.getGameRules().setOrCreateGameRule("randomTickSpeed", "0");
             require(GrassSlabsApi.hasSmoothingOwner(), "ownership claimed before Grass Slabs startup");
             require(SkysTerrainSmoother.engine.indexedChunks() > 0 == phase().equals("reload"),
@@ -126,7 +131,7 @@ public final class RuntimeProbe {
             int gameplay = MineralogyProbe.run() + FineGrassProbe.run(world) + OpportunityProbe.run(world)
                     + TransitionProbe.run(world) + FoliageProbe.run(world)
                     + persistence(world)
-                    + LateTerrainProbe.run(world) + CaveProbe.run(world)
+                    + LateTerrainProbe.run(world) + CaveProbe.run(world) + BackportProbe.run(world)
                     + decorationChanges(world) + geometry(world) + grass(world) + sand(world) + generationOrder(world)
                     + LateTerrainProbe.generationOrder(world);
             int generation = generate(world);
@@ -328,8 +333,11 @@ public final class RuntimeProbe {
                 require(replacement == Blocks.SAND
                         ? world.getBlockState(position.up())
                                 .getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
+                        : replacement == Blocks.GRAVEL
+                        ? world.getBlockState(position.up()).getBlock()
+                                == zone.moddev.mc.skysterrainsmoother.content.SandContent.gravelSlab
                         : world.isAirBlock(position.up()),
-                        "decoration retargets sand and removes unsupported gravel/air caps");
+                        "decoration retargets sand and gravel and removes unsupported air caps");
                 require(world.getBlockState(position).getBlock() == replacement, "decorator's terrain is not reverted");
                 checks += 3;
             }
@@ -401,7 +409,7 @@ public final class RuntimeProbe {
             }
         }
 
-        world.setBlockState(beach, Blocks.GRAVEL.getDefaultState(), 2);
+        world.setBlockState(beach, Blocks.QUARTZ_BLOCK.getDefaultState(), 2);
         SkysTerrainSmoother.engine.smooth(world, beachOwner, 1);
         require(world.isAirBlock(beach.up()), "unsupported first pass leaves no piece");
         world.setBlockState(beach, Blocks.SAND.getStateFromMeta(1), 2);

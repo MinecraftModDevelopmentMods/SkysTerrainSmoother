@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "half=bottom": {
+      "model": "skysterrainsmoother:gravel_slab"
+    },
+    "half=top": {
+      "model": "skysterrainsmoother:gravel_slab_top"
+    }
+  }
+}

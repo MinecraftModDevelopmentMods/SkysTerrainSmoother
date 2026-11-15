@@ -58,3 +58,10 @@ A lookup can return no state where that material has no corresponding shape.
 
 Only the `api` package is an extension contract. Engine classes are internal
 implementation details and are not a supported API.
+
+Materials can specify a `MaterialGroup` in the additional constructor overload.
+The original constructor remains available: grass and known vanilla or Mineralogy
+states retain their natural family; unknown modded states use `OTHER`. Shape
+extensions keep the original family. Player switches apply to add-on mappings
+as well as built-in ones, and disabled mappings remain available for recognising
+neighbouring pieces.

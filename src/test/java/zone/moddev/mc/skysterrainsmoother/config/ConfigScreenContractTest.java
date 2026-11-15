@@ -99,6 +99,31 @@ class ConfigScreenContractTest {
     }
 
     @Test
+    void materialChoicesPersistWithoutChangingTheRunningEngine() {
+        File file = temporaryDirectory.resolve("materials.cfg").toFile();
+        TerrainSmootherConfig.load(file);
+        for (zone.moddev.mc.skysterrainsmoother.api.MaterialGroup group :
+                zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values()) {
+            assertTrue(TerrainSmootherConfig.groupEnabled(group));
+            net.minecraftforge.common.config.Property setting = TerrainSmootherConfig.configuration()
+                    .getCategory("materials").get(group.configKey());
+            assertTrue(setting.requiresMcRestart());
+            assertFalse(setting.getComment().isEmpty());
+            setting.set(false);
+        }
+        TerrainSmootherConfig.saveChanges();
+        for (zone.moddev.mc.skysterrainsmoother.api.MaterialGroup group :
+                zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values()) {
+            assertTrue(TerrainSmootherConfig.groupEnabled(group), "the active snapshot stays unchanged");
+        }
+        TerrainSmootherConfig.load(file);
+        for (zone.moddev.mc.skysterrainsmoother.api.MaterialGroup group :
+                zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.values()) {
+            assertFalse(TerrainSmootherConfig.groupEnabled(group));
+        }
+    }
+
+    @Test
     void allThreeLevelsAndTheExistingBoundsArePreserved() {
         File file = temporaryDirectory.resolve("levels.cfg").toFile();
 

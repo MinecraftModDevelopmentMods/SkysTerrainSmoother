@@ -4,11 +4,14 @@ Use the Gradle 9.6.1 wrapper with Java 17 and Temurin 8.0.502+7 for production.
 Set `STS_JAVA8_HOME` to the Java 8 installation. This branch targets
 Minecraft 1.12.2 with ForgeGradle 7.0.34.
 
+The legacy Forge setup verifies its pinned SpecialSource tool from Maven Central.
+Run once online before using an empty build cache offline.
+
 Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `jar` tasks first.
 
-The source lock records released Grass Slabs 1.1.2.112021 and Building Pieces
-0.3.8.112021.
+The source lock records Grass Slabs 1.2.0.112021 and Building Pieces
+0.3.10.112021.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and

@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 
 /** Horizontal placement only. Matching halves normalize to the original sand. */
 public final class SandSlabItem extends ItemBlock {
-    public SandSlabItem(SandSlabBlock block) {
+    public SandSlabItem(FallingSlabBlock block) {
         super(block);
         setHasSubtypes(true);
         setMaxDamage(0);
@@ -22,11 +22,14 @@ public final class SandSlabItem extends ItemBlock {
 
     @Override
     public int getMetadata(int damage) {
-        return damage & 2;
+        return block instanceof GravelSlabBlock ? 0 : damage & 2;
     }
 
     @Override
     public String getTranslationKey(ItemStack stack) {
+        if (block instanceof GravelSlabBlock) {
+            return "tile.skysterrainsmoother.gravel_slab";
+        }
         return "tile.skysterrainsmoother." + ((stack.getItemDamage() & 2) == 0 ? "sand_slab" : "red_sand_slab");
     }
 
@@ -53,20 +56,19 @@ public final class SandSlabItem extends ItemBlock {
         state = world.getBlockState(target);
 
         if (state.getBlock() == block
-                && ((SandSlabBlock) block).damageDropped(state) == getMetadata(stack.getItemDamage())) {
+                && ((FallingSlabBlock) block).damageDropped(state) == getMetadata(stack.getItemDamage())) {
             if (stack.getCount() <= 0 || !player.canPlayerEdit(target, face, stack)
                     || !world.checkNoEntityCollision(Block.FULL_BLOCK_AABB.offset(target))) {
                 return EnumActionResult.FAIL;
             }
 
-            IBlockState full = Blocks.SAND.getDefaultState().withProperty(BlockSand.VARIANT,
-                    state.getValue(BlockSand.VARIANT));
+            IBlockState full = ((FallingSlabBlock) block).fullState(state);
 
             if (!world.setBlockState(target, full, 11)) {
                 return EnumActionResult.FAIL;
             }
 
-            world.playSound(player, target, SoundEvents.BLOCK_SAND_PLACE, SoundCategory.BLOCKS, 1, .8f);
+            world.playSound(player, target, block.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1, .8f);
 
             if (!player.capabilities.isCreativeMode) {
                 stack.shrink(1);

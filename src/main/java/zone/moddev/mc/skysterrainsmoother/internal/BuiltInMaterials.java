@@ -34,6 +34,13 @@ public final class BuiltInMaterials {
         vanilla("red_sandstone", Blocks.RED_SANDSTONE.getStateFromMeta(0), false, null);
         vanilla("hardened_clay", Blocks.HARDENED_CLAY.getDefaultState(), false, null);
 
+        vanilla("snow", Blocks.SNOW.getDefaultState(), false, null);
+        vanilla("packed_ice", Blocks.PACKED_ICE.getDefaultState(), false, null);
+        TerrainSmoothingApi.registerMaterial(new TerrainMaterial(new ResourceLocation("minecraft", "gravel"),
+                Collections.singleton(Blocks.GRAVEL.getDefaultState()),
+                zone.moddev.mc.skysterrainsmoother.content.SandContent.gravelSlab.getDefaultState(),
+                null, null, false, null));
+
         for (int variant = 0; variant < 2; variant++) {
             TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
                     new ResourceLocation("minecraft", variant == 0 ? "sand" : "red_sand"),

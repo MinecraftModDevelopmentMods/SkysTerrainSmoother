@@ -14,6 +14,28 @@ import zone.moddev.mc.skysterrainsmoother.internal.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CatalogueTest {
+    @Test
+    void materialFamiliesRemainStableWhenAnAddonSuppliesFinerShapes() {
+        IBlockState slab = piece(15);
+        for (IBlockState source : new IBlockState[] { Blocks.DIRT.getStateFromMeta(1),
+                Blocks.SAND.getStateFromMeta(1), Blocks.STONE.getStateFromMeta(3),
+                Blocks.SNOW.getDefaultState(), Blocks.PACKED_ICE.getDefaultState() }) {
+            MaterialGroup expected = source.getBlock() == Blocks.DIRT ? MaterialGroup.SOIL
+                    : source.getBlock() == Blocks.SAND ? MaterialGroup.SAND_AND_GRAVEL
+                    : source.getBlock() == Blocks.STONE ? MaterialGroup.STONE
+                    : source.getBlock() == Blocks.SNOW ? MaterialGroup.SNOW : MaterialGroup.ICE;
+            TerrainMaterial inferred = material("natural", source, slab, null, null);
+            assertEquals(expected, inferred.group);
+            assertEquals(expected, inferred.withAdditionalShapes(new IBlockState[4], null).group);
+        }
+        TerrainMaterial explicit = new TerrainMaterial(new ResourceLocation("test:surface"),
+                Collections.singleton(Blocks.QUARTZ_BLOCK.getDefaultState()), slab, null, null,
+                false, null, MaterialGroup.OTHER);
+        assertEquals(MaterialGroup.OTHER, explicit.withAdditionalShapes(null, new IBlockState[4]).group);
+        assertThrows(NullPointerException.class, () -> new TerrainMaterial(new ResourceLocation("test:surface"),
+                explicit.sources, slab, null, null, false, null, null));
+    }
+
     @BeforeAll
     static void boot() {
         Bootstrap.register();

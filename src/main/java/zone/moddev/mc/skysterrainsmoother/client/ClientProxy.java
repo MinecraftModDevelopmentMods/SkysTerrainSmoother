@@ -16,6 +16,8 @@ public final class ClientProxy extends CommonProxy {
 
     @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
     public static void models(net.minecraftforge.client.event.ModelRegistryEvent event) {
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(SandContent.gravelSlab), 0,
+                new ModelResourceLocation(new ResourceLocation("skysterrainsmoother", "gravel_slab"), "inventory"));
         for (int variant = 0; variant < 2; variant++) {
             ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(SandContent.slab), variant * 2,
                     new ModelResourceLocation(
