@@ -89,9 +89,9 @@ final class LateTerrainProbe {
                             "late oasis grass gets its own grass cap beside clay");
                     RuntimeProbe.require(
                             world.getBlockState(floor)
-                                    .equals(GrassSlabsApi.grassGenerationAllowed() ? Blocks.DIRT.getDefaultState()
+                                    .equals(GrassSlabsApi.grassGenerationAllowed() && level == 1 ? Blocks.DIRT.getDefaultState()
                                             : Blocks.GRASS.getDefaultState()),
-                            "late grass support dirtification respects grass switch");
+                            "late support conversion respects the grass switch and exposed footprint");
                     post(world, owner);
                     RuntimeProbe.require(
                             world.getBlockState(floor.up()).equals(expected) && world.isAirBlock(floor.up(2)),
@@ -100,9 +100,9 @@ final class LateTerrainProbe {
                             "late pass never loads a neighbour");
                     checks += 4;
 
-                    // Decoration owns occupied targets. Do not replace vegetation, fluids or a placed block to obtain
-                    // the missing transition.
+                    // Small grass may give way in this tracked fresh owner; trees and other occupied blocks may not.
                     for (IBlockState occupied : new IBlockState[] { Blocks.TALLGRASS.getDefaultState(),
+                            Blocks.SAPLING.getDefaultState(),
                             Blocks.WATER.getDefaultState(), Blocks.GLASS.getDefaultState() }) {
                         fixture(world, floor, Blocks.GRAVEL.getDefaultState());
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
@@ -110,10 +110,13 @@ final class LateTerrainProbe {
                         world.setBlockState(floor.add(DX[direction], 1, DZ[direction]), clay, 2);
                         world.setBlockState(floor.up(), occupied, 2);
                         post(world, owner);
-                        RuntimeProbe.require(world.getBlockState(floor.up()).equals(occupied),
-                                "late pass preserves occupied target " + occupied);
-                        RuntimeProbe.require(world.getBlockState(floor).getBlock() == Blocks.GRASS,
-                                "no support dirtification without successful placement");
+                        boolean replacePlant = occupied.getBlock() == Blocks.TALLGRASS
+                                && GrassSlabsApi.grassGenerationAllowed();
+                        RuntimeProbe.require(world.getBlockState(floor.up()).equals(replacePlant ? expected : occupied),
+                                "late pass only replaces small grass at a valid transition: " + occupied);
+                        RuntimeProbe.require(world.getBlockState(floor).getBlock()
+                                == (replacePlant && level == 1 ? Blocks.DIRT : Blocks.GRASS),
+                                "support dirtification follows successful placement only");
                         checks += 2;
                     }
                 }

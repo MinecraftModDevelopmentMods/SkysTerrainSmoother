@@ -50,6 +50,9 @@ public final class ClientProbe extends ProbeProxy {
         ran = true;
 
         try {
+            MineralogyProbe.run();
+            FineGrassModelProbe.run(minecraft);
+            ConfigScreenProbe.run(minecraft);
             checkModel(minecraft, RuntimeProbe.probeOre.getDefaultState());
 
             for (net.minecraft.block.state.IBlockState state : zone.moddev.mc.skysgrassslabs.init.ModBlocks.GRASS_SLAB

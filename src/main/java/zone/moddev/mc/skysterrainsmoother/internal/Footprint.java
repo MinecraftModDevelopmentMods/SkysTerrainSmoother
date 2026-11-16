@@ -48,6 +48,21 @@ public final class Footprint {
         return 1;
     }
 
+    /** Keep the uphill part of a footprint without raising any exposed downhill edge. */
+    public static int trimDownhillEdges(int mask, int lowerEdges) {
+        if ((mask & ~15) != 0 || (lowerEdges & ~15) != 0) {
+            throw new IllegalArgumentException("Invalid footprint or downhill edges");
+        }
+
+        for (int direction = 0; direction < 4; direction++) {
+            if ((lowerEdges & 1 << direction) != 0) {
+                mask &= ~EDGES[direction];
+            }
+        }
+
+        return mask;
+    }
+
     public static int direction(int mask, int shape) {
         if (shape == 3) {
             return Integer.numberOfTrailingZeros(mask);

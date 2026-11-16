@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=Dalle de sable
 tile.skysterrainsmoother.red_sand_slab.name=Dalle de sable rouge
+config.skysterrainsmoother.enabled=Activer le lissage du terrain
+config.skysterrainsmoother.smoothingLevel=Niveau de lissage (1–3)
+config.skysterrainsmoother.enableMineralogy=Utiliser les dalles de Mineralogy
+config.skysterrainsmoother.enabled.tooltip=Adoucit les nouvelles pentes sèches et les sols de grottes du monde normal. Désactiver arrête aussi la génération séparée de Grass Slabs. Les chunks existants ne changent pas. Redémarrez Minecraft.
+config.skysterrainsmoother.smoothingLevel.tooltip=1 : dalles. 2 : dalles et quarts de bloc. 3 : dalles, quarts et huitièmes de bloc. Une forme manquante n'est remplacée par une dalle que si elle convient. Redémarrez Minecraft.
+config.skysterrainsmoother.enableMineralogy.tooltip=Utilise les dalles disponibles des roches naturelles de Mineralogy si le mod est installé. Les types désactivés sont ignorés. Redémarrez Minecraft.
