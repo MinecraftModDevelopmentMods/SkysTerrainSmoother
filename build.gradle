@@ -123,6 +123,8 @@ tasks.named('compileTestJava', JavaCompile) {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     workingDir = project.projectDir
+    inputs.files('build.gradle', 'gradle.properties', fileTree('gradle'),
+            fileTree('docs'), fileTree('.github/workflows'))
     if (pinnedJava8.isPresent()) javaLauncher = javaToolchains.launcherFor(exactJava8Spec)
 }
 tasks.withType(JavaExec).configureEach {

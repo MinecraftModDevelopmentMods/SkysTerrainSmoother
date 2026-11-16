@@ -33,7 +33,13 @@ class PublicationContractTest {
         assertTrue(workflow.contains("Build, test, and audit"));
         assertTrue(workflow.contains("sha256sum --check SHA256SUMS"));
         assertTrue(workflow.contains("publishMavenJavaPublicationToReleaseRepository"));
-        assertFalse(workflow.contains("1677588"));
+        assertTrue(workflow.contains("curseforge-retry-attempts: 1"));
+        assertTrue(workflow.contains("curseforge-id: ${{ needs.preflight.outputs.curseforge_project_id }}"));
+        // Required content mods have their own projects; uploads still use this mod's project.
+        for (String dependency : new String[] { "1677588", "1754162" }) {
+            assertNotEquals(dependency, projectId);
+            assertTrue(workflow.contains(dependency + "(required)"));
+        }
         assertTrue(workflow.indexOf("  publish_maven:") < workflow.indexOf("  publish_curseforge:"));
         assertTrue(workflow.indexOf("  publish_curseforge:") < workflow.indexOf("  publish_github:"));
     }
