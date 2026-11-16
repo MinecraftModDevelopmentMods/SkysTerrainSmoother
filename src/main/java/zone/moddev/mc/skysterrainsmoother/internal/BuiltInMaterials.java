@@ -32,6 +32,8 @@ public final class BuiltInMaterials {
         vanilla("andesite", Blocks.STONE.getStateFromMeta(5), false, null);
         vanilla("sandstone", Blocks.SANDSTONE.getStateFromMeta(0), false, null);
         vanilla("red_sandstone", Blocks.RED_SANDSTONE.getStateFromMeta(0), false, null);
+        vanilla("snow", Blocks.SNOW.getDefaultState(), false, null);
+        vanilla("packed_ice", Blocks.PACKED_ICE.getDefaultState(), false, null);
         vanilla("hardened_clay", Blocks.HARDENED_CLAY.getDefaultState(), false, null);
 
         for (int variant = 0; variant < 2; variant++) {
@@ -60,7 +62,9 @@ public final class BuiltInMaterials {
             IBlockState slab = bottom(Block.REGISTRY.getObject(slabId).getDefaultState());
 
             TerrainSmoothingApi.registerMaterial(new TerrainMaterial(fullId,
-                    Collections.singleton(Block.REGISTRY.getObject(fullId).getDefaultState()), slab, null, null, false,
+                    Collections.singleton(Block.REGISTRY.getObject(fullId).getDefaultState()), slab,
+                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.STEP),
+                    mineralogyShapes(fullId.toString(), BuildingPiecesApi.TerrainShape.CORNER), false,
                     null));
             ++count;
         }
@@ -91,6 +95,19 @@ public final class BuiltInMaterials {
         TerrainSmoothingApi
                 .registerMaterial(new TerrainMaterial(new ResourceLocation(material), Collections.singleton(source),
                         slab, steps, corners, grass, grass ? Blocks.DIRT.getDefaultState() : null));
+    }
+
+    private static IBlockState[] mineralogyShapes(String material, BuildingPiecesApi.TerrainShape shape) {
+        EnumFacing[] directions = { EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST };
+        IBlockState[] pieces = new IBlockState[directions.length];
+        for (int direction = 0; direction < directions.length; direction++) {
+            pieces[direction] = BuildingPiecesApi.bottomPiece(material, shape, directions[direction]);
+            if (pieces[direction] == null) {
+                // A missing optional form still falls back to the native slab.
+                return null;
+            }
+        }
+        return pieces;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

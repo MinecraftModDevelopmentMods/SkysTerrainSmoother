@@ -1,2 +1,8 @@
 tile.skysterrainsmoother.sand_slab.name=砂のハーフブロック
 tile.skysterrainsmoother.red_sand_slab.name=赤い砂のハーフブロック
+config.skysterrainsmoother.enabled=地形の平滑化を有効化
+config.skysterrainsmoother.smoothingLevel=平滑化レベル (1–3)
+config.skysterrainsmoother.enableMineralogy=Mineralogyのハーフブロックを使用
+config.skysterrainsmoother.enabled.tooltip=新しく生成されるオーバーワールドの乾いた斜面と洞窟の床をなだらかにします。無効にするとGrass Slabs独自の生成も停止します。既存のチャンクは変わりません。再起動が必要です。
+config.skysterrainsmoother.smoothingLevel.tooltip=1：ハーフブロック。2：ハーフブロックと段差用の小ブロック。3：さらに角用の小ブロック。形がない場合は安全に収まる場所だけハーフブロックを使います。再起動が必要です。
+config.skysterrainsmoother.enableMineralogy.tooltip=Mineralogy導入時に、利用可能な自然岩のハーフブロックを使います。無効にされた種類は使いません。Minecraftの再起動が必要です。
