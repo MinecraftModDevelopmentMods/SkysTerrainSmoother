@@ -349,7 +349,7 @@ final class FamilyForwardChecks {
         int metadata = saved.get("meta").getAsInt();
         if (keepsSkyWoolIdentity(saved, namedSource)) {
             PieceBlock palette = (PieceBlock) BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
-            return palette.getStateFromMeta(metadata);
+            return Pieces.canonicalState(palette.getStateFromMeta(metadata));
         }
         if (saved.has("material")) {
             return Pieces.state(saved.get("material").getAsString(), Shape.valueOf(saved.get("shape").getAsString()),
@@ -379,7 +379,7 @@ final class FamilyForwardChecks {
 
     private static boolean keepsSkyWoolIdentity(JsonObject saved, boolean namedSource) {
         String id = saved.get("id").getAsString();
-        // Old named wool pieces keep their IDs. New placements can use Minecraft's wool shapes.
+        // Flatten old wool palettes while keeping their Sky item identity.
         return namedSource && (id.startsWith("skysbuildingpieces:cloth_slab_")
                 || id.startsWith("skysbuildingpieces:cloth_stairs_"));
     }
