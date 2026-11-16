@@ -1,7 +1,5 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import java.util.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
@@ -13,6 +11,9 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.block.RedStoneOreBlock;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -118,7 +119,7 @@ final class CaveProbe {
         checks++;
 
         for (BlockState source : new BlockState[] { Blocks.COAL_ORE.defaultBlockState(),
-                Blocks.GRAVEL.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
+                Blocks.COAL_BLOCK.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
                 Blocks.CHEST.defaultBlockState() }) {
             fixture(world, floor, 6);
             world.setBlock(floor, source, 2);

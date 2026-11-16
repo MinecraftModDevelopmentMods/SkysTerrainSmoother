@@ -1,7 +1,5 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.tags.BlockTags;
@@ -10,6 +8,9 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.DataLayer;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
@@ -53,6 +54,18 @@ final class ProbeWorld {
     static void rebuildHeights(net.minecraft.world.level.chunk.ChunkAccess chunk) {
         net.minecraft.world.level.levelgen.Heightmap.primeHeightmaps(chunk,
                 java.util.EnumSet.allOf(net.minecraft.world.level.levelgen.Heightmap.Types.class));
+    }
+
+    static void coldBiome(Level world, int firstChunkX, int firstChunkZ, int width) {
+        var biome = world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME)
+                .getOrThrow(net.minecraft.world.level.biome.Biomes.SNOWY_PLAINS);
+        var serverWorld = (net.minecraft.server.level.ServerLevel) world;
+        // Both traversal fixtures need the same climate, including the biome lookup's boundary halo.
+        for (int chunkZ = firstChunkZ - 1; chunkZ <= firstChunkZ + width; chunkZ++) {
+            for (int chunkX = firstChunkX - 1; chunkX <= firstChunkX + width; chunkX++) {
+                world.getChunk(chunkX, chunkZ).fillBiomesFromNoise((quartX, quartY, quartZ) -> biome);
+            }
+        }
     }
 
     static boolean oreSupport(BlockState state) {
