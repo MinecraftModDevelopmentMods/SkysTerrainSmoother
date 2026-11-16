@@ -349,7 +349,10 @@ final class FamilyForwardChecks {
         int metadata = saved.get("meta").getAsInt();
         if (keepsSkyWoolIdentity(saved, namedSource)) {
             PieceBlock palette = (PieceBlock) BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
-            return Pieces.canonicalState(palette.getStateFromMeta(metadata));
+            String material = Identifier.parse(saved.get("material").getAsString()).getPath();
+            String shape = saved.get("shape").getAsString().toLowerCase(Locale.ROOT);
+            PieceBlock wool = Pieces.pieceItem("skysbuildingpieces:" + material + "_" + shape).piece;
+            return wool.getStateFromMeta(palette.orientation(palette.getStateFromMeta(metadata)));
         }
         if (saved.has("material")) {
             return Pieces.state(saved.get("material").getAsString(), Shape.valueOf(saved.get("shape").getAsString()),
