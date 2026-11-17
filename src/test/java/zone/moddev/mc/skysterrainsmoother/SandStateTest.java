@@ -16,6 +16,20 @@ import zone.moddev.mc.skysterrainsmoother.content.SandSlabBlock;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SandStateTest {
+    @Test
+    void gravelKeepsItsNativeMaterialAndBothHorizontalHalves() {
+        SandSlabBlock gravel = new SandSlabBlock(net.minecraft.world.level.block.Blocks.GRAVEL,
+                Identifier.parse("skysterrainsmoother:test_gravel_slab"));
+        assertSame(net.minecraft.world.level.block.Blocks.GRAVEL, gravel.fullState().getBlock());
+        assertEquals(4, gravel.getStateDefinition().getPossibleStates().size());
+        assertFalse(SandSlabBlock.TYPE.getPossibleValues().contains(SlabType.DOUBLE));
+        for (SlabType half : new SlabType[] {SlabType.BOTTOM, SlabType.TOP}) {
+            BlockState state = gravel.defaultBlockState().setValue(SandSlabBlock.TYPE, half);
+            assertEquals(.5, state.getShape(null, BlockPos.ZERO).bounds().getYsize());
+            assertFalse(state.hasBlockEntity());
+        }
+    }
+
     @BeforeAll
     static void boot() {
         MinecraftTestBootstrap.registerVanilla();

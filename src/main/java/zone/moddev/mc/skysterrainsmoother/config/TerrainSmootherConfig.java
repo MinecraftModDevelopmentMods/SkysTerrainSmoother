@@ -1,19 +1,25 @@
 package zone.moddev.mc.skysterrainsmoother.config;
 
+import com.electronwill.nightconfig.core.CommentedConfig;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.electronwill.nightconfig.core.CommentedConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
+import zone.moddev.mc.skysterrainsmoother.api.MaterialGroup;
 
 /** Saves future choices without changing the generation settings of a running session. */
 public final class TerrainSmootherConfig {
@@ -22,6 +28,8 @@ public final class TerrainSmootherConfig {
     private static final ForgeConfigSpec.BooleanValue ENABLED;
     private static final ForgeConfigSpec.IntValue LEVEL;
     private static final ForgeConfigSpec.BooleanValue MINERALOGY;
+    private static final Map<MaterialGroup, ForgeConfigSpec.BooleanValue> MATERIALS =
+            new EnumMap<>(MaterialGroup.class);
     private static volatile Settings active;
     private static CommentedConfig loadedValues;
 
@@ -37,6 +45,13 @@ public final class TerrainSmootherConfig {
         builder.push("compat");
         MINERALOGY = builder.comment("Use available natural Mineralogy rock pieces. Requires restart.")
                 .worldRestart().define("enableMineralogy", true);
+        builder.pop();
+        builder.push("materials");
+        for (MaterialGroup group : MaterialGroup.values()) {
+            MATERIALS.put(group, builder.comment(materialDescription(group),
+                    "Applies to new surface slopes and cave floors, including add-on mappings. Requires restart.")
+                    .worldRestart().define(group.configKey(), true));
+        }
         builder.pop();
         SPEC = builder.build();
     }
@@ -56,7 +71,7 @@ public final class TerrainSmootherConfig {
 
     public static synchronized void activateSettingsForThisRun() {
         if (active == null) {
-            active = new Settings(configuredEnabled(), configuredLevel(), configuredMineralogy());
+            active = new Settings(configuredEnabled(), configuredLevel(), configuredMineralogy(), configuredGroups());
         }
     }
 
@@ -87,10 +102,33 @@ public final class TerrainSmootherConfig {
         return MINERALOGY.get();
     }
 
+    public static boolean groupEnabled(MaterialGroup group) {
+        Settings settings = active;
+        return settings == null ? !SPEC.isLoaded() || MATERIALS.get(group).get()
+                : (settings.enabledGroupMask & 1 << group.ordinal()) != 0;
+    }
+
+    public static Set<MaterialGroup> configuredGroups() {
+        EnumSet<MaterialGroup> groups = EnumSet.noneOf(MaterialGroup.class);
+        MATERIALS.forEach((group, setting) -> {
+            if (setting.get()) {
+                groups.add(group);
+            }
+        });
+        return Collections.unmodifiableSet(groups);
+    }
+
     public static void saveForNextStart(boolean enabled, int level, boolean mineralogy) {
+        saveForNextStart(enabled, level, mineralogy, configuredGroups());
+    }
+
+    public static void saveForNextStart(boolean enabled, int level, boolean mineralogy,
+            Set<MaterialGroup> enabledGroups) {
         if (level < 1 || level > 3) {
             throw new IllegalArgumentException("Choose a smoothing level from 1 to 3");
         }
+        EnumSet<MaterialGroup> groups = EnumSet.noneOf(MaterialGroup.class);
+        groups.addAll(java.util.Objects.requireNonNull(enabledGroups, "Choose the enabled material groups"));
         if (loadedValues == null) {
             throw new IllegalStateException("Terrain Smoother settings have not loaded yet");
         }
@@ -102,6 +140,11 @@ public final class TerrainSmootherConfig {
         worldgen.set("enabled", enabled);
         worldgen.set("smoothingLevel", level);
         compatibility.set("enableMineralogy", mineralogy);
+        CommentedConfig materials = CommentedConfig.copy(loadedValues.get("materials"));
+        for (MaterialGroup group : MaterialGroup.values()) {
+            materials.set(group.configKey(), groups.contains(group));
+        }
+        pending.set("materials", materials);
         pending.set("worldgen", worldgen);
         pending.set("compat", compatibility);
         loadedValues.putAll(pending);
@@ -109,6 +152,17 @@ public final class TerrainSmootherConfig {
         // session keeps its separate snapshot until Minecraft starts again.
         SPEC.afterReload();
         SPEC.save();
+    }
+
+    private static String materialDescription(MaterialGroup group) {
+        return switch (group) {
+            case SOIL -> "Smooth registered grass and dirt terrain. Grass Slabs' grass-generation switch still applies.";
+            case SAND_AND_GRAVEL -> "Smooth sand, red sand and gravel terrain.";
+            case STONE -> "Smooth stone, sandstone, terracotta and registered modded rocks, including Mineralogy and BOP.";
+            case SNOW -> "Smooth snow-block and powder-snow terrain.";
+            case ICE -> "Smooth registered ice terrain, including packed ice.";
+            case OTHER -> "Smooth add-on materials that do not belong to another material group.";
+        };
     }
 
     public static boolean migrateLegacyConfig(Path directory) {
@@ -155,10 +209,17 @@ public final class TerrainSmootherConfig {
         final int level;
         final boolean mineralogy;
 
-        Settings(boolean enabled, int level, boolean mineralogy) {
+        final int enabledGroupMask;
+
+        Settings(boolean enabled, int level, boolean mineralogy, Set<MaterialGroup> groups) {
             this.enabled = enabled;
             this.level = level;
             this.mineralogy = mineralogy;
+            int mask = 0;
+            for (MaterialGroup group : groups) {
+                mask |= 1 << group.ordinal();
+            }
+            this.enabledGroupMask = mask;
         }
     }
 }

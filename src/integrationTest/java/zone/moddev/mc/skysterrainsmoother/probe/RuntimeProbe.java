@@ -104,6 +104,12 @@ public final class RuntimeProbe {
                 null, null, false, null));
         TerrainSmoothingApi.addShapes(registryId, steps, corners);
 
+        if (Boolean.getBoolean("skysterrainsmoother.materialConfigProbe")) {
+            TerrainSmoothingApi.registerMaterial(new TerrainMaterial(Identifier.parse("probe:other"),
+                    java.util.Set.of(Blocks.OAK_PLANKS.defaultBlockState()), Blocks.OAK_SLAB.defaultBlockState(),
+                    null, null, false, null, zone.moddev.mc.skysterrainsmoother.api.MaterialGroup.OTHER));
+        }
+
 
         TerrainSmoothingApi.addAreaProtection((dimension, pos, biome) -> pos.getY() == 241);
     }
@@ -151,6 +157,14 @@ public final class RuntimeProbe {
 
         try {
             ServerLevel world = server.getLevel(Level.OVERWORLD);
+            if (Boolean.getBoolean("skysterrainsmoother.materialConfigProbe")) {
+                int checks = MaterialConfigProbe.run(world);
+                ran = true;
+                SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + phase()
+                        + " material_checks=" + checks);
+                server.halt(false);
+                return;
+            }
         if (Boolean.getBoolean("skysterrainsmoother.forwardFixture")) {
             try {
                 if (!forwardPrepared) {
@@ -202,7 +216,7 @@ public final class RuntimeProbe {
                     require(SkysTerrainSmoother.level == Integer.getInteger("skysterrainsmoother.expectedLevel", 3),
                             "The native configuration selected the requested generation level");
                 } else {
-                    gameplay = MineralogyProbe.run() + FineGrassProbe.run(world) + OpportunityProbe.run(world)
+                    gameplay = FrozenTerrainProbe.run(world) + SnowTerrainProbe.run(world) + MineralogyProbe.run() + FineGrassProbe.run(world) + OpportunityProbe.run(world)
                             + TransitionProbe.run(world) + FoliageProbe.run(world) + persistence(world)
                             + LateTerrainProbe.run(world) + CaveProbe.run(world) + decorationChanges(world)
                             + geometry(world) + grass(world) + sand(world) + generationOrder(world)
@@ -282,11 +296,12 @@ public final class RuntimeProbe {
                 require(!world.isEmptyBlock(position.above()), "regression starts with an actual generated piece");
                 world.setBlock(position, replacement.defaultBlockState(), 2);
                 ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
-                require(replacement == Blocks.SAND
-                        ? world.getBlockState(position.above())
-                                .getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
-                        : world.isEmptyBlock(position.above()),
-                        "decoration retargets sand and removes unsupported gravel/air caps");
+                Block expectedCap = replacement == Blocks.SAND
+                        ? zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
+                        : replacement == Blocks.GRAVEL
+                        ? zone.moddev.mc.skysterrainsmoother.content.SandContent.gravelSlab : Blocks.AIR;
+                require(world.getBlockState(position.above()).getBlock() == expectedCap,
+                        "decoration retargets falling terrain and removes unsupported air caps");
                 require(world.getBlockState(position).getBlock() == replacement, "decorator's terrain is not reverted");
                 checks += 3;
             }
@@ -354,7 +369,7 @@ public final class RuntimeProbe {
             }
         }
 
-        world.setBlock(beach, Blocks.GRAVEL.defaultBlockState(), 2);
+        world.setBlock(beach, Blocks.COAL_BLOCK.defaultBlockState(), 2);
         SkysTerrainSmoother.engine.smooth(world, beachOwner, 1);
         require(world.isEmptyBlock(beach.above()), "unsupported first pass leaves no piece");
         world.setBlock(beach, Blocks.RED_SAND.defaultBlockState(), 2);
@@ -468,8 +483,20 @@ public final class RuntimeProbe {
                     index++;
 
                     if (phase().equals("reload")) {
-                        require(world.getBlockState(pos).equals(expected),
-                                "saved fine piece retains identity and orientation");
+                        BlockState actual = world.getBlockState(pos);
+                        if (actual.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.SNOWY)) {
+                            PieceBlock piece = (PieceBlock) actual.getBlock();
+                            require(actual.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SNOWY)
+                                            == piece.getActualState(actual, world, pos)
+                                                    .getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SNOWY),
+                                    "saved grass pieces retain the correct local snow appearance");
+                            // Snow is a calculated appearance; it does not change a piece's identity or orientation.
+                            actual = actual.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SNOWY,
+                                    expected.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SNOWY));
+                        }
+                        require(actual.equals(expected),
+                                "saved fine piece retains identity and orientation: expected=" + expected
+                                        + " actual=" + world.getBlockState(pos));
                     } else {
                         world.setBlock(pos, expected, 2);
                     }
@@ -513,6 +540,16 @@ public final class RuntimeProbe {
         world.getChunk(position.offset(-8, 0, -8));
         world.getChunk(position.offset(8, 0, 8));
 
+        // This test checks grass growth and orientation. Keep its climate warm;
+        // the separate snowy-terrain fixtures exercise cold ground and thawing.
+        var warmBiome = world.registryAccess().lookupOrThrow(Registries.BIOME)
+                .getOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS);
+        for (int chunkX = (position.getX() >> 4) - 1; chunkX <= (position.getX() >> 4) + 1; chunkX++) {
+            for (int chunkZ = (position.getZ() >> 4) - 1; chunkZ <= (position.getZ() >> 4) + 1; chunkZ++) {
+                world.getChunk(chunkX, chunkZ).fillBiomesFromNoise((quartX, quartY, quartZ, sampler) -> warmBiome, world.getChunkSource().randomState().sampler());
+            }
+        }
+
         for (Shape shape : new Shape[] { Shape.HORIZONTAL_STEP, Shape.VERTICAL_STEP, Shape.CORNER, Shape.STAIRS }) {
             for (int direction = 0; direction < shape.states; direction++) {
                 BlockState dirt = Pieces.state("minecraft:dirt", shape, direction);
@@ -530,9 +567,11 @@ public final class RuntimeProbe {
                 boolean completeTop = Geometry.completeTop(piece.mask(grass));
 
                 require(piece.isValidBonemealTarget(world, position, grass) == completeTop
-                        && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1), position, grass) == completeTop,
+                        && piece.isBonemealSuccess(world, net.minecraft.util.RandomSource.create(1),
+                                position, grass) == completeTop,
                         "bonemeal requires a complete upper supporting face");
-                require(!piece.isValidBonemealTarget(world, position, dirt), "dirt forms do not accept grass bonemeal");
+                require(!piece.isValidBonemealTarget(world, position, dirt),
+                        "dirt forms do not accept grass bonemeal");
                 world.setBlock(position.north().below(), Blocks.STONE.defaultBlockState(), 2);
                 world.setBlock(position.north(), Blocks.SNOW.defaultBlockState(), 2);
                 require(world.getBlockState(position.north()).getBlock() == Blocks.SNOW,

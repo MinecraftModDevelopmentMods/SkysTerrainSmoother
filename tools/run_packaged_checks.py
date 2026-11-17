@@ -193,7 +193,7 @@ def prepare(options, directory):
     for name in ("banned-players.json", "banned-ips.json", "ops.json", "whitelist.json"):
         (directory / name).write_text("[]\n", encoding="utf-8")
     (directory / "server.properties").write_text(
-        "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\n"
+        "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nuse-native-transport=false\nserver-ip=127.0.0.1\n"
         "server-port=0\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
         "max-tick-time=120000\n", encoding="utf-8")
     (directory / "options.txt").write_text("lang:en_us\nfullscreen:false\nrenderDistance:6\npauseOnLostFocus:false\n", encoding="utf-8")

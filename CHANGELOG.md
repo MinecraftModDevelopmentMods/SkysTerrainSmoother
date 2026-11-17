@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3.2602001
+
+- Broader slabs smooth gentle slopes, while steps and corners still follow steeper ground.
+- Snowy ground starts snowy, with matching snow, packed-ice and powder-snow transitions.
+- Gravel now has falling slabs, and material settings let you choose which terrain gets smoothed.
+- Recipe-book entries are easier to browse, with duplicate crafting routes removed.
+
+
 ## 0.1.0.2602001
 
 - Updated Terrain Smoother for Minecraft 26.2 on Forge.
