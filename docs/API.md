@@ -2,9 +2,10 @@
 
 Use `zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi` during your
 mod's common/client setup or IMC callbacks. Declare ordering after
-`skysterrainsmoother`. Registration closes at load completion. Forge can run setup callbacks in
-parallel; the catalogue serializes registration and publishes immutable lookups.
-Biome and protection callbacks must also be safe to call from generation threads.
+`skysterrainsmoother`. Registration closes at load completion. NeoForge can
+run setup callbacks in parallel, so the catalogue handles registrations one
+at a time and publishes immutable lookups. Biome and protection callbacks
+must also be safe to call from generation threads.
 
 Create an immutable `TerrainMaterial` with a namespaced logical identity, a
 set of exact full-block source states and a bottom slab state. Optionally
