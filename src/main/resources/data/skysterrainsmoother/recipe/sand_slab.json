@@ -1,14 +1,12 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "building",
-  "group": "skysterrainsmoother/slabs",
+  "group": "skys/result/skysterrainsmoother/sand_slab",
   "pattern": [
     "SSS"
   ],
   "key": {
-    "S": {
-      "item": "minecraft:sand"
-    }
+    "S": "minecraft:sand"
   },
   "result": {
     "id": "skysterrainsmoother:sand_slab",

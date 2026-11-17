@@ -35,16 +35,16 @@ public final class SandLegacyRecovery {
         List<CompoundTag> stacks = new ArrayList<>();
         collect(root, stacks, 0);
         for (CompoundTag stack : stacks) {
-            int metadata = stack.getInt("Damage");
-            if (!stack.contains("Damage", 99) || metadata < 0 || metadata > 3
-                    || !stack.contains("Count", 99) || stack.getInt("Count") < 1) {
+            int metadata = stack.getIntOr("Damage", -1);
+            if (metadata < 0 || metadata > 3
+                    || stack.getIntOr("Count", 0) < 1) {
                 throw new LegacyBridge.RecoveryAbort(
                         "Cannot recover a saved sand slab stack: invalid damage or count. Restore the world backup.",
                         null);
             }
         }
         for (CompoundTag stack : stacks) {
-            stack.putString("id", (stack.getInt("Damage") & 2) == 0
+            stack.putString("id", (stack.getIntOr("Damage", -1) & 2) == 0
                     ? LEGACY_ID : SkysTerrainSmoother.ID + ":red_sand_slab");
             stack.remove("Damage");
         }
@@ -56,10 +56,10 @@ public final class SandLegacyRecovery {
         }
         if (value instanceof CompoundTag) {
             CompoundTag compound = (CompoundTag) value;
-            if (LEGACY_ID.equals(compound.getString("id")) && compound.contains("Damage")) {
+            if (LEGACY_ID.equals(compound.getStringOr("id", "")) && compound.contains("Damage")) {
                 stacks.add(compound);
             }
-            for (String key : compound.getAllKeys()) {
+            for (String key : compound.keySet()) {
                 collect(compound.get(key), stacks, depth + 1);
             }
         } else if (value instanceof ListTag) {

@@ -339,7 +339,8 @@ jobs:
               --no-daemon --stacktrace --max-workers=2
           else
             # Preserve the established Forge release lifecycle.
-            ./gradlew clean check build javadoc -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces verifyReleaseArtifacts writeReleaseChecksums \
+            ./gradlew clean --no-daemon --stacktrace
+            ./gradlew check build javadoc -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces verifyReleaseArtifacts writeReleaseChecksums \
               --no-daemon --stacktrace
           fi
 

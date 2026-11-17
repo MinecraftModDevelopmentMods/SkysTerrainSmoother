@@ -20,14 +20,14 @@ final class StructureProtection {
     static StructureProtection read(ChunkAccess owner, Function<ChunkPos, ChunkAccess> loadedChunk) {
         StructureProtection result = new StructureProtection();
         Set<Long> visited = new HashSet<>();
-        visited.add(owner.getPos().toLong());
+        visited.add(owner.getPos().pack());
         result.addStarts(owner);
         for (LongSet references : owner.getAllReferences().values()) {
             for (long reference : references) {
                 if (!visited.add(reference)) {
                     continue;
                 }
-                ChunkAccess startChunk = loadedChunk.apply(new ChunkPos(reference));
+                ChunkAccess startChunk = loadedChunk.apply(ChunkPos.unpack(reference));
                 if (startChunk == null) {
                     // The reference may point beyond the loaded generation halo.
                     // Leave this chunk alone instead of loading it to find out.

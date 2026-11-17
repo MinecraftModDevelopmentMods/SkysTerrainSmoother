@@ -1,10 +1,7 @@
 {
   "pack": {
-    "pack_format": 48,
-    "supported_formats": {
-      "min_inclusive": 34,
-      "max_inclusive": 48
-    },
-    "description": "Build-only runtime checks"
+    "description": "Build-only runtime checks",
+    "max_format": 121,
+    "min_format": 121
   }
 }

@@ -8,7 +8,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.neoforged.neoforge.common.NeoForge;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
@@ -103,7 +102,7 @@ final class LateTerrainProbe {
                     for (BlockState occupied : new BlockState[] { Blocks.SHORT_GRASS.defaultBlockState(),
                             Blocks.OAK_SAPLING.defaultBlockState(),
                             Blocks.WATER.defaultBlockState(), Blocks.GLASS.defaultBlockState() }) {
-                        fixture(world, floor, Blocks.GRAVEL.defaultBlockState());
+                        fixture(world, floor, Blocks.COAL_BLOCK.defaultBlockState());
                         SkysTerrainSmoother.engine.smooth(world, owner, level);
                         world.setBlock(floor, Blocks.GRASS_BLOCK.defaultBlockState(), 2);
                         world.setBlock(floor.offset(DX[direction], 1, DZ[direction]), clay, 2);
@@ -141,7 +140,7 @@ final class LateTerrainProbe {
     }
 
     private static void post(ServerLevel world, LevelChunk owner) {
-        ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+        ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
     }
 
     static int generationOrder(ServerLevel world) throws Exception {
@@ -155,6 +154,7 @@ final class LateTerrainProbe {
 
                 for (int order = 0; order < 2; order++) {
                     int origin = order == 0 ? 128 : 256;
+                    ProbeWorld.coldBiome(world, origin, 128, 9);
                     List<LevelChunk> chunks = new ArrayList<>();
 
                     for (int blockZ = 0; blockZ < 9; blockZ++) {
@@ -205,7 +205,7 @@ final class LateTerrainProbe {
                                         128 + (blockZ >> 4));
 
                                 chunk.setBlockState(new BlockPos((origin << 4) + blockX, height, (128 << 4) + blockZ),
-                                        Blocks.GRASS_BLOCK.defaultBlockState(), false);
+                                        Blocks.GRASS_BLOCK.defaultBlockState(), 0);
                             }
                         }
                     }

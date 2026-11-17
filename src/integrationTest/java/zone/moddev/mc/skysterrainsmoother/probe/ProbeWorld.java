@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
+
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
@@ -55,6 +56,18 @@ final class ProbeWorld {
                 java.util.EnumSet.allOf(net.minecraft.world.level.levelgen.Heightmap.Types.class));
     }
 
+    static void coldBiome(Level world, int firstChunkX, int firstChunkZ, int width) {
+        var biome = world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME)
+                .getOrThrow(net.minecraft.world.level.biome.Biomes.SNOWY_PLAINS);
+        var serverWorld = (net.minecraft.server.level.ServerLevel) world;
+        // Both traversal fixtures need the same climate, including the biome lookup's boundary halo.
+        for (int chunkZ = firstChunkZ - 1; chunkZ <= firstChunkZ + width; chunkZ++) {
+            for (int chunkX = firstChunkX - 1; chunkX <= firstChunkX + width; chunkX++) {
+                world.getChunk(chunkX, chunkZ).fillBiomesFromNoise((quartX, quartY, quartZ) -> biome);
+            }
+        }
+    }
+
     static boolean oreSupport(BlockState state) {
         if (state.hasBlockEntity() || state.liquid()) {
             return false;
@@ -64,7 +77,7 @@ final class ProbeWorld {
 
     static net.minecraft.world.level.chunk.LevelChunkSection emptySection(Level world) {
         return new net.minecraft.world.level.chunk.LevelChunkSection(
-                world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME));
+                world.palettedContainerFactory());
     }
 
     private ProbeWorld() {

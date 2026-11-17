@@ -1,16 +1,17 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.*;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.SnowyDirtBlock;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import zone.moddev.mc.skysterrainsmoother.api.*;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
 /** Baked lookup tables. No registry scans or reflective lookups in the column pass. */
 public final class MaterialCatalogue {
@@ -20,7 +21,7 @@ public final class MaterialCatalogue {
         return INSTANCE;
     }
 
-    private volatile Map<ResourceLocation, TerrainMaterial> materials = Collections.emptyMap();
+    private volatile Map<Identifier, TerrainMaterial> materials = Collections.emptyMap();
     private volatile Map<BlockState, TerrainMaterial> sources = Collections.emptyMap();
     private volatile Map<BlockState, TerrainMaterial> pieces = Collections.emptyMap();
     private volatile List<TerrainSmoothingApi.BiomeRule> biomeRules = Collections.emptyList();
@@ -41,13 +42,13 @@ public final class MaterialCatalogue {
             }
         }
 
-        Map<ResourceLocation, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
+        Map<Identifier, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
 
         candidate.put(material.id, material);
         commit(candidate);
     }
 
-    public synchronized void addShapes(ResourceLocation materialId, BlockState[] steps, BlockState[] corners) {
+    public synchronized void addShapes(Identifier materialId, BlockState[] steps, BlockState[] corners) {
         requireOpen();
 
         TerrainMaterial current = materials.get(materialId);
@@ -60,7 +61,7 @@ public final class MaterialCatalogue {
 
         validate(updated);
 
-        Map<ResourceLocation, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
+        Map<Identifier, TerrainMaterial> candidate = new LinkedHashMap<>(materials);
 
         candidate.put(materialId, updated);
         commit(candidate);
@@ -102,7 +103,7 @@ public final class MaterialCatalogue {
         return materials.size();
     }
 
-    public TerrainMaterial material(ResourceLocation materialId) {
+    public TerrainMaterial material(Identifier materialId) {
         return materials.get(materialId);
     }
 
@@ -119,6 +120,9 @@ public final class MaterialCatalogue {
     }
 
     public boolean allows(TerrainMaterial material, Biome biome, int dimension, BlockPos target) {
+        if (!TerrainSmootherConfig.groupEnabled(material.group)) {
+            return false;
+        }
         for (TerrainSmoothingApi.BiomeRule rule : biomeRules) {
             if (!rule.allows(material.id, biome)) {
                 return false;
@@ -154,7 +158,7 @@ public final class MaterialCatalogue {
     }
 
     /** Build replacement indexes first, leaving the active catalogue intact if validation fails. */
-    private void commit(Map<ResourceLocation, TerrainMaterial> candidate) {
+    private void commit(Map<Identifier, TerrainMaterial> candidate) {
         Map<BlockState, TerrainMaterial> newSources = new HashMap<>();
         Map<BlockState, TerrainMaterial> newPieces = new HashMap<>();
 
@@ -224,7 +228,7 @@ public final class MaterialCatalogue {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
-        VoxelShape shape = state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO);
+        VoxelShape shape = TerrainGeometry.shape(state);
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
@@ -257,11 +261,10 @@ public final class MaterialCatalogue {
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                Shapes.block(), BooleanOp.NOT_SAME);
+        return TerrainGeometry.full(state);
     }
 
     private static BlockState canonical(BlockState state) {
-        return state.hasProperty(SnowyDirtBlock.SNOWY) ? state.setValue(SnowyDirtBlock.SNOWY, false) : state;
+        return state.hasProperty(BlockStateProperties.SNOWY) ? state.setValue(BlockStateProperties.SNOWY, false) : state;
     }
 }

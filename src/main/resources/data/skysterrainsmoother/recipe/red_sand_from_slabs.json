@@ -1,14 +1,12 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "building",
-  "group": "skysterrainsmoother/full_blocks",
+  "group": "skys/result/minecraft/red_sand",
   "pattern": [
     "SS"
   ],
   "key": {
-    "S": {
-      "item": "skysterrainsmoother:red_sand_slab"
-    }
+    "S": "skysterrainsmoother:red_sand_slab"
   },
   "result": {
     "id": "minecraft:red_sand"

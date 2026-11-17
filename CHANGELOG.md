@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.3.2603002
+
+- Broader terraces use slabs where a narrower step would interrupt the slope.
+- Smooth snow, packed ice, powder snow and gravel with matching pieces.
+- Choose which material groups to smooth in the configuration pages.
+- Keep verified optional development jars outside build outputs.
+
+## 0.1.0.2603002
+
+- Updated Terrain Smoother for Minecraft 26.3 on NeoForge.
+
+## 0.1.0.2602002
+
+- Updated Terrain Smoother for Minecraft 26.2 on NeoForge.
+- Existing worlds keep their saved chunks and smoothing settings.
+
+## 0.1.0.2601022
+
+- Updated Terrain Smoother for Minecraft 26.1.2 on NeoForge.
+- Existing terrain stays as it was. Smoothing applies as new chunks generate.
+
+## 0.1.0.121112
+
+- Bring Terrain Smoother to Minecraft 1.21.11 on NeoForge.
+- Keep all three smoothing levels, including cave floors and optional Mineralogy support.
+
 ## 0.1.0.121012
 
 - Updated for Minecraft 1.21.1 on NeoForge.

@@ -15,26 +15,26 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.121012", metadata.getProperty("mod_version"));
-        assertEquals("1.21.1", metadata.getProperty("minecraft_version"));
-        assertEquals("21.1.247", metadata.getProperty("neo_version"));
-        assertEquals("21.0.7+6", metadata.getProperty("java_toolchain_version"));
-        assertEquals("21", metadata.getProperty("gradle_java_version"));
+        assertEquals("0.1.3.2603002", metadata.getProperty("mod_version"));
+        assertEquals("26.3", metadata.getProperty("minecraft_version"));
+        assertEquals("26.3.0.99", metadata.getProperty("neo_version"));
+        assertEquals(metadata.getProperty("mod_version"), SkysTerrainSmoother.VERSION);
+        assertEquals("25.0.3+9", metadata.getProperty("java_toolchain_version"));
+        assertEquals("25", metadata.getProperty("gradle_java_version"));
         assertFalse(Files.exists(Paths.get("src/main/resources/mcmod.info")));
         assertTrue(Files.isRegularFile(Paths.get("src/main/resources/META-INF/neoforge.mods.toml")));
         for (String sourceSet : new String[] { "main", "integrationTest", "bootstrapTest" }) {
             JsonObject pack = json(Paths.get("src/" + sourceSet + "/resources/pack.mcmeta"))
                     .getAsJsonObject("pack");
-            assertEquals(48, pack.get("pack_format").getAsInt(), sourceSet);
-            assertEquals(34, pack.getAsJsonObject("supported_formats").get("min_inclusive").getAsInt(), sourceSet);
-            assertEquals(48, pack.getAsJsonObject("supported_formats").get("max_inclusive").getAsInt(), sourceSet);
+            assertEquals(121, pack.get("max_format").getAsInt(), sourceSet);
+            assertEquals(121, pack.get("min_format").getAsInt(), sourceSet);
         }
     }
 
     @Test
     void bothSandColoursHaveNativeModelsAndTheirOwnLoot() throws Exception {
         Path root = Paths.get("src/main/resources");
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             Path assets = root.resolve("assets/skysterrainsmoother");
             JsonObject variants = json(assets.resolve("blockstates/" + sand + "_slab.json")).getAsJsonObject("variants");
             assertEquals(2, variants.size());
@@ -48,6 +48,10 @@ class ProjectContractTest {
                     assertEquals("minecraft:block/" + sand, model.getAsJsonObject("textures").get(face).getAsString());
                 }
             }
+            JsonObject definition = json(assets.resolve("items/" + sand + "_slab.json"))
+                    .getAsJsonObject("model");
+            assertEquals("minecraft:model", definition.get("type").getAsString());
+            assertEquals("skysterrainsmoother:item/" + sand + "_slab", definition.get("model").getAsString());
             JsonObject loot = json(root.resolve("data/skysterrainsmoother/loot_table/blocks/" + sand + "_slab.json"));
             assertEquals("skysterrainsmoother:" + sand + "_slab", loot.getAsJsonArray("pools").get(0).getAsJsonObject()
                     .getAsJsonArray("entries").get(0).getAsJsonObject().get("name").getAsString());
@@ -58,17 +62,18 @@ class ProjectContractTest {
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
         Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
-            assertEquals(4, files.count());
+            assertEquals(4, files.filter(path -> path.getFileName().toString().startsWith("sand_")
+                    || path.getFileName().toString().startsWith("red_sand_")).count());
         }
-        for (String sand : new String[] { "sand", "red_sand" }) {
+        for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
             assertEquals("SSS", cut.getAsJsonArray("pattern").get(0).getAsString());
-            assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("minecraft:" + sand, cut.getAsJsonObject("key").get("S").getAsString());
             assertEquals("skysterrainsmoother:" + sand + "_slab", cut.getAsJsonObject("result").get("id").getAsString());
             assertEquals(6, cut.getAsJsonObject("result").get("count").getAsInt());
             JsonObject combine = json(recipes.resolve(sand + "_from_slabs.json"));
             assertEquals("SS", combine.getAsJsonArray("pattern").get(0).getAsString());
-            assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").getAsJsonObject("S").get("item").getAsString());
+            assertEquals("skysterrainsmoother:" + sand + "_slab", combine.getAsJsonObject("key").get("S").getAsString());
             assertEquals("minecraft:" + sand, combine.getAsJsonObject("result").get("id").getAsString());
             assertFalse(combine.getAsJsonObject("result").has("count"));
         }
@@ -87,8 +92,11 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(8, values.size());
-                for (String sand : new String[] { "sand", "red_sand" }) {
+                assertEquals(28, values.size());
+                for (String shape : new String[] {"slab", "step", "corner"}) {
+                    assertFalse(values.get("block.skysterrainsmoother.powder_snow_" + shape).getAsString().isBlank());
+                }
+                for (String sand : new String[] { "sand", "red_sand", "gravel" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }
             }

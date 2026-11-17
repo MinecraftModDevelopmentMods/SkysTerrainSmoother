@@ -18,7 +18,7 @@ final class EmptyAccess implements BlockGetter {
     }
 
     @Override
-    public int getMinBuildHeight() {
+    public int getMinY() {
         return -64;
     }
 

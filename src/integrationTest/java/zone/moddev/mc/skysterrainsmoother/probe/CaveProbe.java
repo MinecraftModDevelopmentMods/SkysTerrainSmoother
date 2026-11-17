@@ -13,6 +13,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.block.RedStoneOreBlock;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
+
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
@@ -118,7 +119,7 @@ final class CaveProbe {
         checks++;
 
         for (BlockState source : new BlockState[] { Blocks.COAL_ORE.defaultBlockState(),
-                Blocks.GRAVEL.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
+                Blocks.COAL_BLOCK.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), Blocks.INFESTED_STONE.defaultBlockState(),
                 Blocks.CHEST.defaultBlockState() }) {
             fixture(world, floor, 6);
             world.setBlock(floor, source, 2);
@@ -163,8 +164,8 @@ final class CaveProbe {
         var previousStarts = new java.util.HashMap<>(owner.getAllStarts());
         BoundingBox protectedBounds = new BoundingBox(floor.getX() - 2, 69, floor.getZ() - 2,
                 floor.getX() + 2, 80, floor.getZ() + 2);
-        var mineshaft = world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
-                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT);
+        var mineshaft = world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT).value();
         StructureStart protectedStart = protectedStart(owner, mineshaft, protectedBounds);
         owner.setStartForStructure(mineshaft, protectedStart);
         try {
@@ -200,10 +201,10 @@ final class CaveProbe {
             fixture(world, floor, 6);
             world.setBlock(floor.north().above(), Blocks.STONE.defaultBlockState(), 2);
             SkysTerrainSmoother.engine.smooth(world, owner, 1);
-            ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
+            ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
             RuntimeProbe.require(!world.isEmptyBlock(floor.above()),
                     "decorated cave cap retained until all later generators finish");
-            ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
+            ProbeWorld.queue(world, owner.getPos().x(), owner.getPos().z());
 
             if (kind == 0) {
                 world.setBlock(floor, Blocks.INFESTED_STONE.defaultBlockState(), 2);
@@ -248,8 +249,8 @@ final class CaveProbe {
 
                 RuntimeProbe.require(cap.getBlock() != Blocks.AIR, "ore regression starts with a generated piece");
                 world.setBlock(floor, ore, 2);
-                ProbeWorld.repair(world, new BlockPos(owner.getPos().x << 4, 0, owner.getPos().z << 4));
-                ProbeWorld.queue(world, owner.getPos().x, owner.getPos().z);
+                ProbeWorld.repair(world, new BlockPos(owner.getPos().x() << 4, 0, owner.getPos().z() << 4));
+                ProbeWorld.queue(world, owner.getPos().x(), owner.getPos().z());
                 NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
                 RuntimeProbe.require(world.getBlockState(floor.above()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
@@ -305,7 +306,7 @@ final class CaveProbe {
     }
 
     private static int nativeHeightRange(ServerLevel world) {
-        RuntimeProbe.require(world.getMinBuildHeight() == -64 && world.getMaxBuildHeight() == 320,
+        RuntimeProbe.require(world.getMinY() == -64 && world.getMaxY() + 1 == 320,
                 "The native Overworld exposes the complete 1.18 height range");
         BlockPos centre = new BlockPos(3020, 0, 3020);
         LevelChunk owner = world.getChunkAt(centre);
@@ -313,7 +314,7 @@ final class CaveProbe {
         int[] floors = { -56, -24, 48, 264, 312 };
         int checks = 0;
         for (int level = 1; level <= 3; level++) {
-            clear(world, centre, world.getMinBuildHeight(), world.getMaxBuildHeight() - 1);
+            clear(world, centre, world.getMinY(), world.getMaxY());
             for (int floorY : floors) {
                 BlockPos floor = centre.atY(floorY);
                 fixture(world, floor, 6);

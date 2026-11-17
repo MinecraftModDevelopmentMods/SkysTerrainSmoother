@@ -3,7 +3,7 @@
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
 and Sky's Building Pieces, with matching materials for grass, dirt, stone,
-sandstone, sand and hardened clay.
+sandstone, sand, gravel, hardened clay, snow and packed ice.
 
 ## Smoothing levels
 
@@ -14,8 +14,10 @@ Set `worldgen.smoothingLevel` in `config/skysterrainsmoother-common.toml`:
 3. **Slabs, steps and corners** - also uses pieces covering a quarter of a
    slab's footprint.
 
-Every smoothing piece is half a block tall. If a material doesn't have steps
-or corners, it uses its slab at higher levels wherever a slab fits safely.
+Every smoothing piece is half a block tall. Gentle surface terraces use a
+full-width slab when there is room on both sides of a one-block rise. If a
+material doesn't have steps or corners, it uses its slab at higher levels
+wherever a slab fits safely.
 
 Narrow mountain ledges keep their downhill edge at its original height, rather
 than gaining a row of slabs that recreates a full-block step. Wider terraces
@@ -30,36 +32,47 @@ ceilings stay unchanged. Cave passages need three clear blocks above the floor,
 so low tunnels keep their headroom. To see the effect in an existing world,
 travel beyond the terrain you've already generated.
 
+New grass pieces pick up the surrounding snow straight away. Snow added later
+during world generation is checked again before that new chunk is finished.
+
 ## Sand and other materials
 
-Ordinary sand and red sand get their own horizontal slabs. Three matching sand
+Ordinary sand, red sand and gravel get their own horizontal slabs. Three matching
 blocks in a row make six slabs, and two slabs side by side make a full block.
-Like sand blocks, the slabs fall when unsupported. Sand uses slabs at every
-smoothing level.
+Like their full blocks, the slabs fall when unsupported. These materials use
+slabs at every smoothing level.
 
-Install the NeoForge build of Mineralogy to smooth its natural rock. When
-its slabs are enabled, Building Pieces provides the matching steps and corners.
+Mineralogy is supported without another add-on. When it's installed, the
+smoother uses its natural rock slabs and the matching steps and corners
+included in Building Pieces. Disabled native slab types are skipped.
 
-Ores, gravel, wood and decorative stone aren't smoothing materials.
+Powder snow gets its own slabs, steps and corners, so it stays soft and keeps
+its sinking and freezing behaviour. Leather boots work on the actual partial
+surface. Empty parts of a piece do not freeze you or add powder-snow fog.
+See [snow and frozen terrain](docs/FROZEN-TERRAIN.md) for the recipes.
+
+Ores, wood and decorative stone aren't smoothing materials.
 
 For BOP grass and soils, add the
 [Terrain Smoother Biomes O' Plenty add-on](https://github.com/MinecraftModDevelopmentMods/SkysTerrainSmoother-BiomesOPlenty-Addon).
 
 ## Installation and settings
 
-For **Minecraft 1.21.1**, use **NeoForge 21.1.247** and **Java 21**, with:
+For **Minecraft 26.3**, use **NeoForge 26.3.0.99** and **Java 25**, with:
 
-- Sky's Grass Slabs **1.2.0.121012**.
-- Sky's Building Pieces **0.3.8.121012**.
-- Sky's Terrain Smoother **0.1.0.121012**.
+- Sky's Grass Slabs **1.2.1.2603002**.
+- Sky's Building Pieces **0.3.10.2603002**.
+- Sky's Terrain Smoother **0.1.3.2603002**.
 
-Install all three NeoForge jars on both the client and server. If you use
-the BOP add-on, keep its matching dependencies installed too.
+Install all three main jars on both the client and server.
 
 The old CFG settings are copied once into TOML; the original file is kept.
 New configurations start at level 3. Existing saved choices are kept.
 Select the mod in **Mods > Config** to choose a
-level, turn smoothing off or disable Mineralogy support, then restart Minecraft.
+level, turn smoothing off or open the Materials and Mod support pages, then
+restart Minecraft. You can switch soil, sand and gravel, stone, snow, ice and
+other add-on materials separately. Turn **Stone and rocks** off to keep softer
+ground smoothed without changing rock terrain, including Mineralogy and BOP rocks.
 For a dedicated server, edit its configuration file and restart the server.
 See [configuration](docs/CONFIGURATION.md).
 

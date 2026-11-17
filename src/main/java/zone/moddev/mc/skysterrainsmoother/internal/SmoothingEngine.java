@@ -3,32 +3,34 @@ package zone.moddev.mc.skysterrainsmoother.internal;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SnowyDirtBlock;
-import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.core.Direction;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.WorldGenLevel;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.neoforged.neoforge.common.Tags;
-import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysgrassslabs.api.GrassSlabsApi;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.*;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
 /** Plans dry floor transitions before writing them, using only chunks already loaded. */
 public final class SmoothingEngine {
@@ -115,11 +117,11 @@ public final class SmoothingEngine {
         if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        if (world.isClientSide || !isOverworld(world)) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
-        int chunkX = event.getChunk().getPos().x;
-        int chunkZ = event.getChunk().getPos().z;
+        int chunkX = event.getChunk().getPos().x();
+        int chunkZ = event.getChunk().getPos().z();
         populated.add(ExistingChunkIndex.key(chunkX, chunkZ));
 
         // Queue repairs on the server thread, after generation has handed over the full chunk.
@@ -138,8 +140,7 @@ public final class SmoothingEngine {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void endWorldTick(LevelTickEvent.Post event) {
         Level world = event.getLevel();
-        if (world.isClientSide
-                || !isOverworld(world)) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
         for (long key : new ArrayList<>(dirtyOwners)) {
@@ -171,10 +172,10 @@ public final class SmoothingEngine {
         if (!(event.getLevel() instanceof Level world)) {
             return;
         }
-        if (world.isClientSide || !isOverworld(world)) {
+        if (world.isClientSide() || !isOverworld(world)) {
             return;
         }
-        long key = ExistingChunkIndex.key(event.getChunk().getPos().x, event.getChunk().getPos().z);
+        long key = ExistingChunkIndex.key(event.getChunk().getPos().x(), event.getChunk().getPos().z());
         dirtyOwners.remove(key);
         pending.remove(key);
     }
@@ -223,7 +224,7 @@ public final class SmoothingEngine {
 
                 if (!blocked && replacement != null && (!replacement.grass || GrassSlabsApi.grassGenerationAllowed())
                         && (!replacement.mineralogy || SkysTerrainSmoother.mineralogy)
-                        && support.isCollisionShapeFullBlock(world, placement.pos.below())
+                        && TerrainGeometry.full(support, world, placement.pos.below())
                         && !support.hasBlockEntity()
                         && owner.getBlockEntity(placement.pos) == null
                         && !structures.contains(placement.pos)
@@ -250,8 +251,8 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    result = transitionResult(world, placement.pos.below(), replacement,
-                            Footprint.mask(cardinal, diagonal, placement.level), placement.level);
+                    result = transitionResult(world, owner, placement.pos.below(), replacement,
+                            cardinal, diagonal, placement.level, placement.cave);
                 }
 
                 repairs.put(placement, result == null ? Blocks.AIR.defaultBlockState() : result);
@@ -296,14 +297,25 @@ public final class SmoothingEngine {
                 placement.dirtifiedSupport = null;
             }
         }
-        if (changed) {
-            owner.setUnsaved(true);
-        }
-
         placements.removeIf(placement -> placement.state.getBlock() == Blocks.AIR);
         // Biome decoration can introduce new grass oases as well as beaches. Re-snapshot registered dry floors only in
         // this tracked fresh owner; occupied targets and existing saved chunks remain untouched.
         int additional = smooth(world, owner, SkysTerrainSmoother.level, true);
+
+        // Vanilla can add snow after our vegetation pass. Refresh the appearance once the terrain repairs are done.
+        for (FeatureDecorator placement : placements) {
+            if (placement.material.grass && placement.state.hasProperty(BlockStateProperties.SNOWY)) {
+                BlockState current = owner.getBlockState(placement.pos);
+                if (sameState(current, placement.state)) {
+                    BlockState snowy = withSnowAppearance(world, owner, placement.pos, current);
+                    changed |= setGenerationState(world, owner, placement.pos, snowy);
+                }
+            }
+        }
+        if (changed) {
+            owner.markUnsaved();
+        }
+
         synchronized (this) {
             placed += additional;
         }
@@ -318,7 +330,7 @@ public final class SmoothingEngine {
     private int smooth(LevelAccessor world, ChunkAccess owner, int level, boolean afterDecoration) {
         Footprint.validateLevel(level);
 
-        long key = ExistingChunkIndex.key(owner.getPos().x, owner.getPos().z);
+        long key = ExistingChunkIndex.key(owner.getPos().x(), owner.getPos().z());
 
         if (afterDecoration && !pending.containsKey(key)) {
             return 0;
@@ -328,8 +340,8 @@ public final class SmoothingEngine {
 
         buffer.clear();
 
-        int startX = owner.getPos().x << 4;
-        int startZ = owner.getPos().z << 4;
+        int startX = owner.getPos().x() << 4;
+        int startZ = owner.getPos().z() << 4;
 
         StructureProtection structures = structures(world, owner);
         if (!structures.canInspectSafely()) {
@@ -343,14 +355,14 @@ public final class SmoothingEngine {
                 int surfaceY = SmoothingFoliage.surfaceHeight(owner, localBlockX, localBlockZ, startX, startZ);
 
                 // Visit upward-facing floors at every depth. Finish every decision before the first world write.
-                if (surfaceY < owner.getMinBuildHeight()) {
+                if (surfaceY < owner.getMinY()) {
                     continue;
                 }
 
                 BlockState previous = owner.getBlockState(
-                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxBuildHeight() - 2) + 1, startZ + localBlockZ));
+                        cursor.set(startX + localBlockX, Math.min(surfaceY, owner.getMaxY() - 1) + 1, startZ + localBlockZ));
 
-                for (int floorY = Math.min(surfaceY, owner.getMaxBuildHeight() - 2); floorY >= owner.getMinBuildHeight(); --floorY) {
+                for (int floorY = Math.min(surfaceY, owner.getMaxY() - 1); floorY >= owner.getMinY(); --floorY) {
                     BlockState lower = owner
                             .getBlockState(cursor.set(startX + localBlockX, floorY, startZ + localBlockZ));
                     BlockState above = previous;
@@ -365,7 +377,8 @@ public final class SmoothingEngine {
 
                     TerrainMaterial material = catalogue.source(lower);
 
-                    if (material == null || material.grass && !grassAllowed
+                    if (material == null || !TerrainSmootherConfig.groupEnabled(material.group)
+                            || material.grass && !grassAllowed
                             || material.mineralogy && !SkysTerrainSmoother.mineralogy) {
                         continue;
                     }
@@ -376,7 +389,7 @@ public final class SmoothingEngine {
                     boolean cave = floorY < surfaceY;
 
                     if (cave && !caveHeadroom(world, owner, support)
-                            || !lower.isCollisionShapeFullBlock(world, support)
+                            || !TerrainGeometry.full(lower, world, support)
                             || !SmoothingFoliage.canReplace(world, owner, target)
                             || lower.hasBlockEntity()
                             || owner.getBlockEntity(target) != null
@@ -403,10 +416,13 @@ public final class SmoothingEngine {
                         }
                     }
 
-                    BlockState result = transitionResult(world, support, material,
-                            Footprint.mask(cardinal, diagonal, level), level);
+                    BlockState result = transitionResult(world, owner, support, material,
+                            cardinal, diagonal, level, cave);
 
                     if (result != null) {
+                        if (material.grass && result.hasProperty(BlockStateProperties.SNOWY)) {
+                            result = withSnowAppearance(world, owner, target, result);
+                        }
                         buffer.add(localBlockX | localBlockZ << 4 | (floorY + 1) << 8, result, material, cave, above);
                     }
                 }
@@ -439,7 +455,7 @@ public final class SmoothingEngine {
             }
         }
         if (count > 0) {
-            owner.setUnsaved(true);
+            owner.markUnsaved();
         }
         if (afterDecoration) {
             pending.get(key).addAll(placements);
@@ -453,15 +469,15 @@ public final class SmoothingEngine {
     }
 
     private static boolean setGenerationState(LevelAccessor world, ChunkAccess owner, BlockPos position, BlockState state) {
-        if (position.getY() < owner.getMinBuildHeight() || position.getY() >= owner.getMaxBuildHeight()
-                || position.getX() >> 4 != owner.getPos().x || position.getZ() >> 4 != owner.getPos().z) {
+        if (position.getY() < owner.getMinY() || position.getY() > owner.getMaxY()
+                || position.getX() >> 4 != owner.getPos().x() || position.getZ() >> 4 != owner.getPos().z()) {
             throw new IllegalArgumentException("Terrain smoothing cannot write outside its owning chunk");
         }
         BlockState before = owner.getBlockState(position);
         if (before.equals(state)) {
             return false;
         }
-        owner.setBlockState(position, state, false);
+        owner.setBlockState(position, state, 0);
         BlockState actual = owner.getBlockState(position);
         if (world instanceof Level && owner.getPersistedStatus() == ChunkStatus.FULL && !before.equals(actual)) {
             // A late repair may follow the chunk's first packet. Notify tracked clients
@@ -471,25 +487,73 @@ public final class SmoothingEngine {
         return sameState(actual, state);
     }
 
+    private static BlockState withSnowAppearance(LevelAccessor world, ChunkAccess owner, BlockPos position,
+            BlockState state) {
+        // Use the same snow neighbours as the pieces' normal appearance updates.
+        if (isSnow(owner.getBlockState(position.above()))) {
+            return state.setValue(BlockStateProperties.SNOWY, true);
+        }
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            BlockPos neighbour = position.relative(side);
+            ChunkAccess chunk = ownerOrLoaded(world, owner, neighbour);
+            if (chunk != null && (isSnow(chunk.getBlockState(neighbour))
+                    || fullCollision(chunk.getBlockState(neighbour)) && isSnow(chunk.getBlockState(neighbour.above())))) {
+                return state.setValue(BlockStateProperties.SNOWY, true);
+            }
+        }
+        boolean exposedColdSurface = world.getBiome(position).value().coldEnoughToSnow(position, world.getSeaLevel())
+                && position.getY() >= SmoothingFoliage.surfaceHeight(owner, position.getX() & 15,
+                        position.getZ() & 15, owner.getPos().x() << 4, owner.getPos().z() << 4)
+                && world.getBrightness(LightLayer.BLOCK, position.above()) < 10;
+        return state.setValue(BlockStateProperties.SNOWY, exposedColdSurface);
+    }
+
+    private static boolean isSnow(BlockState state) {
+        return state.is(BlockTags.SNOW);
+    }
+
     private static boolean sameState(BlockState first, BlockState second) {
         // Nearby snow can update the visual property between decoration callbacks.
         // Geometry, material and water state must still match our original cap.
-        if (first.hasProperty(SnowyDirtBlock.SNOWY)) {
-            first = first.setValue(SnowyDirtBlock.SNOWY, false);
+        if (first.hasProperty(BlockStateProperties.SNOWY)) {
+            first = first.setValue(BlockStateProperties.SNOWY, false);
         }
-        if (second.hasProperty(SnowyDirtBlock.SNOWY)) {
-            second = second.setValue(SnowyDirtBlock.SNOWY, false);
+        if (second.hasProperty(BlockStateProperties.SNOWY)) {
+            second = second.setValue(BlockStateProperties.SNOWY, false);
         }
         return first.equals(second);
     }
 
-    private BlockState transitionResult(LevelAccessor world, BlockPos support, TerrainMaterial material, int mask, int level) {
+    private BlockState transitionResult(LevelAccessor world, ChunkAccess owner, BlockPos support,
+            TerrainMaterial material, int cardinal, int diagonal, int level, boolean cave) {
+        int mask = Footprint.mask(cardinal, diagonal, level);
+        if (mask == 0) {
+            return null;
+        }
+
         int lowerEdges = lowerEdges(world, support);
         int safeMask = Footprint.trimDownhillEdges(mask, lowerEdges);
         BlockState result = catalogue.result(material, safeMask, level);
 
-        // Missing finer shapes fall back to slabs. Check the real result, not just the requested footprint.
-        return result != null && (touchingEdges(result) & lowerEdges) == 0 ? result : null;
+        // Missing finer shapes fall back to slabs. Check the actual piece against the downhill edges.
+        if (result == null || (touchingEdges(result) & lowerEdges) != 0) {
+            return null;
+        }
+
+        if (!cave && level >= 2 && lowerEdges == 0 && result != material.slab && Integer.bitCount(cardinal) == 1) {
+            int uphill = Integer.numberOfTrailingZeros(cardinal);
+            if (safeMask == Footprint.EDGES[uphill]) {
+                // A full slab gives a broader tread where both sides of a one-block rise have room.
+                int dx = DX[uphill];
+                int dz = DZ[uphill];
+                if (hasTerrainFloor(world, owner, support.offset(-dx, 0, -dz))
+                        && hasTerrainFloor(world, owner, support.offset(2 * dx, 1, 2 * dz))) {
+                    return material.slab;
+                }
+            }
+        }
+
+        return result;
     }
 
     private static BlockState supportAfterPlacement(TerrainMaterial material, BlockState piece) {
@@ -506,7 +570,7 @@ public final class SmoothingEngine {
         Integer edges = pieceEdges.get(result);
 
         if (edges == null) {
-            AABB bounds = result.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO).bounds();
+            AABB bounds = TerrainGeometry.shape(result).bounds();
             edges = (bounds.minZ == 0 ? 1 : 0) | (bounds.maxX == 1 ? 2 : 0)
                     | (bounds.maxZ == 1 ? 4 : 0) | (bounds.minX == 0 ? 8 : 0);
             pieceEdges.put(result, edges);
@@ -541,7 +605,7 @@ public final class SmoothingEngine {
                 BlockPos lowerFloor = beside.below();
                 BlockState below = neighbour.getBlockState(lowerFloor);
 
-                if (fullCollision(below) && below.isCollisionShapeFullBlock(world, lowerFloor)
+                if (TerrainGeometry.full(below) && TerrainGeometry.full(below, world, lowerFloor)
                         && !below.hasBlockEntity()) {
                     edges |= 1 << direction;
                 }
@@ -553,7 +617,7 @@ public final class SmoothingEngine {
 
     private boolean caveHeadroom(LevelAccessor world, ChunkAccess owner, BlockPos support) {
         // Three clear blocks leave 2.5 blocks above a new cap. A two-block tunnel must stay walkable.
-        if (support.getY() + 3 >= owner.getMaxBuildHeight()) {
+        if (support.getY() + 3 > owner.getMaxY()) {
             return false;
         }
         for (int height = 2; height <= 3; height++) {
@@ -589,17 +653,19 @@ public final class SmoothingEngine {
             return false;
         }
 
-        int worldX = (owner.getPos().x << 4) + localX;
-        int worldZ = (owner.getPos().z << 4) + localZ;
+        int worldX = (owner.getPos().x() << 4) + localX;
+        int worldZ = (owner.getPos().z() << 4) + localZ;
 
-        ChunkAccess neighbour = loaded(world, worldX >> 4, worldZ >> 4);
+        return hasTerrainFloor(world, owner, new BlockPos(worldX, lowerY + 1, worldZ));
+    }
 
+    private boolean hasTerrainFloor(LevelAccessor world, ChunkAccess owner, BlockPos floor) {
+        ChunkAccess neighbour = ownerOrLoaded(world, owner, floor);
         if (neighbour == null) {
             return false;
         }
 
-        // Compare logical floors at this height, including existing caps over BOP's native soil.
-        BlockPos floor = new BlockPos(worldX, lowerY + 1, worldZ);
+        // Read the same logical height before and after a neighbouring column is capped.
         BlockState state = neighbour.getBlockState(floor);
         BlockState above = neighbour.getBlockState(floor.above());
 
@@ -607,8 +673,7 @@ public final class SmoothingEngine {
         TerrainMaterial cap = catalogue.piece(above);
 
         if (cap != null) {
-            return source != null || catalogue.source(state) == cap
-                    || cap.supportAfterPlacement != null && state.equals(cap.supportAfterPlacement)
+            return source != null || cap.supportAfterPlacement != null && state.equals(cap.supportAfterPlacement)
                     || oreSupport(state);
         }
 
@@ -620,6 +685,12 @@ public final class SmoothingEngine {
             return ((Level) world).dimension() == Level.OVERWORLD;
         }
         return world instanceof WorldGenLevel && ((WorldGenLevel) world).getLevel().dimension() == Level.OVERWORLD;
+    }
+
+    private static ChunkAccess ownerOrLoaded(LevelAccessor world, ChunkAccess owner, BlockPos position) {
+        int chunkX = position.getX() >> 4;
+        int chunkZ = position.getZ() >> 4;
+        return chunkX == owner.getPos().x() && chunkZ == owner.getPos().z() ? owner : loaded(world, chunkX, chunkZ);
     }
 
     /** A missing neighbour is unavailable, never a reason to request or generate another chunk. */
@@ -634,7 +705,7 @@ public final class SmoothingEngine {
     }
 
     private static StructureProtection structures(LevelAccessor world, ChunkAccess owner) {
-        return StructureProtection.read(owner, position -> loaded(world, position.x, position.z));
+        return StructureProtection.read(owner, position -> loaded(world, position.x(), position.z()));
     }
 
     private static boolean fullCollision(BlockState state) {
