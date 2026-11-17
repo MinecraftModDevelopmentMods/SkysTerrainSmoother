@@ -52,3 +52,6 @@ The four sand recipes keep their IDs. The runtime checks exercise crafting,
 inventory discovery and recipe-book persistence.
 
 See [the release guide](RELEASING.md) for release preparation.
+
+Disposable servers use Java networking (`use-native-transport=false`). This
+avoids host-specific Netty availability probes during log auditing.
