@@ -178,7 +178,8 @@ jobs:
           set -euo pipefail
           ./gradlew clean --no-daemon --stacktrace
           ./gradlew check build javadoc preparePackagedIntegrationProbe verifyReleaseArtifacts writeReleaseChecksums \
-          verifyEclipseProductionClasspath -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
+            verifyEclipseProductionClasspath -Declipse.application=org.eclipse.ui.ide.workbench \
+            -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace
 
       - name: Replay artifact checks offline
         run: >-

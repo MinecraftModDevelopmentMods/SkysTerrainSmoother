@@ -31,4 +31,5 @@ class WorkflowCommandsTest(unittest.TestCase):
         self.assertEqual(calls[0].split()[0], "clean")
         self.assertIn("check", calls[1].split())
         self.assertIn("verifyEclipseProductionClasspath", calls[1].split())
+        self.assertIn("-Declipse.application=org.eclipse.ui.ide.workbench", calls[1].split())
         self.assertNotIn("./gradlew", " ".join(calls))
