@@ -334,9 +334,9 @@ jobs:
           if [[ "$LOADER_NAME" == "neoforge" ]]; then
             # NeoGradle resolves model inputs during configuration under build/tmp.
             # Cleaning in the same invocation removes those inputs before setup runs.
-            ./gradlew clean --no-daemon --stacktrace --max-workers=2
+            ./gradlew clean -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace --max-workers=2
             ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
-              --no-daemon --stacktrace --max-workers=2
+              -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace --max-workers=2
           else
             # Preserve the established Forge release lifecycle.
             ./gradlew clean --no-daemon --stacktrace
