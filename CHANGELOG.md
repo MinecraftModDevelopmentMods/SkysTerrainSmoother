@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3.2602002
+
+- Broader terraces use slabs where a narrower step would interrupt the slope.
+- Smooth snow, packed ice, powder snow and gravel with matching pieces.
+- Choose which material groups to smooth in the configuration pages.
+- Keep verified optional development jars outside build outputs.
+
 ## 0.1.0.2602002
 
 - Updated Terrain Smoother for Minecraft 26.2 on NeoForge.

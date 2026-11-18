@@ -1,13 +1,11 @@
 package zone.moddev.mc.skysterrainsmoother.probe;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.neoforged.neoforge.client.gui.ModListScreen;
 import net.neoforged.neoforge.client.gui.widget.ModListWidget;
-import net.neoforged.neoforgespi.language.IModInfo;
 
 /** Uses NeoForge's actual Mods list and Config button, without desktop automation. */
 final class ModMenuProbe {
@@ -16,29 +14,18 @@ final class ModMenuProbe {
         minecraft.gui.setScreen(mods);
         mods.tick();
         ModListWidget list = (ModListWidget) field(ModListScreen.class, mods, "modList");
-        Object selected = null;
-        for (Object entry : list.children()) {
-            try {
-                Method infoMethod = entry.getClass().getDeclaredMethod("getInfo");
-                infoMethod.setAccessible(true);
-                IModInfo info = (IModInfo) infoMethod.invoke(entry);
-                if (info.getModId().equals(modId)) {
-                    RuntimeProbe.require(!info.getDisplayName().trim().isEmpty()
-                            && !info.getDescription().trim().isEmpty(), "Player-facing mod metadata exists");
-                    selected = entry;
-                    break;
-                }
-            } catch (ReflectiveOperationException failure) {
-                throw new IllegalStateException("Cannot inspect the native mod entry", failure);
+        ModListWidget.ModEntry selected = null;
+        for (ModListWidget.ModEntry entry : list.children()) {
+            var info = entry.getInfo();
+            if (info.getModId().equals(modId)) {
+                RuntimeProbe.require(!info.getDisplayName().isBlank()
+                        && !info.getDescription().isBlank(), "Player-facing mod metadata exists");
+                selected = entry;
+                break;
             }
         }
         RuntimeProbe.require(selected != null, "The Mods list includes " + modId);
-        try {
-            Method select = ModListScreen.class.getDeclaredMethod("setSelected", selected.getClass());
-            select.invoke(mods, selected);
-        } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException("Cannot select the native mod entry", failure);
-        }
+        mods.setSelected(selected);
         Button button = (Button) field(ModListScreen.class, mods, "configButton");
         RuntimeProbe.require(button.visible && button.active, "The Config button is available for " + modId);
         button.onPress(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));

@@ -102,7 +102,10 @@ class NativeClientFilesTest(unittest.TestCase):
         (self.directory / "logs/latest.log").write_text("\n".join((
             START, LOGIN,
             "SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
-            "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")), encoding="utf-8")
+            "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS",
+            "TERRAIN_SMOOTHER_CLIENT_TINT_PASS", "Stopping server", "Saving worlds",
+            *(f"Saving chunks for level 'Terrain Test'/minecraft:{dimension}"
+              for dimension in ("overworld", "the_nether", "the_end")))), encoding="utf-8")
 
     def test_native_defaults_with_different_order_and_comments(self):
         client = self.directory / "config/neoforge-client.toml"

@@ -704,3 +704,11 @@ tasks.register('verifyNativeLogPolicy', Exec) {
             '-m', 'unittest', 'discover', '-s', 'tools'
 }
 tasks.named('check') { dependsOn tasks.named('verifyNativeLogPolicy') }
+
+tasks.register('testDependencySourceIntegrity', Exec) {
+    group = 'verification'
+    description = 'Checks that workflow dependency builds preserve pinned source trees.'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            'tools/test_dependency_source_integrity.py'
+}
+tasks.named('check') { dependsOn 'testDependencySourceIntegrity' }

@@ -20,6 +20,12 @@ ordinary blocks owned by the relevant content mod.
 ## Upgrading to Minecraft 26.2
 
 Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
+configuration and world folder so saved sand slabs retain their colour,
+orientation and waterlogging. Previously saved terrain stays unchanged.
+
+## Upgrading to Minecraft 26.2
+
+Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
 world and configuration files. Saved sand slabs keep their colour, orientation
 and waterlogging. Terrain Smoother only runs in new chunks.
 

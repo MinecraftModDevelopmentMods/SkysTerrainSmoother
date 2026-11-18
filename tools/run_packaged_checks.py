@@ -93,7 +93,7 @@ def client_command(options, directory):
         raise ValueError("The installed client has no NeoForge 26.2.0.45-beta profile")
     forge = json.loads(profile.read_text(encoding="utf-8"))
     if base["id"] != "26.2" or forge["inheritsFrom"] != "26.2":
-        raise ValueError("This launcher requires the verified NeoForge 21.11 client metadata")
+        raise ValueError("This launcher requires the verified NeoForge 26.2 client metadata")
     libraries = {}
     for layer in (base, forge):
         for library in layer["libraries"]:
@@ -157,6 +157,12 @@ def client_command(options, directory):
     arguments = ["-Xmx3g", "-Djava.net.preferIPv4Stack=true",
                  "-Djava.library.path=" + str(natives),
                  probe_property(options)]
+    # The loader profile inherits these Java 25 options from Mojang's profile.
+    inherited_options = ["--sun-misc-unsafe-memory-access=allow",
+                         "--enable-native-access=ALL-UNNAMED"]
+    if not all(option in base["arguments"]["jvm"] for option in inherited_options):
+        raise ValueError("The Minecraft Java 25 startup flags changed")
+    arguments.extend(inherited_options)
     for argument in forge["arguments"]["jvm"]:
         for key, value in substitutions.items():
             argument = argument.replace("${" + key + "}", value)
@@ -165,6 +171,8 @@ def client_command(options, directory):
         arguments.append(argument)
     arguments.extend(("-cp", os.pathsep.join(str(path) for path in classpath), forge["mainClass"]))
     arguments.extend(forge["arguments"]["game"])
+    # Use Minecraft's offline mode for the disposable local client.
+    arguments.append("--offlineDeveloperMode")
     arguments.extend(("--username", "TerrainChecks", "--version", forge["id"],
                       "--gameDir", str(directory), "--assetsDir", str(assets),
                       "--assetIndex", base["assetIndex"]["id"], "--uuid", "1" * 32,
@@ -218,7 +226,7 @@ def prepare(options, directory):
         (directory / name).write_text("[]\n", encoding="utf-8")
     (directory / "server.properties").write_text(
         "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\n"
-        "server-port=0\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
+        "server-port=0\nuse-native-transport=false\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
         "max-tick-time=120000\n", encoding="utf-8")
     (directory / "options.txt").write_text("lang:en_us\nfullscreen:false\nrenderDistance:6\npauseOnLostFocus:false\n", encoding="utf-8")
     shutil.copytree("src/bootstrapTest/defaultconfigs", directory, dirs_exist_ok=True)

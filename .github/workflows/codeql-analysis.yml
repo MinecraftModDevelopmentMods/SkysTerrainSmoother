@@ -75,11 +75,10 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
           grass="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
           dependency="$GITHUB_WORKSPACE/dependencies/grass"
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace \
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace \
             "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
             "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
 

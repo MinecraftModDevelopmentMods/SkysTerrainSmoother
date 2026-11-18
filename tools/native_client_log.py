@@ -87,9 +87,14 @@ def audit(directory, phase, packaged_offline=False, no_early_display=False):
             raise ValueError("NeoForge used the early loading window")
     receipt = classify(log, unchanged, packaged_offline)
     required = ("SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
-                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")
+                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS",
+                "SKY_RECIPE_PREVIEW_MODELS_PASS", "TERRAIN_SMOOTHER_CLIENT_TINT_PASS",
+                "Stopping server", "Saving worlds")
     if any(marker not in log for marker in required):
         raise ValueError("Native client completion checks are missing")
+    for dimension in ("overworld", "the_nether", "the_end"):
+        if not re.search(r"(?m)Saving chunks for level '[^\r\n]+'/minecraft:" + dimension + r"$", log):
+            raise ValueError("Native client did not save dimension " + dimension)
     if list((directory / "crash-reports").glob("*")):
         raise ValueError("Native client produced a crash report")
     receipt["complete_log_files"] = audit_complete_logs(directory, packaged_offline)

@@ -1,11 +1,11 @@
 # Add-on API, version 1
 
 Use `zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi` during your
-mod's common or client setup. Declare ordering after `skysterrainsmoother`.
-Registration opens after Terrain Smoother has loaded its built-in materials
-and closes at load completion. NeoForge can run setup callbacks in parallel;
-the catalogue serializes registration and publishes immutable lookups.
-Biome and protection callbacks must also be safe to call from generation threads.
+mod's common/client setup or IMC callbacks. Declare ordering after
+`skysterrainsmoother`. Registration closes at load completion. NeoForge can
+run setup callbacks in parallel, so the catalogue handles registrations one
+at a time and publishes immutable lookups. Biome and protection callbacks
+must also be safe to call from generation threads.
 
 Create an immutable `TerrainMaterial` with a namespaced logical identity, a
 set of exact full-block source states and a bottom slab state. Optionally
@@ -19,7 +19,7 @@ Sources and converted supports must be dry full blocks without tile entities.
 TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
     Identifier.fromNamespaceAndPath("example", "natural_rock"),
     Collections.singleton(naturalRock.defaultBlockState()),
-    bottomSlab, null, null, false, null));
+    bottomSlab, null, null, false, null, MaterialGroup.STONE));
 ```
 
 `addShapes(materialId, steps, corners)` supplies missing forms on an existing
@@ -30,6 +30,18 @@ without an add-on. Do not assume a Mineralogy mapping exists when the
 player has disabled Mineralogy support or its slab registration. Use
 `hasMaterial(materialId)` to check before contributing. The Mineralogy setting
 also applies to mappings supplied by add-ons for Mineralogy source blocks.
+
+Pass a `MaterialGroup` to the extended constructor: `SOIL`, `SAND_AND_GRAVEL`,
+`STONE`, `SNOW`, `ICE` or `OTHER`. The player's corresponding material switch
+applies to both original placements and repairs after decoration. Adding finer
+shapes preserves the base mapping's group. Disabled mappings remain in the
+catalogue so neighbour heights and already placed pieces can still be recognised.
+
+The original constructor remains available for version-1 add-ons. Grass mappings
+use `SOIL`; known vanilla source blocks and Mineralogy sources get their matching
+group. Unrecognised or mixed families use `OTHER`. Classification uses source
+blocks, rather than guessing from a material's name. New add-ons should choose
+their group explicitly.
 
 `addBiomeRule` restricts material eligibility. `addAreaProtection` vetoes a
 position by dimension, position and biome. Neither exposes a mutable world or
