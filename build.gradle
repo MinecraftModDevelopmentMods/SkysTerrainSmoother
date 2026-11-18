@@ -176,7 +176,7 @@ def verifyContentDependencies = tasks.register('verifyContentDependencies') {
                         'status', '--porcelain', '--untracked-files=no').start()
                 String changes = status.inputStream.getText('UTF-8').trim()
                 if (status.waitFor() != 0 || !changes.isEmpty()) {
-                    throw new GradleException('The pinned content checkout has tracked changes: ' + name)
+                    throw new GradleException('The pinned content checkout has tracked changes: ' + name + '\n' + changes)
                 }
                 [
                         [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.sha256'],
@@ -1125,3 +1125,12 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+// Dependency wrappers must build without changing the pinned source checkout.
+tasks.register('dependencySourceIntegrityTest', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            '-m', 'unittest', 'discover', '-s', 'tools', '-p', 'test_dependency_source_integrity.py'
+}
+
+tasks.named('check') { dependsOn tasks.named('dependencySourceIntegrityTest') }
