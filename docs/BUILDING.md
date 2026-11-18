@@ -1,6 +1,6 @@
 # Building from source
 
-Use the Gradle 9.7.1 wrapper with Java 25 and Temurin 25.0.3+9 for production.
+Use the Gradle 9.6.1 wrapper with Java 25 and Temurin 25.0.3+9 for production.
 Set `STS_JAVA25_HOME` to the Java 25 installation. This branch targets
 Minecraft 26.2 with ForgeGradle 7.0.34.
 ForgeGradle's Mavenizer also uses Java 25 to prepare the Forge dependency.
