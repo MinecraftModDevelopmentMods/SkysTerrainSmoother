@@ -1,0 +1,33 @@
+{
+  "target": "Forge 47.4.10",
+  "source_world_sha256": "FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74",
+  "source_data_version": 3337,
+  "snapshot_entries": {
+    "minecraft:item": {
+      "minecraft:pottery_shard_archer": 2128,
+      "minecraft:pottery_shard_arms_up": 2130,
+      "minecraft:pottery_shard_prize": 2129,
+      "minecraft:pottery_shard_skull": 2131
+    },
+    "minecraft:sound_event": {
+      "minecraft:item.brush.brush_sand_completed": 1226,
+      "minecraft:item.brush.brushing": 1225,
+      "minecraft:music.overworld.jungle_and_forest": 1363
+    }
+  },
+  "unused_non_biome_ids": {
+    "minecraft:item.brush.brush_sand_completed": 0,
+    "minecraft:item.brush.brushing": 0,
+    "minecraft:music.overworld.jungle_and_forest": 0,
+    "minecraft:pottery_shard_archer": 0,
+    "minecraft:pottery_shard_arms_up": 0,
+    "minecraft:pottery_shard_prize": 0,
+    "minecraft:pottery_shard_skull": 0
+  },
+  "inspected_nbt_records": 833,
+  "inspected_string_values": 246377,
+  "checked_biome_cells": 1261056,
+  "native_renamed_cells": 0,
+  "noticed_biome_cells": 0,
+  "native_biome_contract_sha256": "87AE12A9A824208BEB795B21696B22528302BA59943B371DCB6CF08A0588CE35"
+}

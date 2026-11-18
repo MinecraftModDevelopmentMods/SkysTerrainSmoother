@@ -1,53 +1,102 @@
 # Sky's Terrain Smoother
 
-Sky's Terrain Smoother softens new Overworld slopes using pieces from Sky's
-Grass Slabs and Sky's Building Pieces. It also provides ordinary and red sand
-slabs for beaches and desert slopes.
-
-This beta is for Minecraft 1.10.2 and Forge 12.18.3.2511. Install Terrain
-Smoother 0.1.0.110021, Grass Slabs 1.1.0.110021 and Building Pieces
-0.3.0.110021 together on the client and server. Mineralogy is optional.
+Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
+including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
+and Sky's Building Pieces, with matching materials for grass, dirt, stone,
+sandstone, sand, gravel, hardened clay, snow and packed ice.
 
 ## Smoothing levels
 
-- Level 1 uses bottom slabs.
-- Level 2 also uses horizontal steps, each covering half a slab's footprint.
-- Level 3 also uses corners, each covering a quarter of a slab's footprint.
+Set `worldgen.smoothingLevel` in `config/skysterrainsmoother-common.toml`:
 
-All these pieces remain half a block tall. Where a material has no step or
-corner, a slab is used instead. Disconnected or three-quarter footprints also
-use a slab rather than a composite block.
+1. **Slabs** - half-block transitions.
+2. **Slabs and steps** - adds pieces covering half a slab's footprint.
+3. **Slabs, steps and corners** - also uses pieces covering a quarter of a
+   slab's footprint.
 
-Only newly generated dry terrain is changed, including cave floors. Cave
-passages need three clear blocks above the floor before a piece is added, so
-two-block tunnels stay walkable. Ceilings, existing chunks, underwater terrain,
-structures and unsupported materials are left alone.
-Initial materials are grass, ordinary dirt, raw stone variants, sand, red sand,
-sandstone, red sandstone and hardened clay. Mineralogy's available natural rock
-slabs can be used too. Ores, gravel, wood and decorative stone are not smoothed.
-Sand slabs are horizontal only and fall when unsupported. Three matching sand
-blocks in a row make six slabs; two matching slabs side by side make one block.
-Sand uses slabs at all smoothing levels.
+Every smoothing piece is half a block tall. Gentle surface terraces use a
+full-width slab when there is room on both sides of a one-block rise. If a
+material doesn't have steps or corners, it uses its slab at higher levels
+wherever a slab fits safely.
 
-Grass oasis patches and sand added during biome decoration receive matching
-pieces too. Hardened clay uses Building Pieces' existing slabs, steps and
-corners. If beach decoration changes the terrain to sand, the new cap uses
-matching sand instead of grass or stone. Ore veins can remain hidden beneath
-a piece when generation replaces its support with ore; neither the ore nor the piece is
-removed. Other unsupported replacements such as gravel remove the cap without
-restoring overwritten terrain. Existing saved pieces are not
-repaired or regenerated. The separate Biomes O Plenty terrain add-on adds
-matching BOP soil and grass pieces for all three levels.
+Narrow mountain ledges keep their downhill edge at its original height, rather
+than gaining a row of slabs that recreates a full-block step. Wider terraces
+still get transitions. At levels 2 and 3, the engine keeps a fitting uphill step
+or corner even when a whole slab would raise the downhill edge.
 
-Terrain Smoother takes over generation from Grass Slabs while installed.
-Turning Terrain Smoother off disables both generation passes; removing it
-restores Grass Slabs' normal independent generation. Grass Slabs' grass
-generation setting still controls whether grass terrain is included.
+A single layer of snow doesn't block an otherwise valid transition. Deeper
+snow, trees, crops and occupied blocks stay untouched.
 
-See [configuration](docs/CONFIGURATION.md), [world upgrades](docs/WORLD-UPGRADES.md),
+Only new, dry terrain is smoothed. Existing chunks, underwater floors and cave
+ceilings stay unchanged. Cave passages need three clear blocks above the floor,
+so low tunnels keep their headroom. To see the effect in an existing world,
+travel beyond the terrain you've already generated.
+
+New grass pieces pick up the surrounding snow straight away. Snow added later
+during world generation is checked again before that new chunk is finished.
+
+## Sand and other materials
+
+Ordinary sand, red sand and gravel get their own horizontal slabs. Three matching
+blocks in a row make six slabs, and two slabs side by side make a full block.
+Like their full blocks, the slabs fall when unsupported. These materials use
+slabs at every smoothing level.
+
+Mineralogy is supported without another add-on. When it's installed, the
+smoother uses its natural rock slabs and the matching steps and corners
+included in Building Pieces. Disabled native slab types are skipped.
+
+Powder snow gets its own slabs, steps and corners, so it stays soft and keeps
+its sinking and freezing behaviour. Leather boots work on the actual partial
+surface. Empty parts of a piece do not freeze you or add powder-snow fog.
+See [snow and frozen terrain](docs/FROZEN-TERRAIN.md) for the recipes.
+
+Ores, wood and decorative stone aren't smoothing materials.
+
+For BOP grass and soils, add the
+[Terrain Smoother Biomes O' Plenty add-on](https://github.com/MinecraftModDevelopmentMods/SkysTerrainSmoother-BiomesOPlenty-Addon).
+
+## Installation and settings
+
+For **Minecraft 26.2**, use **Forge 65.1.0** and **Java 25**, with:
+
+- Sky's Grass Slabs **1.2.1.2602001**.
+- Sky's Building Pieces **0.3.10.2602001**.
+- Sky's Terrain Smoother **0.1.3.2602001**.
+
+Install all three main jars on both the client and server.
+
+The old CFG settings are copied once into TOML; the original file is kept.
+New configurations start at level 3. Existing saved choices are kept.
+Select the mod in **Mods > Config** to choose a
+level, turn smoothing off or open the Materials and Mod support pages, then
+restart Minecraft. You can switch soil, sand and gravel, stone, snow, ice and
+other add-on materials separately. Turn **Stone and rocks** off to keep softer
+ground smoothed without changing rock terrain, including Mineralogy and BOP rocks.
+For a dedicated server, edit its configuration file and restart the server.
+See [configuration](docs/CONFIGURATION.md).
+
+While installed, Terrain Smoother handles grass smoothing instead of Grass Slabs.
+Turning its master switch off stops both passes. Grass Slabs' own
+`worldgen.generateGrassSlabs` setting still decides whether grass is included.
+Removing Terrain Smoother restores Grass Slabs' standalone generation.
+
+## Mineralogy steps and corners
+
+Building Pieces 0.3.7 or later includes Mineralogy rock steps and corners.
+Install Mineralogy alongside the usual Sky mods; no separate Mineralogy
+add-on is needed. Level 1 uses native slabs, level 2 also uses steps and
+level 3 also uses corners. Your Mineralogy support setting still applies.
+
+## Existing worlds
+
+Back up worlds before changing their mods. Turning smoothing off doesn't remove
+pieces already placed, so keep the mods that provide them installed.
+See [existing worlds](docs/WORLD-UPGRADES.md) before changing the mod list.
+
+Release history is in the [changelog](CHANGELOG.md). For development, see
 [building from source](docs/BUILDING.md) and the [add-on API](docs/API.md).
-Legacy recovery remains the responsibility of the content mods.
 
-[Release preparation](docs/RELEASING.md) covers the CI checks and publication safeguards.
+## Licence
 
-Licensed under LGPL-2.1-only.
+[LGPL-2.1-only](LICENSE). See [NOTICE](NOTICE) for credits.
