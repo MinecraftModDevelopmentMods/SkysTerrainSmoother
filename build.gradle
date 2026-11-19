@@ -172,7 +172,7 @@ def verifyContentDependencies = tasks.register('verifyContentDependencies') {
                         'status', '--porcelain', '--untracked-files=no').start()
                 String changes = status.inputStream.getText('UTF-8').trim()
                 if (status.waitFor() != 0 || !changes.isEmpty()) {
-                    throw new GradleException('The pinned content checkout has tracked changes: ' + name)
+                    throw new GradleException('The pinned content checkout has tracked changes: ' + name + '\n' + changes)
                 }
                 [
                         [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.sha256'],
@@ -461,6 +461,7 @@ level-name=world
 level-seed=skys-terrain-smoother-integration
 level-type=minecraft:normal
 online-mode=false
+use-native-transport=false
 server-ip=127.0.0.1
 server-port=0
 generate-structures=false
@@ -1013,7 +1014,7 @@ def nativePrepare = tasks.register('prepareNativeBootstrapTest') {
         copy { from nativeJar.flatMap { it.archiveFile }, grassSlabsDevelopmentJar, buildingPiecesDevelopmentJar; into new File(target, 'mods') }
         new File(target, 'eula.txt').text = 'eula=true\n'
         ['banned-players.json', 'banned-ips.json', 'ops.json', 'whitelist.json'].each { new File(target, it).text = '[]\n' }
-        new File(target, 'server.properties').text = 'level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\nserver-port=0\ngenerate-structures=false\nmax-tick-time=120000\n'
+        new File(target, 'server.properties').text = 'level-name=world\nlevel-seed=4815162342\nonline-mode=false\nuse-native-transport=false\nserver-ip=127.0.0.1\nserver-port=0\ngenerate-structures=false\nmax-tick-time=120000\n'
     }
 }
 tasks.register('nativeBootstrapTest', JavaExec) {
@@ -1077,7 +1078,7 @@ def prepareFamilyForward = tasks.register('prepareFamilyForwardFixture') {
         ['banned-players.json', 'banned-ips.json', 'ops.json', 'whitelist.json'].each { name ->
             new File(target, name).setText('[]\n', 'UTF-8')
         }
-        new File(target, 'server.properties').setText('level-name=world\nonline-mode=false\n' +
+        new File(target, 'server.properties').setText('level-name=world\nonline-mode=false\nuse-native-transport=false\n' +
                 'server-ip=127.0.0.1\nserver-port=0\nview-distance=6\nmax-tick-time=120000\n', 'UTF-8')
     }
 }
@@ -1119,3 +1120,12 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+// Dependency wrappers must build without changing the pinned source checkout.
+tasks.register('dependencySourceIntegrityTest', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            '-m', 'unittest', 'discover', '-s', 'tools', '-p', 'test_dependency_source_integrity.py'
+}
+
+tasks.named('check') { dependsOn tasks.named('dependencySourceIntegrityTest') }

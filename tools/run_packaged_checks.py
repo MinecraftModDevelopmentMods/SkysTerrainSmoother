@@ -146,6 +146,8 @@ def client_command(options, directory):
                       "--gameDir", str(directory), "--assetsDir", str(assets),
                       "--assetIndex", base["assetIndex"]["id"], "--uuid", "1" * 32,
                       "--accessToken", "0", "--userType", "legacy", "--versionType", "release"))
+    # The official client supports an offline mode for this login-free test profile.
+    arguments.append("--offlineDeveloperMode")
     return argument_file(options.java, directory, options.phase, arguments)
 
 
@@ -193,7 +195,7 @@ def prepare(options, directory):
     for name in ("banned-players.json", "banned-ips.json", "ops.json", "whitelist.json"):
         (directory / name).write_text("[]\n", encoding="utf-8")
     (directory / "server.properties").write_text(
-        "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\n"
+        "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nuse-native-transport=false\nserver-ip=127.0.0.1\n"
         "server-port=0\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
         "max-tick-time=120000\n", encoding="utf-8")
     (directory / "options.txt").write_text("lang:en_us\nfullscreen:false\nrenderDistance:6\npauseOnLostFocus:false\n", encoding="utf-8")
@@ -208,6 +210,10 @@ def prepare(options, directory):
         (directory / "config/skysgrassslabs-common.toml").write_text(
             "[worldgen]\ngenerateGrassSlabs=" + options.grass_enabled
             + "\n[compat]\nforceReplaceBuildingBricksSlabs=false\n", encoding="utf-8")
+    if options.mineralogy_slabs_disabled:
+        (directory / 'config/mineralogy-common.toml').write_text(
+            '[options]\nGENERATE_ROCKSLAB=false\nGENERATE_BRICKSLAB=false\n'
+            'GENERATE_SMOOTHSLAB=false\nGENERATE_SMOOTHBRICKSLAB=false\n', encoding='utf-8')
     if options.fixture:
         fixture = options.fixture.resolve()
         archive_path = fixture / "world.zip"
@@ -271,6 +277,7 @@ def main():
     parser.add_argument("--extra-mod", type=Path, action="append", default=[])
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--mineralogy", action="store_true")
+    parser.add_argument("--mineralogy-slabs-disabled", action="store_true")
     parser.add_argument("--level", type=int, choices=(1, 2, 3))
     parser.add_argument("--enabled", choices=("true", "false"))
     parser.add_argument("--grass-enabled", choices=("true", "false"))

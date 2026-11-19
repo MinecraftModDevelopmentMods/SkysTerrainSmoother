@@ -69,9 +69,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
 
       - name: Bootstrap Forge from an empty cache
@@ -129,7 +128,14 @@ jobs:
           echo "java_setup_version=${selector:-$toolchain}" >> "$GITHUB_OUTPUT"
           echo "java_version=$(value java_version)" >> "$GITHUB_OUTPUT"
           echo "minecraft_version=$(value minecraft_version)" >> "$GITHUB_OUTPUT"
-          echo "gradle_java_version=$(value gradle_java_toolchain_version)" >> "$GITHUB_OUTPUT"
+          gradle_selector="$(value gradle_java_setup_version)"
+          if [[ "$(value gradle_java_version)" == "$(value java_version)" ]]; then
+            gradle_selector="${selector:-$toolchain}"
+          else
+            gradle_toolchain="$(value gradle_java_toolchain_version)"
+            gradle_selector="${gradle_selector:-$gradle_toolchain}"
+          fi
+          echo "gradle_java_version=$gradle_selector" >> "$GITHUB_OUTPUT"
           echo "artifact_prefix=SkysTerrainSmoother-$(value mod_version)" >> "$GITHUB_OUTPUT"
 
       - name: Install target Java toolchain
@@ -180,9 +186,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
 
       - name: Make the wrapper executable
@@ -204,9 +209,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.0.2601021.jar
-            build/libs/SkysTerrainSmoother-0.1.0.2601021-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.0.2601021-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.3.2601021.jar
+            build/libs/SkysTerrainSmoother-0.1.3.2601021-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.3.2601021-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 

@@ -1,8 +1,8 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,38 +30,41 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 
-/** A horizontal sand half. Joining it creates ordinary sand, so there is no double state. */
+/** A horizontal half of falling terrain. Joining it creates the native full block. */
 public final class SandSlabBlock extends FallingBlock implements SimpleWaterloggedBlock {
     private static final MapCodec<SandSlabBlock> CODEC = RecordCodecBuilder.mapCodec(instance ->
-            instance.group(Codec.BOOL.fieldOf("red").forGetter(block -> block.red), propertiesCodec())
-                    .apply(instance, SandSlabBlock::new));
-
+            instance.group(BuiltInRegistries.BLOCK.byNameCodec().fieldOf("full_block")
+                    .forGetter(block -> block.fullBlock), propertiesCodec()).apply(instance, SandSlabBlock::new));
     public static final EnumProperty<SlabType> TYPE = EnumProperty.create("type", SlabType.class,
             SlabType.TOP, SlabType.BOTTOM);
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     private static final VoxelShape LOWER_HALF = Block.box(0, 0, 0, 16, 8, 16);
     private static final VoxelShape UPPER_HALF = Block.box(0, 8, 0, 16, 16, 16);
-    private final boolean red;
+    private final Block fullBlock;
 
     public SandSlabBlock(boolean red, Identifier id) {
-        this(red, Block.Properties.ofFullCopy(red ? Blocks.RED_SAND : Blocks.SAND)
+        this(red ? Blocks.RED_SAND : Blocks.SAND, id);
+    }
+
+    public SandSlabBlock(Block fullBlock, Identifier id) {
+        this(fullBlock, Block.Properties.ofFullCopy(fullBlock)
                 .setId(ResourceKey.create(Registries.BLOCK, id))
                 .noOcclusion().isRedstoneConductor((state, world, position) -> false));
     }
 
-    private SandSlabBlock(boolean red, Properties properties) {
+    private SandSlabBlock(Block fullBlock, Properties properties) {
         super(properties);
-        this.red = red;
+        this.fullBlock = fullBlock;
         registerDefaultState(stateDefinition.any().setValue(TYPE, SlabType.BOTTOM).setValue(WATERLOGGED, false));
+    }
+
+    public BlockState fullState() {
+        return fullBlock.defaultBlockState();
     }
 
     @Override
     protected MapCodec<SandSlabBlock> codec() {
         return CODEC;
-    }
-
-    public BlockState fullState() {
-        return (red ? Blocks.RED_SAND : Blocks.SAND).defaultBlockState();
     }
 
     @Override
