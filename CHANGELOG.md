@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.3.121012 (unreleased)
+## 0.1.3.121012
 
 - Save unfinished terrain repairs so they can resume after a chunk unloads or the game restarts.
 - Resume only recorded placements with unchanged blocks and supports; leave nearby player edits alone.
