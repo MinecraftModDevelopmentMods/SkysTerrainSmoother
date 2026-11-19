@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4.2602002 (unreleased)
+
+- Late terrain repairs wait for loaded physics neighbours and use a bounded queue.
+- Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
+- Recorded work leaves changed blocks and nearby player edits alone.
+
+
 ## 0.1.3.2602002
 
 - Broader terraces use slabs where a narrower step would interrupt the slope.
