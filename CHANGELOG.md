@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4.2603001 (unreleased)
+
+- Late terrain repairs wait for loaded physics neighbours and use a bounded queue.
+- Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
+- Recorded work leaves changed blocks and nearby player edits alone.
+
+
 ## 0.1.3.2603001
 
 - Choose separate smoothing settings for soil, sand and gravel, stone, snow, ice and other add-on materials.
