@@ -8,6 +8,19 @@ starts. It skips those chunks, including chunks saved before decoration was
 completed. There is no retrogen option in this beta. Travel to previously
 ungenerated terrain to see the effect.
 
+Unfinished repairs to newly generated pieces are saved inside the owning chunk.
+After an unload or restart, the mod can finish those repairs when the needed
+neighbours are loaded. It checks the recorded block and support before changing
+either, and leaves the area alone after a nearby player edit. It doesn't scan
+that saved chunk for new smoothing opportunities. Chunks without recorded work
+remain excluded.
+This applies to work recorded by this version; it doesn't reconstruct repairs
+that an older build has already lost.
+
+The master switch also pauses unfinished repairs. Keep the original world and
+its backups if you remove a material add-on: repairs needing an unavailable
+material are retained without changing blocks.
+
 Grass Slabs and Building Pieces continue to handle their own supported legacy
 content. Terrain Smoother neither expands that compatibility claim nor makes
 removing an unrelated mod safe. Keep the BOP add-on installed when a world

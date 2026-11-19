@@ -29,8 +29,20 @@ final class ProbeWorld {
     }
 
     static void repair(Level world, BlockPos origin) {
+        repair(world, origin, origin);
+    }
+
+    static void repair(Level world, BlockPos origin, BlockPos affectedOwner) {
         queue(world, origin.getX() >> 4, origin.getZ() >> 4);
-        NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
+        // Geometry fixtures wait for their requested owner through the real
+        // bounded queue, rather than assuming every dirty owner runs in one tick.
+        int attempts = 0;
+        do {
+            NeoForge.EVENT_BUS.post(new LevelTickEvent.Post(() -> true, world));
+        } while (SkysTerrainSmoother.engine.repairQueued(affectedOwner.getX() >> 4, affectedOwner.getZ() >> 4)
+                && ++attempts < 4096);
+        RuntimeProbe.require(!SkysTerrainSmoother.engine.repairQueued(affectedOwner.getX() >> 4, affectedOwner.getZ() >> 4),
+                "the fixture owner completes its queued late repair");
     }
 
     static void light(Level world, LightLayer type, BlockPos position, int value) {

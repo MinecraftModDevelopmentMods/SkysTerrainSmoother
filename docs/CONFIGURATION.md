@@ -33,6 +33,17 @@ settings control new surface and cave smoothing only: recipes, placed pieces
 and existing chunks are unchanged. A disabled rock face still contributes its
 height to a neighbouring grass or sand transition.
 
+With Sable installed, repairs after decoration wait for the surrounding chunks
+to be fully loaded. They resume as those chunks become available, with at most
+one owner repaired per tick. Normal smoothing during generation stays enabled;
+the mod does not generate extra neighbours to make a physics update possible.
+There is no new setting to enable this compatibility behaviour.
+
+Pending repairs are saved with their chunk. Returning after an unload or restart
+can finish the recorded work, but does not smooth the saved terrain again.
+The master switch pauses these repairs as well. Disabled material groups stay
+unchanged, and nearby player edits cancel the outstanding work in that area.
+
 Levels outside 1–3 are constrained to that range.
 Existing level choices are preserved; the new default applies only when the
 setting has not been saved yet.
