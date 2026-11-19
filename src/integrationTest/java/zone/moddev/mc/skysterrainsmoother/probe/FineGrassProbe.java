@@ -104,7 +104,7 @@ final class FineGrassProbe {
                 if (decoratedSupport != null) {
                     world.setBlockState(floor, decoratedSupport, 2);
                 }
-                SkysTerrainSmoother.engine.afterDecoration(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(
+                ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(
                         world, new Random(1), new BlockPos(floor.getX() & ~15, 0, floor.getZ() & ~15)));
                 if (decoratedSupport == null) {
                     RuntimeProbe.require(world.getBlockState(floor.up()).equals(material.step(0))

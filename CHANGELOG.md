@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2.110021 (unreleased)
+
+- Late terrain repairs use a bounded queue and survive chunk unloads and restarts.
+- Recorded work leaves player edits and unrecorded saved terrain alone.
+
+
 ## 0.1.1.110021
 
 Snow and packed-ice terrain can now be smoothed with the existing Building Pieces slabs, steps and corners.
