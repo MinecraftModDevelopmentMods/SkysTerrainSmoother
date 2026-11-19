@@ -215,6 +215,27 @@ jobs:
             build/release/SHA256SUMS
             CHANGELOG.md
 
+      - name: Retain Minecraft tool logs
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PYLOGS'
+          import os
+          from pathlib import Path
+          import zipfile
+
+          gradle_home = Path(os.environ.get("GRADLE_USER_HOME", str(Path.home() / ".gradle")))
+          tool_cache = gradle_home / "caches/minecraftforge/forgegradle/mavenizer"
+          logs = list(tool_cache.rglob("log.txt")) if tool_cache.is_dir() else []
+          if logs:
+              target = Path("build/diagnostics/minecraft-tool-logs.zip")
+              target.parent.mkdir(parents=True, exist_ok=True)
+              with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                  for log in logs:
+                      archive.write(log, log.relative_to(gradle_home).as_posix())
+              print("Retained Minecraft tool logs:", len(logs))
+          PYLOGS
+
       - name: Upload diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -228,3 +249,4 @@ jobs:
             build/*-run/logs/**
             build/*-run/**/*.properties
             build/problems/**
+            build/diagnostics/**
