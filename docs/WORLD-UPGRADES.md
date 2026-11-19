@@ -17,25 +17,12 @@ their terrain can be smoothed.
 Turning smoothing off does not remove pieces already placed. They remain
 ordinary blocks owned by the relevant content mod.
 
-## Upgrading to Minecraft 26.1.2
+## Upgrading from Minecraft 1.21.11, 1.21.1, 1.20.6, 1.20.1 or 1.19.4
 
-Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep your
-configuration and the whole world folder. Minecraft moves dimension data into
-its new folder layout; Terrain Smoother still skips chunks you've already saved.
-
-To move a 26.1.2 Forge world to NeoForge, first check that every mod in the save
-has a matching NeoForge version. Try the new mod list on a copy of the world.
-
-## Upgrading to Minecraft 1.21.1
-
-Update Grass Slabs, Building Pieces and Terrain Smoother together. Keep
-your configuration and world data so your settings and migration history
-carry over. Sand slabs keep their colour, orientation and waterlogging.
-Travel to new chunks to see smoothing on newly generated terrain.
-
-You can also move a Minecraft 1.21.1 Forge save to NeoForge. First check
-that every other mod in the world has a compatible NeoForge build. Use a
-copy of the save and install the NeoForge versions of all three Sky mods.
+Update Grass Slabs, Building Pieces and Terrain Smoother together for
+Minecraft 26.1.2. Keep your configuration and world data so your smoothing
+settings and migration history carry over. Sand slabs keep their colour,
+orientation and waterlogging. Explore new chunks to see the smoothing.
 
 ## Upgrading from Minecraft 1.18.2
 

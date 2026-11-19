@@ -1,16 +1,17 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import zone.moddev.mc.skysterrainsmoother.api.*;
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 
 /** Baked lookup tables. No registry scans or reflective lookups in the column pass. */
 public final class MaterialCatalogue {
@@ -119,6 +120,9 @@ public final class MaterialCatalogue {
     }
 
     public boolean allows(TerrainMaterial material, Biome biome, int dimension, BlockPos target) {
+        if (!TerrainSmootherConfig.groupEnabled(material.group)) {
+            return false;
+        }
         for (TerrainSmoothingApi.BiomeRule rule : biomeRules) {
             if (!rule.allows(material.id, biome)) {
                 return false;
@@ -224,7 +228,7 @@ public final class MaterialCatalogue {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
-        VoxelShape shape = state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO);
+        VoxelShape shape = TerrainGeometry.shape(state);
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
@@ -257,8 +261,7 @@ public final class MaterialCatalogue {
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                Shapes.block(), BooleanOp.NOT_SAME);
+        return TerrainGeometry.full(state);
     }
 
     private static BlockState canonical(BlockState state) {

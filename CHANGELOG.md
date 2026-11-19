@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3.2601022
+
+Improves gentle terraces, snowy slopes, ice, gravel and cave floors. Material settings let you choose which ground types are smoothed.
+
+Existing terrain, saved content and configuration choices are retained.
+
 ## 0.1.0.2601022
 
 - Updated Terrain Smoother for Minecraft 26.1.2 on NeoForge.

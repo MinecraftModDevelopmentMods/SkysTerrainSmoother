@@ -60,6 +60,7 @@ public final class ClientProbe extends ProbeProxy {
                     return;
                 }
                 RecipePreviewModels.check(minecraft, recipeDisplays);
+                PowderSnowClientProbe.run(minecraft);
                 checkBiomeTints(minecraft);
                 zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS");
                 settleTicks = 0;

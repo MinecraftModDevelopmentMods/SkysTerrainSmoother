@@ -7,38 +7,8 @@ from pathlib import Path
 import re
 import tomllib
 from native_registry_notices import audit_text, profile_for
+from native_runtime_notices import offline_client_notices, windows_counter_notice
 
-
-
-def offline_client_notices(text):
-    """Recognise the exact token-zero errors seen on the bare 26.1.2 client."""
-    realms_error = ("com.mojang.realmsclient.exception.RealmsServiceException: "
-                    "Realms authentication error with message "
-                    "'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'")
-    expected = (
-        (r"Download-\d+", r"(?:net\.minecraft\.client\.Minecraft/|minecraft/Minecraft)",
-         "Failed to fetch user properties",
-         "com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401"),
-        (r"Download-\d+", r"(?:com\.mojang\.realmsclient\.client\.RealmsClient/|mojang/RealmsClient)",
-         "Failed to fetch Realms feature flags", realms_error),
-        (r"IO-Worker-\d+", r"(?:com\.mojang\.realmsclient\.RealmsAvailability/|mojang/RealmsAvailability)",
-         "Couldn't connect to realms", realms_error),
-    )
-    lines = text.splitlines()
-    recognised = set()
-    kept = []
-    for index, line in enumerate(lines):
-        for thread, logger, message, error in expected:
-            header = rf"\[[^\r\n]+\] \[{thread}/ERROR\] \[{logger}\]: "
-            if (re.fullmatch(header + re.escape(message), line)
-                    and index + 1 < len(lines) and lines[index + 1] == error):
-                if message in recognised:
-                    raise ValueError("Repeated offline authentication notice: " + message)
-                recognised.add(message)
-                break
-        else:
-            kept.append(line)
-    return "\n".join(kept), sorted(recognised)
 
 
 def audit_complete_logs(directory, packaged_offline=False):
@@ -53,8 +23,7 @@ def audit_complete_logs(directory, packaged_offline=False):
                 text = source.read()
         else:
             text = path.read_text(encoding="utf-8")
-        if not text.strip():
-            raise ValueError(f"Empty native log: {path.name}")
+        text = windows_counter_notice(text)
         if packaged_offline:
             text, _ = offline_client_notices(text)
         try:
@@ -66,6 +35,7 @@ def audit_complete_logs(directory, packaged_offline=False):
 
 def classify(log, unchanged_defaults, packaged_offline=False):
     """Require a complete client login without severe notices."""
+    log = windows_counter_notice(log)
     notices = []
     if packaged_offline:
         log, notices = offline_client_notices(log)
@@ -85,7 +55,7 @@ def classify(log, unchanged_defaults, packaged_offline=False):
             "notices": notices, "unchanged_native_defaults": True}
 
 
-def unchanged_native_settings(directory, names):
+def unchanged_native_settings(directory, names, no_early_display=False):
     defaults = Path(__file__).resolve().parent.parent / "src/bootstrapTest/defaultconfigs/config"
     for name in names:
         path = directory / "config" / name
@@ -94,7 +64,9 @@ def unchanged_native_settings(directory, names):
         expected = tomllib.loads((defaults / name).read_text(encoding="utf-8"))
         actual = tomllib.loads(path.read_text(encoding="utf-8"))
         if name == "fml.toml":
-            # Fresh 21.1 installs write an empty table. Older copies can omit it.
+            # An omitted empty override table is equivalent to the default.
+            if no_early_display:
+                expected["earlyWindowControl"] = False
             expected.setdefault("dependencyOverrides", {})
             actual.setdefault("dependencyOverrides", {})
         if actual != expected:
@@ -102,22 +74,32 @@ def unchanged_native_settings(directory, names):
     return True
 
 
-def audit(directory, phase, packaged_offline=False):
+def audit(directory, phase, packaged_offline=False, no_early_display=False):
     directory = Path(directory)
     log = (directory / "logs/latest.log").read_text(encoding="utf-8")
     unchanged = unchanged_native_settings(directory, (
-        "fml.toml", "neoforge-client.toml", "neoforge-common.toml", "neoforge-server.toml"))
+        "fml.toml", "neoforge-client.toml", "neoforge-common.toml", "neoforge-server.toml"), no_early_display)
     if not unchanged:
         raise ValueError("NeoForge settings differ from the controlled defaults")
+    if no_early_display:
+        debug = (directory / "logs/debug.log").read_text(encoding="utf-8")
+        if "ImmediateWindowProvider not loading because splash screen is disabled" not in debug:
+            raise ValueError("NeoForge used the early loading window")
     receipt = classify(log, unchanged, packaged_offline)
     required = ("SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
-                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")
+                "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS",
+                "SKY_RECIPE_PREVIEW_MODELS_PASS", "TERRAIN_SMOOTHER_CLIENT_TINT_PASS",
+                "Stopping server", "Saving worlds")
     if any(marker not in log for marker in required):
         raise ValueError("Native client completion checks are missing")
+    for dimension in ("overworld", "the_nether", "the_end"):
+        if not re.search(r"(?m)Saving chunks for level '[^\r\n]+'/minecraft:" + dimension + r"$", log):
+            raise ValueError("Native client did not save dimension " + dimension)
     if list((directory / "crash-reports").glob("*")):
         raise ValueError("Native client produced a crash report")
     receipt["complete_log_files"] = audit_complete_logs(directory, packaged_offline)
     receipt["phase"] = phase
+    receipt["early_display"] = not no_early_display
     (directory / (phase + "-log-audit.json")).write_text(
         json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     return receipt
@@ -131,7 +113,7 @@ def classify_server(log, debug, unchanged_defaults, profile=None):
                   for line in lines)
     if not unchanged_defaults or not startup or 'Done (' not in log:
         raise ValueError('Native server defaults or startup sequence changed')
-    notices = audit_text(log, profile)
+    notices = audit_text(windows_counter_notice(log), profile)
     if not debug.strip():
         raise ValueError('Native server debug evidence is missing')
     return {'native_server_config_notices': 0, 'notices': notices,

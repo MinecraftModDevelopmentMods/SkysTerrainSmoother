@@ -12,3 +12,6 @@ type="required"
 versionRange="[0.1.0.120062,)"
 ordering="AFTER"
 side="BOTH"
+
+[[mixins]]
+config="terrainsmootherprobe.mixins.json"

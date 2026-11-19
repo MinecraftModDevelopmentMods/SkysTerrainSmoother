@@ -11,6 +11,7 @@ import shlex
 import subprocess
 import zipfile
 from native_registry_notices import audit_text, profile_for
+from native_runtime_notices import windows_counter_notice
 from native_client_log import audit as audit_client, audit_server, offline_client_notices
 
 
@@ -92,7 +93,7 @@ def client_command(options, directory):
         raise ValueError("The installed client has no NeoForge 26.1.2.94 profile")
     forge = json.loads(profile.read_text(encoding="utf-8"))
     if base["id"] != "26.1.2" or forge["inheritsFrom"] != "26.1.2":
-        raise ValueError("This launcher requires the verified NeoForge 21.11 client metadata")
+        raise ValueError("This launcher requires the verified NeoForge 26.1.2 client metadata")
     libraries = {}
     for layer in (base, forge):
         for library in layer["libraries"]:
@@ -156,6 +157,12 @@ def client_command(options, directory):
     arguments = ["-Xmx3g", "-Djava.net.preferIPv4Stack=true",
                  "-Djava.library.path=" + str(natives),
                  probe_property(options)]
+    # The loader profile inherits these Java 25 options from Mojang's profile.
+    inherited_options = ["--sun-misc-unsafe-memory-access=allow",
+                         "--enable-native-access=ALL-UNNAMED"]
+    if not all(option in base["arguments"]["jvm"] for option in inherited_options):
+        raise ValueError("The Minecraft Java 25 startup flags changed")
+    arguments.extend(inherited_options)
     for argument in forge["arguments"]["jvm"]:
         for key, value in substitutions.items():
             argument = argument.replace("${" + key + "}", value)
@@ -164,6 +171,8 @@ def client_command(options, directory):
         arguments.append(argument)
     arguments.extend(("-cp", os.pathsep.join(str(path) for path in classpath), forge["mainClass"]))
     arguments.extend(forge["arguments"]["game"])
+    # Use Minecraft's offline mode for the disposable local client.
+    arguments.append("--offlineDeveloperMode")
     arguments.extend(("--username", "TerrainChecks", "--version", forge["id"],
                       "--gameDir", str(directory), "--assetsDir", str(assets),
                       "--assetIndex", base["assetIndex"]["id"], "--uuid", "1" * 32,
@@ -217,10 +226,18 @@ def prepare(options, directory):
         (directory / name).write_text("[]\n", encoding="utf-8")
     (directory / "server.properties").write_text(
         "level-name=world\nlevel-seed=4815162342\nonline-mode=false\nserver-ip=127.0.0.1\n"
-        "server-port=0\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
+        "server-port=0\nuse-native-transport=false\nview-distance=6\ngenerate-structures=false\nspawn-animals=false\nspawn-monsters=false\n"
         "max-tick-time=120000\n", encoding="utf-8")
     (directory / "options.txt").write_text("lang:en_us\nfullscreen:false\nrenderDistance:6\npauseOnLostFocus:false\n", encoding="utf-8")
     shutil.copytree("src/bootstrapTest/defaultconfigs", directory, dirs_exist_ok=True)
+    no_early_display = getattr(options, "no_early_display", False)
+    if no_early_display:
+        fml = directory / "config/fml.toml"
+        original = fml.read_text(encoding="utf-8")
+        setting = "earlyWindowControl = true"
+        if original.count(setting) != 1:
+            raise ValueError("Cannot identify the NeoForge early display setting")
+        fml.write_text(original.replace(setting, "earlyWindowControl = false"), encoding="utf-8")
     if options.level is not None or options.enabled is not None:
         config = directory / "config/skysterrainsmoother-common.toml"
         config.parent.mkdir(parents=True, exist_ok=True)
@@ -267,12 +284,13 @@ def audit_console(directory, phase, packaged_offline=False):
     console = (directory / (phase + "-console.log")).read_text(encoding="utf-8")
     if re.search(r"(?m)^(?:ERROR|FATAL) Status(?:Console)?Listener\b", console):
         raise ValueError("The loader reported a logging failure")
+    console = windows_counter_notice(console)
     if packaged_offline:
         console, _ = offline_client_notices(console)
     audit_text(console, profile_for(directory))
 
 
-def audit(directory, phase, mode, packaged_offline=False):
+def audit(directory, phase, mode, packaged_offline=False, no_early_display=False):
     audit_console(directory, phase, packaged_offline)
     biome_contract = directory / "source-native-biomes.json"
     if biome_contract.is_file():
@@ -284,7 +302,7 @@ def audit(directory, phase, mode, packaged_offline=False):
         if not any(line.endswith(marker) for line in log.splitlines()):
             raise ValueError("The complete saved biome volume was not verified")
     if mode == "client":
-        audit_client(directory, phase, packaged_offline=packaged_offline)
+        audit_client(directory, phase, packaged_offline=packaged_offline, no_early_display=no_early_display)
         shutil.copyfile(directory / "logs/latest.log", directory / (phase + "-complete.log"))
         shutil.copyfile(directory / "logs/debug.log", directory / (phase + "-debug.log"))
         return
@@ -310,6 +328,8 @@ def main():
     parser.add_argument("--fixture", type=Path)
     parser.add_argument("--extra-mod", type=Path, action="append", default=[])
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--no-early-display", action="store_true",
+                        help="Disable the NeoForge splash in this disposable client only")
     parser.add_argument("--mineralogy", action="store_true")
     parser.add_argument("--mineralogy-slabs-disabled", action="store_true")
     parser.add_argument("--level", type=int, choices=(1, 2, 3))
@@ -317,6 +337,8 @@ def main():
     parser.add_argument("--grass-enabled", choices=("true", "false"))
     parser.add_argument("--generation-only", action="store_true")
     options = parser.parse_args()
+    if options.no_early_display and options.mode != "client":
+        parser.error("--no-early-display requires a client launch")
     directory = options.directory.resolve()
     if not directory.is_relative_to(Path("build").resolve()) or directory == Path("build").resolve():
         raise ValueError("Packaged checks must stay inside this checkout's build directory")
@@ -353,7 +375,8 @@ def main():
     with (directory / (options.phase + "-console.log")).open("w", encoding="utf-8") as output:
         subprocess.run(command, cwd=directory, env=environment, stdout=output,
                        stderr=subprocess.STDOUT, check=True, timeout=600)
-    audit(directory, options.phase, options.mode, packaged_offline=options.mode == "client")
+    audit(directory, options.phase, options.mode, packaged_offline=options.mode == "client",
+          no_early_display=options.no_early_display)
     shutil.copytree(directory / "logs", directory / "phase-logs" / options.phase)
     if options.fixture:
         expected = json.loads((directory / "source-inputs.json").read_text(encoding="utf-8"))

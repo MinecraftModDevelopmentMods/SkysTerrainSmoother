@@ -1,7 +1,7 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "building",
-  "group": "skysterrainsmoother/full_blocks",
+  "group": "skys/result/minecraft/red_sand",
   "pattern": [
     "SS"
   ],

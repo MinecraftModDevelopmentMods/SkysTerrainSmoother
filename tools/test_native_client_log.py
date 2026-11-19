@@ -60,9 +60,23 @@ class NativeClientLogTest(unittest.TestCase):
             classify("\n".join((START, LOGIN, "[STDERR/]: java.lang.IllegalStateException")), True)
 
 
+    def test_native_offline_control_rejects_changed_or_repeated_traces(self):
+        traces = json.loads((Path(__file__).parent / "fixtures" /
+                             "neoforge-26.1.2-offline-client.json").read_text(encoding="utf-8"))["traces"]
+        controlled = "\n".join(traces.values())
+        self.assertEqual(classify("\n".join((controlled, START, LOGIN)), True,
+                                  packaged_offline=True)["notices"], sorted(traces))
+        with self.assertRaises(ValueError):
+            classify("\n".join((controlled, controlled, START, LOGIN)), True,
+                     packaged_offline=True)
+        with self.assertRaises(ValueError):
+            classify("\n".join((controlled.replace("minecraft@26.1.2", "minecraft@26.2"), START, LOGIN)),
+                     True, packaged_offline=True)
+
     def test_only_the_packaged_offline_authentication_notice_is_accepted(self):
-        auth = ("[00:00:00] [Download-2/ERROR] [minecraft/Minecraft]: Failed to fetch user properties\n"
-                "com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401")
+        auth = json.loads((Path(__file__).parent / "fixtures" /
+                           "neoforge-26.1.2-offline-client.json").read_text(encoding="utf-8"))["traces"][
+                               "Failed to fetch user properties"]
         log = "\n".join((auth, START, LOGIN))
         self.assertEqual(classify(log, True, packaged_offline=True)["notices"],
                          ["Failed to fetch user properties"])
@@ -70,6 +84,9 @@ class NativeClientLogTest(unittest.TestCase):
             classify(log, True)
         with self.assertRaises(ValueError):
             classify(log.replace("Status: 401", "Status: 503"), True, packaged_offline=True)
+        with self.assertRaises(ValueError):
+            classify(log.replace("CompletableFuture", "AnotherWorker"), True, packaged_offline=True)
+
 
 class NativeClientFilesTest(unittest.TestCase):
     def setUp(self):
@@ -83,7 +100,10 @@ class NativeClientFilesTest(unittest.TestCase):
         (self.directory / "logs/latest.log").write_text("\n".join((
             START, LOGIN,
             "SKY_CONFIG_SCREENS_PASS", "TERRAIN_SMOOTHER_CLIENT_PASS",
-            "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS")), encoding="utf-8")
+            "TERRAIN_SMOOTHER_CLIENT_WORLD_PASS", "TERRAIN_SMOOTHER_CLIENT_DISCONNECT_PASS", "SKY_RECIPE_PREVIEW_MODELS_PASS",
+            "TERRAIN_SMOOTHER_CLIENT_TINT_PASS", "Stopping server", "Saving worlds",
+            *(f"Saving chunks for level 'Terrain Test'/minecraft:{dimension}"
+              for dimension in ("overworld", "the_nether", "the_end")))), encoding="utf-8")
 
     def test_native_defaults_with_different_order_and_comments(self):
         client = self.directory / "config/neoforge-client.toml"

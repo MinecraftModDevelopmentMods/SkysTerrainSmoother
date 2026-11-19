@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "skys/result/minecraft/gravel",
+  "pattern": [
+    "SS"
+  ],
+  "key": {
+    "S": "skysterrainsmoother:gravel_slab"
+  },
+  "result": {
+    "id": "minecraft:gravel"
+  }
+}
