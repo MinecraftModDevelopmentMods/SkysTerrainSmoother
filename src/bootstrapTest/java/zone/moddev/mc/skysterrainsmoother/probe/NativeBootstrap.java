@@ -57,7 +57,7 @@ public final class NativeBootstrap {
             lateRejected = true;
         }
         require(lateRejected, "Late registration rejected");
-        int checks = 3;
+        int checks = 3 + PendingRepairChecks.run();
         for (int metadata = 0; metadata < 4; metadata++) {
             BlockState state = SandContent.legacyState(metadata);
             Block block = (metadata & 2) == 0 ? SandContent.slab : SandContent.redSlab;

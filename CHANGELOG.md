@@ -2,6 +2,9 @@
 
 ## 0.1.3.121012 (unreleased)
 
+- Save unfinished terrain repairs so they can resume after a chunk unloads or the game restarts.
+- Resume only recorded placements with unchanged blocks and supports; leave nearby player edits alone.
+- Keep old terrain out of new smoothing passes when resuming a repair.
 - Defer late terrain repairs until the surrounding chunks are fully loaded when Sable physics is installed.
 - Start at most one owner repair per tick and bound readiness checks, while keeping unfinished work queued fairly.
 - Keep normal block, physics and client notifications during repairs. Initial smoothing and ore rules are unchanged.

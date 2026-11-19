@@ -72,7 +72,7 @@ For **Minecraft 1.21.1**, use **NeoForge 21.1.247** and **Java 21**, with:
 
 - Sky's Grass Slabs **1.2.1.121012**.
 - Sky's Building Pieces **0.3.11.121012**.
-- Sky's Terrain Smoother **0.1.2.121012**.
+- Sky's Terrain Smoother **0.1.3.121012**.
 
 Install all three NeoForge jars on both the client and server. If you use
 the BOP add-on, keep its matching dependencies installed too.
@@ -103,6 +103,10 @@ level 3 also uses corners. Your Mineralogy support setting still applies.
 
 Back up worlds before changing their mods. Turning smoothing off doesn't remove
 pieces already placed, so keep the mods that provide them installed.
+Unfinished repairs to newly generated pieces are saved with their chunk and can
+finish when you return, even after a restart. They only affect recorded pieces
+whose blocks and supports are unchanged. Player interactions nearby leave that
+area alone. This doesn't enable smoothing in old terrain.
 See [existing worlds](docs/WORLD-UPGRADES.md) before changing the mod list.
 
 Release history is in the [changelog](CHANGELOG.md). For development, see

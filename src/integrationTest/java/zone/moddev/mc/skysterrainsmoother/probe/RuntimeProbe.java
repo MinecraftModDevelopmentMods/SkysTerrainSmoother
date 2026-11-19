@@ -145,6 +145,13 @@ public final class RuntimeProbe {
     }
 
     @SubscribeEvent
+    public void unloaded(net.neoforged.neoforge.event.level.ChunkEvent.Unload event) {
+        if (Boolean.getBoolean("skysterrainsmoother.repairPersistenceProbe")) {
+            PersistentRepairProbe.unloaded(event);
+        }
+    }
+
+    @SubscribeEvent
     public void tick(ServerTickEvent.Post event) {
         if (server == null || ran) {
             return;
@@ -152,6 +159,14 @@ public final class RuntimeProbe {
 
         try {
             ServerLevel world = server.getLevel(Level.OVERWORLD);
+            if (Boolean.getBoolean("skysterrainsmoother.repairPersistenceProbe")) {
+                if (PersistentRepairProbe.tick(world, phase())) {
+                    ran = true;
+                    SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + phase());
+                    server.halt(false);
+                }
+                return;
+            }
         if (Boolean.getBoolean("skysterrainsmoother.deferredRepairProbe")) {
             if (DeferredRepairProbe.tick(world, phase())) {
                 ran = true;
