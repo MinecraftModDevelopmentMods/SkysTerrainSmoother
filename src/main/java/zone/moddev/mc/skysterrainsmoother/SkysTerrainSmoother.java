@@ -24,7 +24,7 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.3.2603002";
+    public static final String VERSION = "0.1.4.2603002";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
@@ -69,6 +69,8 @@ public final class SkysTerrainSmoother {
     private void stopped(ServerStoppedEvent event) {
         logger.info("Terrain smoothing completed {} passes and placed {} pieces; {} existing-chunk events skipped",
                 engine.passes, engine.placed, engine.skippedExisting);
+        logger.info("Late terrain repairs: {} completed, {} deferred checks, {} queued; {} ns in repairs",
+                engine.completedRepairs, engine.deferredRepairs, engine.queuedRepairs(), engine.repairNanos);
         engine.stop();
     }
 }
