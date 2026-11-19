@@ -12,7 +12,7 @@ class ProjectContractTest {
         String properties = text("gradle.properties");
         String build = text("build.gradle");
 
-        assertTrue(properties.contains("mod_version=0.1.1.112021"));
+        assertTrue(properties.contains("mod_version=0.1.2.112021"));
         assertTrue(properties.contains("mapping_version=39-1.12"));
         assertTrue(build.contains("version '7.0.34'"));
         assertTrue(build.contains("verifyEclipseProductionClasspath"));

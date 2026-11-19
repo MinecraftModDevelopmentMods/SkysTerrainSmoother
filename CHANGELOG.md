@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2.112021 (unreleased)
+
+- Late terrain repairs use a bounded queue and survive chunk unloads and restarts.
+- Recorded work leaves player edits and unrecorded saved terrain alone.
+
+
 ## 0.1.1.112021
 
 - Added separate controls for dirt and grass, sand and gravel, stone, snow, ice and other add-on materials.

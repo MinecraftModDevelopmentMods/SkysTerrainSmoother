@@ -142,8 +142,7 @@ final class LateTerrainProbe {
     }
 
     private static void post(WorldServer world, Chunk owner) {
-        MinecraftForge.EVENT_BUS
-                .post(new DecorateBiomeEvent.Post(world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
+        ProbeWorld.post(world, new DecorateBiomeEvent.Post(world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
     }
 
     static int generationOrder(WorldServer world) throws Exception {
