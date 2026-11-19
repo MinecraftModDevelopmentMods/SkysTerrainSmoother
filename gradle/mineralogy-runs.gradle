@@ -1,0 +1,103 @@
+import java.security.MessageDigest
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+// Optional mods belong to a separate game folder, outside the production classpath.
+def lock = new Properties()
+file('gradle/mineralogy-runtime.properties').withInputStream { lock.load(it) }
+def retainedRuntimeJars = ['mineralogy', 'orespawn'].collectEntries { name ->
+    File siblingJar = file(lock.getProperty(name + '.path'))
+    String checksum = lock.getProperty(name + '.sha256')
+    [(name): file(".gradle/qualification-dependencies/${checksum}/${siblingJar.name}")]
+}
+def runtimeSources = ['mineralogy', 'orespawn'].collectEntries { name ->
+    File siblingJar = file(lock.getProperty(name + '.path'))
+    File retainedJar = retainedRuntimeJars[name]
+    [(name): file(providers.gradleProperty(name + 'RuntimeJar')
+            .getOrElse((retainedJar.isFile() ? retainedJar : siblingJar).path))]
+}
+def gameDirectory = layout.projectDirectory.dir(
+        providers.gradleProperty('mineralogyRunDirectory').getOrElse('run-mineralogy'))
+
+def prepare = {
+    runtimeSources.each { name, source ->
+        if (!source.isFile()) {
+            throw new GradleException('Missing optional ' + name + ' jar. Set -P' + name + 'RuntimeJar=<jar>.')
+        }
+        String actual = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
+        String expected = lock.getProperty(name + '.sha256')
+        if (!(expected ==~ /(?i)[a-f0-9]{64}/) || !actual.equalsIgnoreCase(expected)) {
+            throw new GradleException('The optional ' + name + ' jar does not match gradle/mineralogy-runtime.properties')
+        }
+    }
+
+    File mods = new File(gameDirectory.asFile, 'mods')
+    Set<String> expected = runtimeSources.values()*.name as Set<String>
+    fileTree(mods).matching { include '*.jar' }.each { candidate ->
+        String name = candidate.name.toLowerCase(Locale.ROOT)
+        if ((name.startsWith('mineralogy-') || name.startsWith('orespawn-')) && !expected.contains(candidate.name)) {
+            throw new GradleException('Remove the older optional mod from this profile first: ' + candidate)
+        }
+        if (name.contains('integration-test') || name.contains('native-checks')) {
+            throw new GradleException('The Mineralogy play profile must not contain test mods: ' + candidate)
+        }
+    }
+    runtimeSources.each { name, source ->
+        File retained = retainedRuntimeJars[name]
+        if (source.canonicalFile != retained.canonicalFile) {
+            // A sibling rebuild must not replace the verified jar used by this profile.
+            Files.createDirectories(retained.parentFile.toPath())
+            Files.copy(source.toPath(), retained.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+    // Copy declared jars only; keep the player's settings and saves.
+    project.stageTerrainContentJars(gameDirectory.asFile)
+    Files.createDirectories(mods.toPath())
+    runtimeSources.each { name, source ->
+        File destination = new File(mods, source.name)
+        // An explicit override may already be inside this profile's mods folder.
+        if (source.canonicalFile != destination.canonicalFile) {
+            Files.copy(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+}
+
+def prepareMineralogy = tasks.register('prepareMineralogyDevelopmentRun') {
+    group = 'ide'
+    dependsOn 'verifyContentDependencies'
+    doLast { prepare() }
+}
+
+def prepareAvailableMineralogy = tasks.register('prepareAvailableMineralogyDevelopmentRun') {
+    group = 'ide'
+    dependsOn 'verifyContentDependencies'
+    onlyIf {
+        boolean available = runtimeSources.values().every { it.isFile() }
+        if (!available) {
+            logger.lifecycle('Mineralogy runs generated; add the pinned optional jars before using them.')
+        }
+        available
+    }
+    doLast { prepare() }
+}
+
+runs {
+    mineralogyClient {
+        runType 'client'
+        workingDirectory gameDirectory
+        modSource project.sourceSets.main
+    }
+    mineralogyServer {
+        runType 'server'
+        workingDirectory gameDirectory
+        modSource project.sourceSets.main
+        argument '--nogui'
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runMineralogyClient' || name == 'runMineralogyServer') {
+        dependsOn prepareMineralogy
+    }
+}
+tasks.named('eclipse') { dependsOn prepareAvailableMineralogy }

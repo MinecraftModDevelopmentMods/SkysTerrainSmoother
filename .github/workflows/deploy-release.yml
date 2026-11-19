@@ -321,9 +321,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew jar --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew jar --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
       - name: Build, test, and audit once
         env:
@@ -334,12 +333,13 @@ jobs:
           if [[ "$LOADER_NAME" == "neoforge" ]]; then
             # NeoGradle resolves model inputs during configuration under build/tmp.
             # Cleaning in the same invocation removes those inputs before setup runs.
-            ./gradlew clean --no-daemon --stacktrace --max-workers=2
+            ./gradlew clean -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace --max-workers=2
             ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
-              --no-daemon --stacktrace --max-workers=2
+              -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces --no-daemon --stacktrace --max-workers=2
           else
             # Preserve the established Forge release lifecycle.
-            ./gradlew clean check build javadoc -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces verifyReleaseArtifacts writeReleaseChecksums \
+            ./gradlew clean --no-daemon --stacktrace
+            ./gradlew check build javadoc -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces verifyReleaseArtifacts writeReleaseChecksums \
               --no-daemon --stacktrace
           fi
 
@@ -518,9 +518,8 @@ jobs:
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew jar --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew jar --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace)
 
       - name: Download immutable release artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -588,6 +587,11 @@ jobs:
         with:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           curseforge-id: ${{ needs.preflight.outputs.curseforge_project_id }}
+          # A timeout can follow an accepted upload. Check the file before retrying.
+          curseforge-retry-attempts: 1
+          curseforge-dependencies: |
+            1677588(required)
+            1754162(required)
           name: Sky's Terrain Smoother ${{ needs.preflight.outputs.release_version }} for Minecraft ${{ needs.preflight.outputs.minecraft_version }} (${{ needs.preflight.outputs.loader_display }})
           version: ${{ needs.preflight.outputs.release_version }}
           version-type: ${{ inputs.curseforge_release_level }}
