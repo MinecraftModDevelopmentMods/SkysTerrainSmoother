@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "facing=north,half=bottom": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_bottom_north"
+    },
+    "facing=east,half=bottom": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_bottom_east"
+    },
+    "facing=south,half=bottom": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_bottom_south"
+    },
+    "facing=west,half=bottom": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_bottom_west"
+    },
+    "facing=north,half=top": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_top_north"
+    },
+    "facing=east,half=top": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_top_east"
+    },
+    "facing=south,half=top": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_top_south"
+    },
+    "facing=west,half=top": {
+      "model": "skysterrainsmoother:block/powder_snow_slab_top_west"
+    }
+  }
+}

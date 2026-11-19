@@ -1,61 +1,131 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
-import java.util.List;
-import java.util.Random;
-import net.minecraft.block.*;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.*;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityFallingBlock;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.*;
-import net.minecraft.util.*;
-import net.minecraft.util.math.*;
-import net.minecraft.world.*;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FallingBlock;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
 
-/** Two fixed sand slots and two horizontal halves; gravity retains the complete state. */
-public final class SandSlabBlock extends BlockFalling {
-    public SandSlabBlock() {
-        super(Material.SAND);
-        setRegistryName("skysterrainsmoother", "sand_slab");
-        setUnlocalizedName("skysterrainsmoother.sand_slab");
-        setDefaultState(blockState.getBaseState().withProperty(BlockSand.VARIANT, BlockSand.EnumType.SAND)
-                .withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM));
-        setHardness(.5f); setSoundType(SoundType.SAND); setLightOpacity(0);
-        setCreativeTab(CreativeTabs.BUILDING_BLOCKS); useNeighborBrightness = true;
+/** A horizontal half of falling terrain. Joining it creates the native full block. */
+public final class SandSlabBlock extends FallingBlock implements SimpleWaterloggedBlock {
+    private static final MapCodec<SandSlabBlock> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(BuiltInRegistries.BLOCK.byNameCodec().fieldOf("full_block")
+                    .forGetter(block -> block.fullBlock), propertiesCodec()).apply(instance, SandSlabBlock::new));
+    public static final EnumProperty<SlabType> TYPE = EnumProperty.create("type", SlabType.class,
+            SlabType.TOP, SlabType.BOTTOM);
+    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+    private static final VoxelShape LOWER_HALF = Block.box(0, 0, 0, 16, 8, 16);
+    private static final VoxelShape UPPER_HALF = Block.box(0, 8, 0, 16, 16, 16);
+    private final Block fullBlock;
+
+    public SandSlabBlock(boolean red, Identifier id) {
+        this(red ? Blocks.RED_SAND : Blocks.SAND, id);
     }
-    @Override protected BlockStateContainer createBlockState() { return new BlockStateContainer(this, BlockSand.VARIANT, BlockSlab.HALF); }
-    @Override public IBlockState getStateFromMeta(int meta) {
-        return getDefaultState().withProperty(BlockSand.VARIANT, (meta & 2) == 0 ? BlockSand.EnumType.SAND : BlockSand.EnumType.RED_SAND)
-                .withProperty(BlockSlab.HALF, (meta & 1) == 0 ? BlockSlab.EnumBlockHalf.TOP : BlockSlab.EnumBlockHalf.BOTTOM);
+
+    public SandSlabBlock(Block fullBlock, Identifier id) {
+        this(fullBlock, Block.Properties.ofFullCopy(fullBlock)
+                .setId(ResourceKey.create(Registries.BLOCK, id))
+                .noOcclusion().isRedstoneConductor((state, world, position) -> false));
     }
-    @Override public int getMetaFromState(IBlockState state) { return state.getValue(BlockSand.VARIANT).getMetadata() * 2 + (state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.BOTTOM ? 1 : 0); }
-    @Override public int damageDropped(IBlockState state) { return getMetaFromState(state) & 2; }
-    @Override public void getSubBlocks(Item item, CreativeTabs tab, List<ItemStack> items) { items.add(new ItemStack(item,1,0)); items.add(new ItemStack(item,1,2)); }
-    @Override public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing face, float x, float y, float z, int meta, EntityLivingBase placer, ItemStack stack) {
-        return getStateFromMeta(meta).withProperty(BlockSlab.HALF, face == EnumFacing.DOWN || face != EnumFacing.UP && y > .5 ? BlockSlab.EnumBlockHalf.TOP : BlockSlab.EnumBlockHalf.BOTTOM);
+
+    private SandSlabBlock(Block fullBlock, Properties properties) {
+        super(properties);
+        this.fullBlock = fullBlock;
+        registerDefaultState(stateDefinition.any().setValue(TYPE, SlabType.BOTTOM).setValue(WATERLOGGED, false));
     }
-    @Override public boolean isOpaqueCube(IBlockState state) { return false; }
-    @Override public boolean isFullCube(IBlockState state) { return false; }
-    @Override public boolean isSideSolid(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) { return side == (state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.TOP ? EnumFacing.UP : EnumFacing.DOWN); }
-    @Override public boolean doesSideBlockRendering(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) { return isSideSolid(state,world,pos,side); }
-    @Override public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) { return true; }
-    @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) { return state.getValue(BlockSlab.HALF) == BlockSlab.EnumBlockHalf.TOP ? new AxisAlignedBB(0,.5,0,1,1,1) : new AxisAlignedBB(0,0,0,1,.5,1); }
-    @Override public AxisAlignedBB getCollisionBoundingBox(IBlockState state, World world, BlockPos pos) { return getBoundingBox(state,world,pos); }
-    @Override public String getHarvestTool(IBlockState state) { return "shovel"; }
-    @Override protected ItemStack getSilkTouchDrop(IBlockState state) { return new ItemStack(this,1,damageDropped(state)); }
-    @Override public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
-        if (world.isRemote || !world.getBlockState(pos).equals(state) || pos.getY() <= 0 || !canFallThrough(world.getBlockState(pos.down()))) return;
-        if (!fallInstantly && world.isAreaLoaded(pos.add(-32,-32,-32),pos.add(32,32,32))) {
-            world.spawnEntity(new EntityFallingBlock(world,pos.getX()+.5,pos.getY(),pos.getZ()+.5,state));
-        } else {
-            // Vanilla's instant path uses a default state. Keep red sand and the half here.
-            world.setBlockToAir(pos); BlockPos landing=pos.down();
-            while (landing.getY() > 0 && canFallThrough(world.getBlockState(landing))) landing=landing.down();
-            if (landing.getY() > 0) world.setBlockState(landing.up(),state,3);
+
+    public BlockState fullState() {
+        return fullBlock.defaultBlockState();
+    }
+
+    @Override
+    protected MapCodec<SandSlabBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(TYPE, WATERLOGGED);
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Direction face = context.getClickedFace();
+        boolean upper = face == Direction.DOWN || face != Direction.UP
+                && context.getClickLocation().y - context.getClickedPos().getY() > .5;
+        boolean water = context.getLevel().getFluidState(context.getClickedPos()).getType() == Fluids.WATER;
+        return defaultBlockState().setValue(TYPE, upper ? SlabType.TOP : SlabType.BOTTOM).setValue(WATERLOGGED, water);
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos position, CollisionContext context) {
+        return state.getValue(TYPE) == SlabType.TOP ? UPPER_HALF : LOWER_HALF;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos position,
+            CollisionContext context) {
+        return getShape(state, world, position, context);
+    }
+
+    @Override
+    public FluidState getFluidState(BlockState state) {
+        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
+    }
+
+    @Override
+    public BlockState updateShape(BlockState state, LevelReader world, ScheduledTickAccess ticks,
+            BlockPos position, Direction side, BlockPos neighbourPosition, BlockState neighbour, RandomSource random) {
+        if (state.getValue(WATERLOGGED)) {
+            ticks.scheduleTick(position, Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
+        return super.updateShape(state, world, ticks, position, side, neighbourPosition, neighbour, random);
+    }
+
+    @Override
+    public int getLightDampening(BlockState state) {
+        return 0;
+    }
+
+    @Override
+    public int getDustColor(BlockState state, BlockGetter world, BlockPos position) {
+        return fullState().getMapColor(world, position).col;
+    }
+
+    @Override
+    public void tick(BlockState state, ServerLevel world, BlockPos position, RandomSource random) {
+        if (world.isClientSide() || !world.getBlockState(position).equals(state) || position.getY() < world.getMinY()
+                || !isFree(world.getBlockState(position.below()))) {
+            return;
+        }
+
+        // The native factory keeps source water in place and dries only the falling entity.
+        // Vanilla waterlogs the slab again if its landing cell contains water.
+        FallingBlockEntity entity = FallingBlockEntity.fall(world, position, state);
+        falling(entity);
     }
 }

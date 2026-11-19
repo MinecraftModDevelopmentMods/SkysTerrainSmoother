@@ -1,0 +1,55 @@
+{
+  "source_world_sha256": "FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74",
+  "target": "Forge 50.2.0",
+  "snapshot_entries": {
+    "minecraft:block": {
+      "minecraft:grass": 94
+    },
+    "minecraft:enchantment": {
+      "minecraft:sweeping": 17
+    },
+    "minecraft:item": {
+      "minecraft:grass": 76,
+      "minecraft:pottery_shard_archer": 2128,
+      "minecraft:pottery_shard_arms_up": 2130,
+      "minecraft:pottery_shard_prize": 2129,
+      "minecraft:pottery_shard_skull": 2131,
+      "minecraft:scute": 519
+    },
+    "minecraft:potion": {
+      "minecraft:empty": 0
+    },
+    "minecraft:sound_event": {
+      "minecraft:item.brush.brush_sand_completed": 1226,
+      "minecraft:item.brush.brushing": 1225,
+      "minecraft:music.overworld.jungle_and_forest": 1363
+    }
+  },
+  "inspected_nbt_records": 833,
+  "inspected_nbt_values": 276510,
+  "raw_matches": {
+    "minecraft:grass|value|world/data/skysgrassslabs_legacy_registry.dat/Blocks/ids/[]/K": 1
+  },
+  "grass_positions": 0,
+  "unused_non_biome_ids": {
+    "minecraft:empty": 0,
+    "minecraft:grass": 0,
+    "minecraft:item.brush.brush_sand_completed": 0,
+    "minecraft:item.brush.brushing": 0,
+    "minecraft:music.overworld.jungle_and_forest": 0,
+    "minecraft:pottery_shard_archer": 0,
+    "minecraft:pottery_shard_arms_up": 0,
+    "minecraft:pottery_shard_prize": 0,
+    "minecraft:pottery_shard_skull": 0,
+    "minecraft:scute": 0,
+    "minecraft:sweeping": 0
+  },
+  "retained_legacy_registry_aliases": {
+    "minecraft:grass": 1
+  },
+  "inspected_fallback_nbt_records": 0,
+  "native_biome_contract_sha256": "87AE12A9A824208BEB795B21696B22528302BA59943B371DCB6CF08A0588CE35",
+  "checked_biome_cells": 1261056,
+  "native_renamed_cells": 0,
+  "noticed_biome_cells": 0
+}
