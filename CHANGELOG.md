@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3.121012 (unreleased)
+
+- Defer late terrain repairs until the surrounding chunks are fully loaded when Sable physics is installed.
+- Start at most one owner repair per tick and bound readiness checks, while keeping unfinished work queued fairly.
+- Keep normal block, physics and client notifications during repairs. Initial smoothing and ore rules are unchanged.
+
 ## 0.1.2.121012
 
 - Choose separate smoothing settings for soil, sand and gravel, stone, snow, ice and other add-on materials.

@@ -32,7 +32,10 @@ tasks.register('verifyReleaseBundleContract') {
     group = 'verification'
     dependsOn tasks.named('writeReleaseChecksums')
     doLast {
-        File bundle = layout.buildDirectory.dir('release-bundle-test').get().asFile
+        // Keep each invocation independent of older versions and of the
+        // deliberately corrupted bundle retained by the previous contract run.
+        File bundle = Files.createTempDirectory(layout.buildDirectory.get().asFile.toPath(),
+                'release-bundle-test-').toFile()
         List<String> filenames = releaseFiles.get().collect { it.toString() }
         copy {
             from layout.buildDirectory.dir('libs')

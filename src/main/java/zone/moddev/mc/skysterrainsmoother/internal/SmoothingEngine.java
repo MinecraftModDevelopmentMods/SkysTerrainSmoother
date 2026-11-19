@@ -40,12 +40,15 @@ public final class SmoothingEngine {
     private final MaterialCatalogue catalogue;
     private volatile ExistingChunkIndex existing;
     private final Set<Long> processed = ConcurrentHashMap.newKeySet();
-    private final Set<Long> populated = ConcurrentHashMap.newKeySet(), dirtyOwners = ConcurrentHashMap.newKeySet();
+    private final Set<Long> populated = ConcurrentHashMap.newKeySet();
+    private final DeferredRepairs dirtyOwners = new DeferredRepairs();
+    private boolean physicsNeighbourGuard;
     private final Map<Long, List<FeatureDecorator>> pending = new ConcurrentHashMap<>();
     private final Map<BlockState, Boolean> oreSupports = new ConcurrentHashMap<>();
     private final Map<BlockState, Integer> pieceEdges = new ConcurrentHashMap<>();
     private final ThreadLocal<Decisions> decisions = ThreadLocal.withInitial(Decisions::new);
     public volatile long passes, placed, elapsedNanos, skippedExisting;
+    public volatile long completedRepairs, deferredRepairs, repairNanos;
 
     public SmoothingEngine(MaterialCatalogue catalogue) {
         this.catalogue = catalogue;
@@ -65,6 +68,9 @@ public final class SmoothingEngine {
         oreSupports.clear();
         pieceEdges.clear();
         passes = placed = elapsedNanos = skippedExisting = 0;
+        completedRepairs = deferredRepairs = repairNanos = 0;
+        physicsNeighbourGuard = net.neoforged.fml.ModList.get() != null
+                && net.neoforged.fml.ModList.get().isLoaded("sable");
         SkysTerrainSmoother.logger.info("Indexed {} saved Overworld chunks; no smoothing retrogen will run",
                 existing.size());
     }
@@ -78,6 +84,7 @@ public final class SmoothingEngine {
         oreSupports.clear();
         pieceEdges.clear();
         decisions.remove();
+        physicsNeighbourGuard = false;
     }
 
     public int indexedChunks() {
@@ -145,28 +152,43 @@ public final class SmoothingEngine {
                 || !isOverworld(world)) {
             return;
         }
-        for (long key : new ArrayList<>(dirtyOwners)) {
-            if (!dirtyOwners.remove(key)) {
-                continue;
-            }
+        RepairNeighbourhood.FullChunks fullChunks = (x, z) -> loaded(world, x, z) != null;
+        dirtyOwners.tick(key -> {
             List<FeatureDecorator> placements = pending.get(key);
             if (placements == null) {
-                continue;
+                return DeferredRepairs.Result.DROP;
             }
             int chunkX = (int) (key >> 32);
             int chunkZ = (int) key;
+            if (physicsNeighbourGuard && !RepairNeighbourhood.ready(chunkX, chunkZ, fullChunks)) {
+                deferredRepairs++;
+                return DeferredRepairs.Result.RETRY;
+            }
             boolean validated;
+            long started = System.nanoTime();
             synchronized (placements) {
                 validated = validate(world, chunkX, chunkZ, placements);
             }
+            repairNanos += System.nanoTime() - started;
             if (!validated) {
-                dirtyOwners.add(key);
-                continue;
+                deferredRepairs++;
+                return DeferredRepairs.Result.RETRY;
             }
+            completedRepairs++;
             if (neighbouringDecorationFinished(chunkX, chunkZ)) {
                 pending.remove(key, placements);
             }
-        }
+            return DeferredRepairs.Result.COMPLETE;
+        });
+    }
+
+    /** Internal diagnostics and native fixture synchronization; not an add-on API. */
+    public boolean repairQueued(int chunkX, int chunkZ) {
+        return dirtyOwners.contains(ExistingChunkIndex.key(chunkX, chunkZ));
+    }
+
+    public int queuedRepairs() {
+        return dirtyOwners.size();
     }
 
     @SubscribeEvent
