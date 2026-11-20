@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.4.2602002 (unreleased)
+## 0.1.4.2602002
 
-- Late terrain repairs wait for loaded physics neighbours and use a bounded queue.
+- Spread late terrain repairs over server ticks and wait for nearby chunks when Sable is installed.
 - Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
 - Recorded work leaves changed blocks and nearby player edits alone.
 
