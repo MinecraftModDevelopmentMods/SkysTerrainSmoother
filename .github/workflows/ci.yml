@@ -32,6 +32,11 @@ jobs:
           distribution: temurin
           java-version: '8.0.502+7'
 
+      - name: Make Java 8 available to Forge subprocesses
+        run: |
+          echo "JAVA_HOME_8_X64=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Dorg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME" >> "$GITHUB_ENV"
+
       - name: Install pinned Java 25 Gradle runtime
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -137,6 +142,17 @@ jobs:
           fi
           echo "gradle_java_version=$gradle_selector" >> "$GITHUB_OUTPUT"
           echo "artifact_prefix=SkysTerrainSmoother-$(value mod_version)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Java 8 for Forge dependency tools
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
+      - name: Make Java 8 available to Forge subprocesses
+        run: |
+          echo "JAVA_HOME_8_X64=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Dorg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
