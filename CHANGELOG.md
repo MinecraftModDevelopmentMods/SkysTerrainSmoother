@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4.2603002
+
+- Spread late terrain repairs over server ticks and wait for nearby chunks when Sable is installed.
+- Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
+- Recorded work leaves changed blocks and nearby player edits alone.
+
+
 ## 0.1.3.2603002
 
 - Broader terraces use slabs where a narrower step would interrupt the slope.

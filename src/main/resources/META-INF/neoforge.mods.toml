@@ -34,3 +34,6 @@ type="required"
 versionRange="[0.3.10.2603002,0.4)"
 ordering="AFTER"
 side="BOTH"
+
+[[mixins]]
+config="skysterrainsmoother.mixins.json"
