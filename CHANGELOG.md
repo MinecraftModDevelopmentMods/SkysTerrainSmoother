@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4.2601022 (unreleased)
+
+- Late terrain repairs wait for loaded physics neighbours and use a bounded queue.
+- Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
+- Recorded work leaves changed blocks and nearby player edits alone.
+
 ## 0.1.3.2601022
 
 Improves gentle terraces, snowy slopes, ice, gravel and cave floors. Material settings let you choose which ground types are smoothed.
