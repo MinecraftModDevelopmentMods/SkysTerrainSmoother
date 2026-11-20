@@ -273,6 +273,17 @@ jobs:
         with:
           ref: ${{ needs.preflight.outputs.release_sha }}
 
+      - name: Install Java 8 for Forge dependency tools
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
+      - name: Make Java 8 available to Forge subprocesses
+        run: |
+          echo "JAVA_HOME_8_X64=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Dorg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME" >> "$GITHUB_ENV"
+
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -475,6 +486,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.preflight.outputs.release_sha }}
+
+      - name: Install Java 8 for Forge dependency tools
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
+      - name: Make Java 8 available to Forge subprocesses
+        run: |
+          echo "JAVA_HOME_8_X64=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Dorg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
