@@ -15,7 +15,7 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.3.2602002", metadata.getProperty("mod_version"));
+        assertEquals("0.1.4.2602002", metadata.getProperty("mod_version"));
         assertEquals("26.2", metadata.getProperty("minecraft_version"));
         assertEquals("26.2.0.45-beta", metadata.getProperty("neo_version"));
         assertEquals(metadata.getProperty("mod_version"), SkysTerrainSmoother.VERSION);
