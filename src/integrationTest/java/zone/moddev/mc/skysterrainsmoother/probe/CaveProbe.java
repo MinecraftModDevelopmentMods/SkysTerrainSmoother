@@ -231,7 +231,7 @@ final class CaveProbe {
                 world.setBlockState(floor.up(), Blocks.GLASS.getDefaultState(), 2);
             }
 
-            MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+            ProbeWorld.post(world, new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
             RuntimeProbe.require(
                     kind == 1
                             ? world.getBlockState(floor.up())
@@ -264,7 +264,7 @@ final class CaveProbe {
                         new BlockPos(owner.xPosition << 4, 0, owner.zPosition << 4)));
                 MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(world.getChunkProvider().chunkGenerator,
                         world, new Random(1), owner.xPosition, owner.zPosition, false));
-                MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+                ProbeWorld.post(world, new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
                 RuntimeProbe.require(world.getBlockState(floor.up()).equals(cap),
                         "ore under a generated piece stays hidden: " + ore + " / level " + level);
                 RuntimeProbe.require(world.getBlockState(floor).equals(ore), "ore support is never overwritten");
@@ -277,7 +277,7 @@ final class CaveProbe {
         SkysTerrainSmoother.engine.smooth(world, owner, 1);
         world.setBlockState(floor, Blocks.COAL_ORE.getDefaultState(), 2);
         world.setBlockState(floor.up(2), Blocks.BRICK_BLOCK.getDefaultState(), 2);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
+        ProbeWorld.post(world, new TickEvent.WorldTickEvent(Side.SERVER, TickEvent.Phase.END, world));
         RuntimeProbe.require(world.isAirBlock(floor.up()) && world.getBlockState(floor).getBlock() == Blocks.COAL_ORE,
                 "ore preservation does not override cave headroom protection");
         checks++;

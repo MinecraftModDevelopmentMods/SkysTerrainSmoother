@@ -142,7 +142,7 @@ final class LateTerrainProbe {
     }
 
     private static void post(WorldServer world, Chunk owner) {
-        MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, new Random(1),
+        ProbeWorld.post(world, new DecorateBiomeEvent.Post(world, new Random(1),
                 new BlockPos(owner.xPosition << 4, 0, owner.zPosition << 4)));
     }
 

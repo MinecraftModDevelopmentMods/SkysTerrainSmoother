@@ -55,7 +55,7 @@ For **Minecraft 1.10.2**, use **Forge 12.18.3.2511** and **Java 8**, with:
 
 - Sky's Grass Slabs **1.2.0.110021**.
 - Sky's Building Pieces **0.3.9.110021**.
-- Sky's Terrain Smoother **0.1.1.110021**.
+- Sky's Terrain Smoother **0.1.2.110021**.
 
 Install all three main jars on both the client and server.
 
@@ -81,6 +81,10 @@ level 3 also uses corners. Your Mineralogy support setting still applies.
 
 Back up worlds before changing their mods. Turning smoothing off doesn't remove
 pieces already placed, so keep the mods that provide them installed.
+Unfinished repairs are saved with their chunk and can finish when the needed
+neighbours load, even after a restart. Only recorded pieces with unchanged blocks
+and supports are eligible. Nearby player edits and unrecorded terrain stay untouched.
+
 See [existing worlds](docs/WORLD-UPGRADES.md) before changing the mod list.
 
 Release history is in the [changelog](CHANGELOG.md). For development, see
