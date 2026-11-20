@@ -1,5 +1,10 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.event.level.ChunkDataEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,12 +42,17 @@ public final class SmoothingEngine {
     private final MaterialCatalogue catalogue;
     private volatile ExistingChunkIndex existing;
     private final Set<Long> processed = ConcurrentHashMap.newKeySet();
-    private final Set<Long> populated = ConcurrentHashMap.newKeySet(), dirtyOwners = ConcurrentHashMap.newKeySet();
+    private final Set<Long> populated = ConcurrentHashMap.newKeySet();
+    private final DeferredRepairs dirtyOwners = new DeferredRepairs();
+    private boolean physicsNeighbourGuard;
     private final Map<Long, List<FeatureDecorator>> pending = new ConcurrentHashMap<>();
+    private final Map<Long, CompoundTag> savedPending = new ConcurrentHashMap<>();
+    private final Set<Long> resumedOwners = ConcurrentHashMap.newKeySet();
     private final Map<BlockState, Boolean> oreSupports = new ConcurrentHashMap<>();
     private final Map<BlockState, Integer> pieceEdges = new ConcurrentHashMap<>();
     private final ThreadLocal<Decisions> decisions = ThreadLocal.withInitial(Decisions::new);
     public volatile long passes, placed, elapsedNanos, skippedExisting;
+    public volatile long completedRepairs, deferredRepairs, repairNanos;
 
     public SmoothingEngine(MaterialCatalogue catalogue) {
         this.catalogue = catalogue;
@@ -59,9 +69,13 @@ public final class SmoothingEngine {
         populated.clear();
         dirtyOwners.clear();
         pending.clear();
+        savedPending.clear();
+        resumedOwners.clear();
         oreSupports.clear();
         pieceEdges.clear();
         passes = placed = elapsedNanos = skippedExisting = 0;
+        completedRepairs = deferredRepairs = repairNanos = 0;
+        physicsNeighbourGuard = net.minecraftforge.fml.ModList.isLoaded("sable");
         SkysTerrainSmoother.logger.info("Indexed {} saved Overworld chunks; no smoothing retrogen will run",
                 existing.size());
     }
@@ -72,9 +86,12 @@ public final class SmoothingEngine {
         populated.clear();
         dirtyOwners.clear();
         pending.clear();
+        savedPending.clear();
+        resumedOwners.clear();
         oreSupports.clear();
         pieceEdges.clear();
         decisions.remove();
+        physicsNeighbourGuard = false;
     }
 
     public int indexedChunks() {
@@ -119,6 +136,7 @@ public final class SmoothingEngine {
         }
         int chunkX = event.getChunk().getPos().x();
         int chunkZ = event.getChunk().getPos().z();
+        restore(event.getChunk());
         populated.add(ExistingChunkIndex.key(chunkX, chunkZ));
 
         // Queue repairs on the server thread, after generation has handed over the full chunk.
@@ -127,7 +145,7 @@ public final class SmoothingEngine {
         for (int ownerZ = chunkZ - 1; ownerZ <= chunkZ + 1; ownerZ++) {
             for (int ownerX = chunkX - 1; ownerX <= chunkX + 1; ownerX++) {
                 long key = ExistingChunkIndex.key(ownerX, ownerZ);
-                if (pending.containsKey(key)) {
+                if (pending.containsKey(key) && loaded(world, ownerX, ownerZ) != null) {
                     dirtyOwners.add(key);
                 }
             }
@@ -136,31 +154,46 @@ public final class SmoothingEngine {
 
     public void endWorldTick(TickEvent.LevelTickEvent.Post event) {
         Level world = event.level();
-        if (world.isClientSide() || !isOverworld(world)) {
+        if (world.isClientSide()
+                || !isOverworld(world) || !SkysTerrainSmoother.enabled) {
             return;
         }
-        for (long key : new ArrayList<>(dirtyOwners)) {
-            if (!dirtyOwners.remove(key)) {
-                continue;
-            }
+        RepairNeighbourhood.FullChunks fullChunks = (x, z) -> loaded(world, x, z) != null;
+        dirtyOwners.tick(key -> {
             List<FeatureDecorator> placements = pending.get(key);
             if (placements == null) {
-                continue;
+                return DeferredRepairs.Result.DROP;
             }
             int chunkX = (int) (key >> 32);
             int chunkZ = (int) key;
+            if (loaded(world, chunkX, chunkZ) == null) {
+                return DeferredRepairs.Result.DROP;
+            }
+            if (physicsNeighbourGuard && !RepairNeighbourhood.ready(chunkX, chunkZ, fullChunks)) {
+                deferredRepairs++;
+                return DeferredRepairs.Result.RETRY;
+            }
             boolean validated;
+            long started = System.nanoTime();
             synchronized (placements) {
-                validated = validate(world, chunkX, chunkZ, placements);
+                validated = validate(world, chunkX, chunkZ, placements, resumedOwners.contains(key));
             }
+            repairNanos += System.nanoTime() - started;
             if (!validated) {
-                dirtyOwners.add(key);
-                continue;
+                deferredRepairs++;
+                return DeferredRepairs.Result.RETRY;
             }
-            if (neighbouringDecorationFinished(chunkX, chunkZ)) {
+            completedRepairs++;
+            if (resumedOwners.contains(key) || neighbouringDecorationFinished(chunkX, chunkZ)) {
                 pending.remove(key, placements);
+                resumedOwners.remove(key);
+                ChunkAccess owner = loaded(world, chunkX, chunkZ);
+                if (owner != null) {
+                    owner.markUnsaved();
+                }
             }
-        }
+            return DeferredRepairs.Result.COMPLETE;
+        });
     }
 
     public void unload(ChunkEvent.Unload event) {
@@ -172,7 +205,137 @@ public final class SmoothingEngine {
         }
         long key = ExistingChunkIndex.key(event.getChunk().getPos().x(), event.getChunk().getPos().z());
         dirtyOwners.remove(key);
-        pending.remove(key);
+        List<FeatureDecorator> placements = pending.get(key);
+        if (placements != null) {
+            synchronized (placements) {
+                // Freeze the saved support before releasing the chunk. We retain only values, never a chunk reference.
+                placements.removeIf(placement -> !sameState(event.getChunk().getBlockState(placement.pos), placement.state)
+                        || placement.expectedSupport != null && !sameState(
+                                event.getChunk().getBlockState(placement.pos.below()), placement.expectedSupport));
+                for (FeatureDecorator placement : placements) {
+                    placement.expectedSupport = event.getChunk().getBlockState(placement.pos.below());
+                }
+            }
+            resumedOwners.add(key);
+            event.getChunk().markUnsaved();
+        }
+    }
+
+    public boolean repairQueued(int chunkX, int chunkZ) {
+        return dirtyOwners.contains(ExistingChunkIndex.key(chunkX, chunkZ));
+    }
+
+    public int queuedRepairs() {
+        return dirtyOwners.size();
+    }
+
+    public void readRepairs(LevelAccessor world, ChunkAccess chunk, CompoundTag data) {
+        // This event is asynchronous. Capture NBT only; restore the work on the normal full-chunk load event.
+        if (data == null || !isOverworld(world)) {
+            return;
+        }
+        // Unfinished saved chunks have no Level yet. Our own dimension stamp still identifies their records safely.
+        if (data.getStringOr("dimension", "").equals("minecraft:overworld")) {
+            savedPending.put(ExistingChunkIndex.key(chunk.getPos().x(), chunk.getPos().z()), data.copy());
+        }
+    }
+
+    public CompoundTag saveRepairs(LevelAccessor level, ChunkAccess chunk) {
+        if (!(level instanceof Level world) || world.isClientSide() || !isOverworld(world)) {
+            return null;
+        }
+        long key = ExistingChunkIndex.key(chunk.getPos().x(), chunk.getPos().z());
+        List<FeatureDecorator> placements = pending.get(key);
+        if (placements == null) {
+            CompoundTag retained = savedPending.get(key);
+            return retained == null ? null : retained.copy();
+        }
+        List<PendingRepairData.Entry> entries = new ArrayList<>();
+        synchronized (placements) {
+            for (FeatureDecorator placement : placements) {
+                BlockState support = chunk.getBlockState(placement.pos.below());
+                if (sameState(chunk.getBlockState(placement.pos), placement.state) && !support.hasBlockEntity()
+                        && (placement.expectedSupport == null || sameState(support, placement.expectedSupport))) {
+                    entries.add(new PendingRepairData.Entry(placement.pos, placement.state, placement.material.id,
+                            placement.level, placement.cave, placement.originalSupport, placement.dirtifiedSupport,
+                            support));
+                }
+            }
+        }
+        return entries.isEmpty() ? null : PendingRepairData.write(entries);
+    }
+
+    private void restore(ChunkAccess chunk) {
+        long key = ExistingChunkIndex.key(chunk.getPos().x(), chunk.getPos().z());
+        if (pending.containsKey(key)) {
+            savedPending.remove(key);
+            return;
+        }
+        CompoundTag data = savedPending.get(key);
+        if (data == null) {
+            return;
+        }
+        try {
+            List<FeatureDecorator> placements = new ArrayList<>();
+            for (PendingRepairData.Entry entry : PendingRepairData.read(data, chunk.getPos().x(), chunk.getPos().z(),
+                    chunk.getMinY(), chunk.getMaxY() + 1)) {
+                TerrainMaterial material = catalogue.material(entry.material());
+                if (material == null || catalogue.piece(entry.cap()) != material) {
+                    throw new IllegalArgumentException("Unavailable repair material: " + entry.material());
+                }
+                FeatureDecorator placement = new FeatureDecorator(entry.position(), entry.cap(), material,
+                        entry.level(), entry.cave(), entry.originalSupport());
+                placement.dirtifiedSupport = entry.dirtifiedSupport();
+                placement.expectedSupport = entry.expectedSupport();
+                placements.add(placement);
+            }
+            pending.put(key, Collections.synchronizedList(placements));
+            resumedOwners.add(key);
+            savedPending.remove(key);
+        } catch (IllegalArgumentException failure) {
+            // Keep the raw record so a missing add-on or a future format can be restored later. Touch no terrain.
+            SkysTerrainSmoother.logger.warn("Leaving pending terrain repairs unchanged in chunk {}: {}",
+                    chunk.getPos(), failure.getMessage());
+        }
+    }
+
+    public void playerBrokeBlock(BlockEvent.BreakEvent event) {
+        abandonNearPlayerEdit(event.getLevel(), event.getPos());
+    }
+
+    public void playerPlacedBlock(BlockEvent.EntityPlaceEvent event) {
+        if (event.getEntity() instanceof Player) {
+            abandonNearPlayerEdit(event.getLevel(), event.getPos());
+        }
+    }
+
+    public void playerInteracted(PlayerInteractEvent.RightClickBlock event) {
+        // Bonemeal, buckets and custom tools can change terrain without posting a placement event.
+        // Treat interaction as the point where the player takes over this still-unfinished area.
+        abandonNearPlayerEdit(event.getLevel(), event.getPos());
+    }
+
+    private void abandonNearPlayerEdit(LevelAccessor world, BlockPos position) {
+        if (!(world instanceof Level level) || level.isClientSide() || !isOverworld(world)) {
+            return;
+        }
+        // Once a player builds here, leave this area alone, even if they break and replace an identical state.
+        for (int chunkZ = (position.getZ() >> 4) - 1; chunkZ <= (position.getZ() >> 4) + 1; chunkZ++) {
+            for (int chunkX = (position.getX() >> 4) - 1; chunkX <= (position.getX() >> 4) + 1; chunkX++) {
+                long key = ExistingChunkIndex.key(chunkX, chunkZ);
+                ChunkAccess owner = loaded(world, chunkX, chunkZ);
+                if (owner == null) {
+                    continue;
+                }
+                boolean removed = pending.remove(key) != null;
+                removed |= savedPending.remove(key) != null;
+                resumedOwners.remove(key);
+                dirtyOwners.remove(key);
+                if (removed) {
+                    owner.markUnsaved();
+                }
+            }
+        }
     }
 
     private boolean neighbouringDecorationFinished(int chunkX, int chunkZ) {
@@ -186,7 +349,8 @@ public final class SmoothingEngine {
         return true;
     }
 
-    private boolean validate(LevelAccessor world, int chunkX, int chunkZ, List<FeatureDecorator> placements) {
+    private boolean validate(LevelAccessor world, int chunkX, int chunkZ, List<FeatureDecorator> placements,
+            boolean recordedOnly) {
         ChunkAccess owner = loaded(world, chunkX, chunkZ);
 
         if (owner == null) {
@@ -200,6 +364,15 @@ public final class SmoothingEngine {
         if (!structures.canInspectSafely()) {
             return false;
         }
+
+        placements.removeIf(placement -> !sameState(owner.getBlockState(placement.pos), placement.state)
+                || placement.expectedSupport != null
+                        && !sameState(owner.getBlockState(placement.pos.below()), placement.expectedSupport)
+                || !TerrainSmootherConfig.groupEnabled(placement.material.group)
+                || placement.material.grass && !GrassSlabsApi.grassGenerationAllowed()
+                || placement.material.mineralogy && !SkysTerrainSmoother.mineralogy
+                || recordedOnly && (structures.contains(placement.pos) || structures.contains(placement.pos.below())
+                        || !catalogue.allows(placement.material, world.getBiome(placement.pos).value(), 0, placement.pos)));
 
         for (FeatureDecorator placement : placements) {
             BlockState support = owner.getBlockState(placement.pos.below());
@@ -295,7 +468,7 @@ public final class SmoothingEngine {
         placements.removeIf(placement -> placement.state.getBlock() == Blocks.AIR);
         // Biome decoration can introduce new grass oases as well as beaches. Re-snapshot registered dry floors only in
         // this tracked fresh owner; occupied targets and existing saved chunks remain untouched.
-        int additional = smooth(world, owner, SkysTerrainSmoother.level, true);
+        int additional = recordedOnly ? 0 : smooth(world, owner, SkysTerrainSmoother.level, true);
 
         // Vanilla can add snow after our vegetation pass. Refresh the appearance once the terrain repairs are done.
         for (FeatureDecorator placement : placements) {
@@ -304,6 +477,7 @@ public final class SmoothingEngine {
                 if (sameState(current, placement.state)) {
                     BlockState snowy = withSnowAppearance(world, owner, placement.pos, current);
                     changed |= setGenerationState(world, owner, placement.pos, snowy);
+                    placement.state = owner.getBlockState(placement.pos);
                 }
             }
         }
@@ -456,6 +630,8 @@ public final class SmoothingEngine {
             pending.get(key).addAll(placements);
         } else {
             // Decoration can create new floors. Track this owner until its bordering decorators finish.
+            resumedOwners.remove(key);
+            savedPending.remove(key);
             pending.put(key, Collections.synchronizedList(placements));
             dirtyOwners.add(key);
         }
@@ -751,6 +927,7 @@ public final class SmoothingEngine {
         TerrainMaterial material;
         BlockState originalSupport;
         BlockState dirtifiedSupport;
+        BlockState expectedSupport;
         final int level;
         final boolean cave;
 

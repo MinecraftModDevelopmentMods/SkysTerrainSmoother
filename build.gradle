@@ -292,12 +292,23 @@ minecraft {
     }
 }
 
+// Loose development classes need the same mixin declaration as the packaged jar.
+def writeDevelopmentManifest = { File directory ->
+    File output = new File(directory, 'META-INF/MANIFEST.MF')
+    output.parentFile.mkdirs()
+    def manifest = new java.util.jar.Manifest()
+    manifest.mainAttributes.putValue('Manifest-Version', '1.0')
+    manifest.mainAttributes.putValue('MixinConfigs', 'skysterrainsmoother.mixins.json')
+    output.withOutputStream { manifest.write(it) }
+}
+
 def forgeRunModClassesDirectory = file("${buildDir}/forge-run-mod-classes/main")
 def prepareForgeRunModClasses = tasks.register('prepareForgeRunModClasses', Sync) {
     dependsOn tasks.named('classes'), prepareContentDevelopmentRun
     from sourceSets.main.output.classesDirs
     from sourceSets.main.output.resourcesDir
     into forgeRunModClassesDirectory
+    doLast { writeDevelopmentManifest(forgeRunModClassesDirectory) }
 }
 
 def isolatedForgeClasspath = { FileCollection classpath, boolean includeMain ->
@@ -589,6 +600,7 @@ tasks.named('jar', Jar) {
                 'Maven-Artifact': "${project.group}:${base.archivesName.get()}:${project.version}",
                 'Implementation-Title': base.archivesName.get(),
                 'Implementation-Version': project.version,
+                'MixinConfigs': 'skysterrainsmoother.mixins.json',
                 'Implementation-Vendor': project.mod_authors,
                 'Built-On-Java': '21',
                 'Built-On': "${project.minecraft_version}-${project.forge_version}"
@@ -783,6 +795,7 @@ def prepareEclipseResources = tasks.register('prepareEclipseResources') {
             from(layout.buildDirectory.dir('resources/main'))
             into(layout.projectDirectory.dir('bin/main'))
         }
+        writeDevelopmentManifest(file('bin/main'))
     }
 }
 
@@ -882,6 +895,12 @@ tasks.register('verifyEclipseProductionClasspath') {
                 ['-PbuildingPiecesCoreVersion=' + piecesVersion] : []
         if (overrides != expectedOverrides) {
             throw new GradleException('Eclipse Buildship retained an incorrect Building Pieces version override')
+        }
+        File developmentManifest = file('bin/main/META-INF/MANIFEST.MF')
+        if (!developmentManifest.isFile() || developmentManifest.withInputStream {
+            new java.util.jar.Manifest(it).mainAttributes.getValue('MixinConfigs')
+        } != 'skysterrainsmoother.mixins.json') {
+            throw new GradleException('Eclipse is missing the terrain-repair mixin declaration')
         }
         File metadata = file('bin/main/META-INF/mods.toml')
         def eclipseClasspath = new groovy.xml.XmlSlurper().parse(file('.classpath'))
