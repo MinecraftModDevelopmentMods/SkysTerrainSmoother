@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.2.110021 (unreleased)
+## 0.1.2.110021
 
-- Late terrain repairs use a bounded queue and survive chunk unloads and restarts.
+- Spread late terrain repairs over server ticks, and keep unfinished work across unloads and restarts.
 - Recorded work leaves player edits and unrecorded saved terrain alone.
 
 
