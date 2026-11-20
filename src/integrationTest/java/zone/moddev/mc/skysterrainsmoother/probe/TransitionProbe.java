@@ -133,7 +133,7 @@ final class TransitionProbe {
             RuntimeProbe.require(MaterialCatalogue.instance().piece(world.getBlockState(upperCap)) != null,
                     "late-terrace regression begins with a valid upper cap");
             world.setBlockToAir(origin.up());
-            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(
+            ProbeWorld.post(world,
                     new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world, new java.util.Random(1),
                             new BlockPos(owner.x << 4, 0, owner.z << 4)));
             requireOpenDownhillEdge(world, upperCap, uphill.getOpposite(),

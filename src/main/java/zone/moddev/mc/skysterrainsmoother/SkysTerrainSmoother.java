@@ -20,7 +20,7 @@ import zone.moddev.mc.skysterrainsmoother.internal.*;
         dependencies = "required-before:skysgrassslabs@[1.2.0.112021,2);required-before:skysbuildingpieces@[0.3.10.112021,0.4)",
         guiFactory = "zone.moddev.mc.skysterrainsmoother.client.TerrainSmootherGuiFactory")
 public final class SkysTerrainSmoother {
-    public static final String ID = "skysterrainsmoother", VERSION = "0.1.1.112021";
+    public static final String ID = "skysterrainsmoother", VERSION = "0.1.2.112021";
     public static boolean enabled = true, mineralogy = true;
     public static int level = 3;
     public static Logger logger;

@@ -95,11 +95,28 @@ public final class RuntimeProbe {
     @Mod.EventHandler
     public void started(FMLServerStartedEvent event) {
         server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        if (!Boolean.getBoolean("skysterrainsmoother.repairLegacyControl")) {
+            int checks = PendingRepairChecks.run();
+            SkysTerrainSmoother.logger.info("TERRAIN_REPAIR_CODEC_PASS checks=" + checks);
+        }
     }
 
     @SubscribeEvent
     public void tick(TickEvent.ServerTickEvent event) {
         if (server == null || ran || event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        if (Boolean.getBoolean("skysterrainsmoother.repairPersistenceProbe")) {
+            try {
+                if (PersistentRepairProbe.tick(server.getWorld(0), phase())) {
+                    ran = true;
+                    SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_RUNTIME_PASS phase=" + phase());
+                    server.initiateShutdown();
+                }
+            } catch (Exception failure) {
+                throw new IllegalStateException("Pending repair fixture failed", failure);
+            }
             return;
         }
 
@@ -328,7 +345,7 @@ public final class RuntimeProbe {
                 SkysTerrainSmoother.engine.smooth(world, owner, level);
                 require(!world.isAirBlock(position.up()), "regression starts with an actual generated piece");
                 world.setBlockState(position, replacement.getDefaultState(), 2);
-                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
+                ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
                         new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
                 require(replacement == Blocks.SAND
                         ? world.getBlockState(position.up())
@@ -367,8 +384,8 @@ public final class RuntimeProbe {
                 net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post post = new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(
                         world, new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4));
 
-                MinecraftForge.EVENT_BUS.post(post);
-                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
+                ProbeWorld.post(world, post);
+                ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
                         new Random(1), new BlockPos(owner.x << 4, 0, owner.z << 4)));
                 require(world.getBlockState(position.up()).equals(piece),
                         "valid support and decorator-owned replacement remain intact; repeated Post is harmless");
@@ -387,11 +404,11 @@ public final class RuntimeProbe {
         world.setBlockState(late, Blocks.STONE.getDefaultState(), 2);
         world.setBlockState(late.north().up(), Blocks.STONE.getDefaultState(), 2);
         SkysTerrainSmoother.engine.smooth(world, lateOwner, 1);
-        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
+        ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
                 new Random(1), new BlockPos(lateOwner.x << 4, 0, lateOwner.z << 4)));
         require(!world.isAirBlock(late.up()), "own Post retains supported generated piece");
         world.setBlockState(late, Blocks.SAND.getDefaultState(), 2);
-        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
+        ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
                 new Random(1), new BlockPos((lateOwner.x - 1) << 4, 0, lateOwner.z << 4)));
         require(world.getBlockState(late.up()).getBlock() == zone.moddev.mc.skysterrainsmoother.content.SandContent.slab
                 && world.getBlockState(late).getBlock() == Blocks.SAND,
@@ -414,7 +431,7 @@ public final class RuntimeProbe {
         require(world.isAirBlock(beach.up()), "unsupported first pass leaves no piece");
         world.setBlockState(beach, Blocks.SAND.getStateFromMeta(1), 2);
         world.setBlockState(beach.north().up(), Blocks.SAND.getStateFromMeta(1), 2);
-        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
+        ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(world,
                 new Random(1), new BlockPos(beachOwner.x << 4, 0, beachOwner.z << 4)));
         require(world.getBlockState(beach.up())
                 .equals(zone.moddev.mc.skysterrainsmoother.content.SandContent.slab.getStateFromMeta(3)),
@@ -554,7 +571,7 @@ public final class RuntimeProbe {
 
             world.setBlockState(saved, Blocks.GRASS.getDefaultState(), 2);
             world.setBlockState(saved.east().up(), Blocks.HARDENED_CLAY.getDefaultState(), 2);
-            SkysTerrainSmoother.engine.afterDecoration(new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(
+            ProbeWorld.post(world, new net.minecraftforge.event.terraingen.DecorateBiomeEvent.Post(
                     world, new Random(1), new BlockPos(saved.getX() & ~15, 0, saved.getZ() & ~15)));
             require(world.isAirBlock(saved.up()) && world.getBlockState(saved).getBlock() == Blocks.GRASS,
                     "late oasis pass never retrogenerates an indexed saved chunk");
@@ -653,7 +670,7 @@ public final class RuntimeProbe {
 
                 // This probe drives tracking during ServerTick END. Complete the WorldTick END that ordinary
                 // server-driven population receives.
-                MinecraftForge.EVENT_BUS.post(new TickEvent.WorldTickEvent(
+                ProbeWorld.post(world, new TickEvent.WorldTickEvent(
                         net.minecraftforge.fml.relauncher.Side.SERVER, TickEvent.Phase.END, world));
 
                 for (int blockZ = centerZ - 4; blockZ <= centerZ + 4; blockZ++) {
