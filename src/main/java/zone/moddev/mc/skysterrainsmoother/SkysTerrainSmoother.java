@@ -23,7 +23,7 @@ import zone.moddev.mc.skysterrainsmoother.internal.TerrainSmoothingFeature;
 public final class SkysTerrainSmoother {
     public static final String ID = "skysterrainsmoother";
     public static final String NAME = "Sky's Terrain Smoother";
-    public static final String VERSION = "0.1.0.120011";
+    public static final String VERSION = "0.1.4.120011";
     public static final Logger logger = LogManager.getLogger();
     public static final SmoothingEngine engine = new SmoothingEngine(MaterialCatalogue.instance());
     public static boolean enabled = true;
@@ -55,7 +55,7 @@ public final class SkysTerrainSmoother {
         MaterialCatalogue.instance().freeze();
         // Build the placed feature after all material contributors have finished.
         event.enqueueWork(TerrainSmoothingFeature::install);
-        logger.info("Terrain smoothing level {}: {} registered materials; two sand slab colours",
+        logger.info("Terrain smoothing level {}: {} registered materials; sand, gravel and powder-snow pieces",
                 level, MaterialCatalogue.instance().size());
     }
 
@@ -66,6 +66,8 @@ public final class SkysTerrainSmoother {
     private void stopped(ServerStoppedEvent event) {
         logger.info("Terrain smoothing completed {} passes and placed {} pieces; {} existing-chunk events skipped",
                 engine.passes, engine.placed, engine.skippedExisting);
+        logger.info("Late terrain repairs: {} completed, {} deferred checks, {} queued; {} ns in repairs",
+                engine.completedRepairs, engine.deferredRepairs, engine.queuedRepairs(), engine.repairNanos);
         engine.stop();
     }
 }

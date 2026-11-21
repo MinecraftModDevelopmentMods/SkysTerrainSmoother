@@ -61,3 +61,16 @@ A lookup can return no state where that material has no corresponding shape.
 
 Only the `api` package is an extension contract. Engine classes are internal
 implementation details and are not a supported API.
+
+
+## Material groups
+
+The extended `TerrainMaterial` constructor accepts a `MaterialGroup` after
+`supportAfterPlacement`. Use `SOIL`, `SAND_AND_GRAVEL`, `STONE`, `SNOW`, `ICE`
+or `OTHER` so the player's material switches apply to your mappings. The
+original constructor remains available: it classifies known vanilla and
+Mineralogy sources, grass mappings use `SOIL`, and unknown materials use
+`OTHER`. Supplying additional shapes preserves the original material's group.
+
+These switches are restrictive. An add-on cannot enable a group the player has
+turned off, and the Grass Slabs and Mineralogy switches still apply.

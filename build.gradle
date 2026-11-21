@@ -128,8 +128,14 @@ if (localGrassVersion.isPresent() &&
 def grassVersion = localGrassVersion.getOrElse(contentLock.getProperty('grass.version'))
 
 
-def grassSlabsDevelopmentJar = new File(grassSlabsDirectory,
-        "build/libs-dev/SkysGrassSlabs-${grassVersion}-deobf.jar")
+def pinnedContentArtifact = { File directory, String name, boolean override ->
+    File sibling = new File(directory, 'build/' + name)
+    File retained = file('.gradle/qualification-dependencies/' + sibling.name)
+    !override && retained.isFile() ? retained : sibling
+}
+
+def grassSlabsDevelopmentJar = pinnedContentArtifact(grassSlabsDirectory,
+        "libs-dev/SkysGrassSlabs-${grassVersion}-deobf.jar", localGrassVersion.isPresent())
 
 def localPiecesVersion = providers.gradleProperty('buildingPiecesCoreVersion')
 if (localPiecesVersion.isPresent() &&
@@ -137,8 +143,8 @@ if (localPiecesVersion.isPresent() &&
     throw new GradleException('A local core-version override needs an explicit core directory and is not allowed in CI.')
 }
 def piecesVersion = localPiecesVersion.getOrElse(contentLock.getProperty('pieces.version'))
-def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory,
-        "build/libs-dev/SkysBuildingPieces-${piecesVersion}-deobf.jar")
+def buildingPiecesDevelopmentJar = pinnedContentArtifact(buildingPiecesDirectory,
+        "libs-dev/SkysBuildingPieces-${piecesVersion}-deobf.jar", localPiecesVersion.isPresent())
 def verifyContentDependencies = tasks.register('verifyContentDependencies') {
     doLast {
         Map dependencies = [
@@ -171,7 +177,7 @@ def verifyContentDependencies = tasks.register('verifyContentDependencies') {
                         [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.sha256'],
                         [path: "build/libs-dev/${selected.artifact}-${selected.version}-deobf.jar", key: '.development.sha256']
                 ].each { artifact ->
-                    File jar = new File(directory, artifact.path)
+                    File jar = pinnedContentArtifact(directory, artifact.path.substring("build/".length()), selected.override)
                     if (!jar.isFile()) {
                         throw new GradleException('Build the pinned content dependency first: ' + jar)
                     }
@@ -295,7 +301,7 @@ def prepareForgeRunModClasses = tasks.register('prepareForgeRunModClasses', Sync
     into forgeRunModClassesDirectory
 }
 
-def configureForge45Run = { JavaExec runTask, String launchTarget ->
+def configureForge47Run = { JavaExec runTask, String launchTarget ->
     runTask.dependsOn prepareForgeRunModClasses
     runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory}"
 }
@@ -303,7 +309,7 @@ tasks.withType(JavaExec).configureEach { JavaExec runTask ->
     Map<String, String> targets = [runClient: 'fmluserdevclient', runServer: 'fmluserdevserver']
     String launchTarget = targets.get(runTask.name)
     if (launchTarget != null) {
-        configureForge45Run(runTask, launchTarget)
+        configureForge47Run(runTask, launchTarget)
     }
 }
 
@@ -337,6 +343,9 @@ def configureFromForgeRun = { JavaExec process, String runTaskName ->
             run.args(process.args)
             run.jvmArgs(process.jvmArgs)
             run.systemProperties(process.systemProperties)
+            if (!run.systemProperties.containsKey('log4j.configurationFile')) {
+                run.systemProperty('log4j.configurationFile', file('src/bootstrapTest/native-log4j2.xml').toURI())
+            }
             run.environment(process.environment)
             run.environment('MOD_CLASSES',
                     "${mod_id}%%${forgeRunModClassesDirectory}${File.pathSeparator}" +
@@ -581,7 +590,7 @@ tasks.named('jar', Jar) {
                 'Implementation-Title': base.archivesName.get(),
                 'Implementation-Version': project.version,
                 'Implementation-Vendor': project.mod_authors,
-                'Built-On-Java': '8',
+                'Built-On-Java': '17',
                 'Built-On': "${project.minecraft_version}-${project.forge_version}"
         ])
     }
@@ -596,11 +605,11 @@ def releaseJar = renamer.classes(tasks.named('jar', Jar)) {
 }
 
 tasks.named('sourcesJar', Jar) {
-    from(['LICENSE', 'LICENSE.spdx', 'NOTICE', 'BUILDINGBRICKS-MIT.txt']) { into 'META-INF' }
+    from(['LICENSE', 'LICENSE.spdx', 'NOTICE']) { into 'META-INF' }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 tasks.named('javadocJar', Jar) {
-    from(['LICENSE', 'LICENSE.spdx', 'NOTICE', 'BUILDINGBRICKS-MIT.txt']) { into 'META-INF' }
+    from(['LICENSE', 'LICENSE.spdx', 'NOTICE']) { into 'META-INF' }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
@@ -673,7 +682,7 @@ tasks.register('verifyReleaseArtifacts') {
                     byte[] auditBytes = zip.getInputStream(entry).bytes
                     if (entry.name.endsWith('.class') &&
                             (((auditBytes[6] & 255) << 8) | (auditBytes[7] & 255)) != 61) {
-                        throw new GradleException("Non-Java-16 production class: ${entry.name}")
+                        throw new GradleException("Non-Java-17 production class: ${entry.name}")
                     }
                     String content = new String(zip.getInputStream(entry).bytes,
                             StandardCharsets.ISO_8859_1).toLowerCase(Locale.ROOT)
@@ -1111,3 +1120,13 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+apply from: 'gradle/resource-outputs.gradle'
+
+tasks.register('verifyPowderSnowResources', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            'tools/test_powder_snow_resources.py'
+}
+
+tasks.named('check') { dependsOn tasks.named('verifyPowderSnowResources') }

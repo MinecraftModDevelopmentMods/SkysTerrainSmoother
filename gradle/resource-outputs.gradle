@@ -1,0 +1,67 @@
+import java.util.zip.ZipFile
+
+// Generated resources must mirror the source so a removed recipe cannot survive an Eclipse sync.
+def resourceNames = { File root ->
+    fileTree(root).matching { include 'assets/**', 'data/**' }.files.collect {
+        root.toPath().relativize(it.toPath()).toString().replace('\\', '/')
+    } as Set<String>
+}
+def expectedNames = {
+    Set<String> names = new TreeSet<>()
+    sourceSets.main.resources.srcDirs.each { names.addAll(resourceNames(it)) }
+    names
+}
+
+tasks.named('processResources') {
+    doFirst {
+        File expected = new File(layout.buildDirectory.get().asFile, 'resources/main').canonicalFile
+        File output = destinationDir.canonicalFile
+        if (output != expected || !output.toPath().startsWith(layout.buildDirectory.get().asFile.canonicalFile.toPath())) {
+            throw new GradleException('Resource output must stay inside generated resources/main')
+        }
+        project.delete(output)
+    }
+}
+
+tasks.named('prepareEclipseResources') {
+    doFirst {
+        File output = file('bin/main').canonicalFile
+        ['assets', 'data'].each { folder ->
+            File generated = new File(output, folder).canonicalFile
+            if (generated.parentFile != output || output != new File(projectDir, 'bin/main').canonicalFile) {
+                throw new GradleException('Eclipse resources must stay inside bin/main')
+            }
+            project.delete(generated)
+        }
+    }
+}
+
+def verifyOutputs = tasks.register('verifyResourceOutputs') {
+    group = 'verification'
+    dependsOn tasks.named('processResources'), tasks.named('prepareEclipseResources')
+    doLast {
+        Set<String> expected = expectedNames()
+        [layout.buildDirectory.dir('resources/main').get().asFile, file('bin/main')].each { output ->
+            Set<String> actual = resourceNames(output)
+            if (actual != expected) {
+                throw new GradleException("Resource output differs from source in ${output}: missing=${expected - actual}, extra=${actual - expected}")
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyOutputs }
+tasks.named('verifyEclipseProductionClasspath') { dependsOn verifyOutputs }
+tasks.named('verifyReleaseArtifacts') {
+    doLast {
+        File artifact = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}.jar").get().asFile
+        new ZipFile(artifact).withCloseable { archive ->
+            Set<String> actual = archive.entries().findAll {
+                !it.directory && (it.name.startsWith('assets/') || it.name.startsWith('data/'))
+            }.collect { it.name } as Set<String>
+            Set<String> expected = expectedNames()
+            if (actual != expected) {
+                throw new GradleException("Packaged resources differ from source: missing=${expected - actual}, extra=${actual - expected}")
+            }
+        }
+    }
+}

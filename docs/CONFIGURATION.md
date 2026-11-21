@@ -1,8 +1,10 @@
 # Configuration
 
 Open **Mods**, select **Sky's Terrain Smoother** and choose **Config**. You can
-turn smoothing on or off, choose level 1–3 and enable or disable Mineralogy
-support. Save with **Done**, then restart Minecraft to apply your choices.
+turn smoothing on or off, choose level 1–3, select material groups and
+enable or disable Mineralogy support. Material and compatibility settings have
+their own pages. Back keeps your pending choices; Done saves them. Escape
+from the main page discards unsaved edits. Save with **Done**, then restart Minecraft to apply your choices.
 
 You can also edit `config/skysterrainsmoother-common.toml` while the game or server is
 stopped. On a dedicated server, edit the server's file and restart it; the
@@ -12,7 +14,13 @@ client's Config screen does not change a remote server.
 |---|---|---|
 | `worldgen.enabled` | `true` | Enables combined smoothing in new Overworld chunks. |
 | `worldgen.smoothingLevel` | `3` | Slabs (1), slabs and steps (2), or slabs, steps and corners (3). |
-| `compat.enableMineralogy` | `true` | Includes available natural Mineralogy rock slabs when installed. |
+| `compat.enableMineralogy` | `true` | Includes available natural Mineralogy rock pieces when installed. |
+| `materials.soil` | `true` | Grass and dirt materials. |
+| `materials.sandAndGravel` | `true` | Sand, red sand and gravel. |
+| `materials.stone` | `true` | Stone, sandstone, terracotta and registered modded rocks. |
+| `materials.snow` | `true` | Snow-block and powder-snow terrain. |
+| `materials.ice` | `true` | Registered ice terrain, including packed ice. |
+| `materials.other` | `true` | Add-on materials outside the other groups. |
 
 Levels outside 1–3 are constrained to that range.
 Existing level choices are preserved; the new default applies only when the
@@ -40,3 +48,9 @@ rather than allowing both generators to run.
 
 The content mods' legacy replacement options are independent. Terrain Smoother
 does not enable them, replace saved pieces or alter migration reports.
+
+
+Material choices apply to both surface slopes and cave floors, including add-on
+mappings. A disabled material still contributes its height when the engine
+checks an adjacent enabled material. Existing choices and saved terrain are
+preserved when new settings are added.

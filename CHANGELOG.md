@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4.120011
+
+- Use slabs on broad, gentle terraces while keeping smaller pieces on steeper slopes.
+- Smooth gravel, packed ice, snow blocks and powder snow with matching pieces.
+- Place snowy transitions immediately and remove unsupported snow left by decoration.
+- Add material switches and separate Config pages for terrain and compatibility choices.
+- Keep unfinished repairs across unloads and restarts without resmoothing old terrain or changing player edits.
+- Keep recipe-book results separate and retain the checked development jars used by Eclipse.
+
 ## 0.1.0.120011 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.1.
