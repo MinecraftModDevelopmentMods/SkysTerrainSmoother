@@ -1,0 +1,47 @@
+{
+  "target": "Forge 45.4.0",
+  "source_world_sha256": "D71FE9E2820C4CCEDE75B1642BDBA64EBC8AE654F51F3BF1FD82409BF1044562",
+  "source_data_version": 1976,
+  "snapshot_entries": {
+    "minecraft:entity_type": {
+      "minecraft:zombie_pigman": 56
+    },
+    "minecraft:item": {
+      "minecraft:zombie_pigman_spawn_egg": 753
+    },
+    "minecraft:memory_module_type": {
+      "minecraft:golem_last_seen_time": 24,
+      "minecraft:opened_doors": 16
+    },
+    "minecraft:point_of_interest_type": {
+      "minecraft:nitwit": 11,
+      "minecraft:unemployed": 0
+    },
+    "minecraft:sound_event": {
+      "minecraft:entity.zombie_pigman.ambient": 784,
+      "minecraft:entity.zombie_pigman.angry": 785,
+      "minecraft:entity.zombie_pigman.death": 786,
+      "minecraft:entity.zombie_pigman.hurt": 787,
+      "minecraft:music.nether": 400
+    }
+  },
+  "unused_non_biome_ids": {
+    "minecraft:entity.zombie_pigman.ambient": 0,
+    "minecraft:entity.zombie_pigman.angry": 0,
+    "minecraft:entity.zombie_pigman.death": 0,
+    "minecraft:entity.zombie_pigman.hurt": 0,
+    "minecraft:golem_last_seen_time": 0,
+    "minecraft:music.nether": 0,
+    "minecraft:nitwit": 0,
+    "minecraft:opened_doors": 0,
+    "minecraft:unemployed": 0,
+    "minecraft:zombie_pigman": 0,
+    "minecraft:zombie_pigman_spawn_egg": 0
+  },
+  "inspected_nbt_records": 1353,
+  "inspected_string_values": 22876,
+  "checked_biome_cells": 633856,
+  "native_renamed_cells": 0,
+  "noticed_biome_cells": 0,
+  "native_biome_contract_sha256": "0A8D2DEDC5288F565F27A24D9DBD7E7269A0CB50B67EF0B1998EC736C0A72707"
+}

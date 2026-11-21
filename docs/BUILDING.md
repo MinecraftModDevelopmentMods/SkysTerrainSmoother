@@ -1,23 +1,57 @@
 # Building from source
 
-Use Java 17 for Gradle and Temurin 8.0.502+7 for production. Set `STS_JAVA8_HOME`
-to the Java 8 installation. The wrapper uses Gradle 9.6.1 and ForgeGradle
-7.0.34 with stable 29-1.10.2 mappings.
+This branch uses NeoForge 26.1.2.94, NeoGradle 7.1.38 and the Gradle 9.2.1
+wrapper. Run Gradle with Temurin 25.0.3+9. The same Java version compiles and
+runs the mod. The log checks use Python 3.11 or newer.
 
-Build the Grass Slabs and Building Pieces source commits recorded in
-`gradle/content-dependencies.properties` with their `jar` tasks first.
-Then run `gradlew check build javadoc verifyReleaseArtifacts
-writeReleaseChecksums verifyEclipseProductionClasspath` here.
+Build the Grass Slabs and Building Pieces commits listed in
+`gradle/content-dependencies.properties` with their `assemble` tasks first.
+Both development and packaged games use the same jars. The build checks the
+source commits and jar hashes. It does not include the dependency classes
+or assets in Terrain Smoother.
 
-The default layout uses sibling Grass Slabs and Building Pieces 1.10
-checkouts. Elsewhere, pass `-PgrassSlabsDirectory=<checkout>` and
-`-PbuildingPiecesDirectory=<checkout>`. Development dependencies use their
-deobfuscated jars; packaged games use the normal main jars. No dependency
-classes or assets are bundled.
+The default layout uses sibling checkouts. For a different layout, pass
+`-PgrassSlabsDirectory=<checkout>` and `-PbuildingPiecesDirectory=<checkout>`.
+When testing another local Building Pieces candidate, supply its directory
+and `-PbuildingPiecesCoreVersion=<version>`. CI always uses the lock.
 
-The build-only integration mod exercises real Forge startup, grass lifecycle,
-every footprint, player-tracked chunk generation and a saved-world reload.
-It is absent from production artifacts and ordinary Eclipse runs. Use
-`genEclipseRuns eclipse` to regenerate those runs. CI builds the pinned content
-mods first. Publication remains disabled until this mod has its own CurseForge
-project.
+```text
+gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums
+gradlew verifyEclipseProductionClasspath
+```
+
+If Python isn't on your path, pass `-PpythonExecutable=<python>` to the first
+command. The Eclipse task prepares the processed resources and the content
+jars without clearing your game settings or saves. Import the Gradle project
+with Java 25 and refresh it after generating the launches. The regular
+client and server launches exclude all test code.
+
+## Trying Mineralogy
+
+Use `runMineralogyClient` or `runMineralogyServer` for a separate development
+game in `run-mineralogy`. These runs use the NeoForge jars pinned in
+`gradle/mineralogy-runtime.properties`. Point Gradle to them with
+`-PmineralogyRuntimeJar=<jar>` and `-PorespawnRuntimeJar=<jar>` if you keep them
+elsewhere. Eclipse also generates Mineralogy client and server launches.
+
+With Mineralogy installed and its slabs enabled, natural rock has steps and
+corners from Building Pieces at smoothing levels 2 and 3. New configurations
+start at level 3; existing choices are kept.
+
+## World checks
+
+`preparePackagedIntegrationProbe` builds separate test mods for disposable
+games. The runtime tools in `tools/` check fresh worlds and reloads, including
+recipes, configuration, slopes and cave floors. For packaged upgrades, pass a
+sealed fixture directory to `run_packaged_checks.py`. Always use a new
+directory under `build/` for the first load. The tool retains the logs and
+checks that the source archive stays unchanged.
+
+The recipe unlocks are generated from `src/main/recipe-book/recipes.json`.
+The four sand recipes keep their IDs. The runtime checks exercise crafting,
+inventory discovery and recipe-book persistence.
+
+See [the release guide](RELEASING.md) for release preparation.
+
+Disposable servers use Java networking (`use-native-transport=false`). This
+avoids host-specific Netty availability probes during log auditing.

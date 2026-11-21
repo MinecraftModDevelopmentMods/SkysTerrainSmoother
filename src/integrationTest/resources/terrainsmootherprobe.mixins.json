@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "zone.moddev.mc.skysterrainsmoother.probe.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ChunkRequestMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

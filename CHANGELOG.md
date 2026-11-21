@@ -1,5 +1,94 @@
 # Changelog
 
+## 0.1.4.2601022
+
+- Late terrain repairs wait for loaded physics neighbours and use a bounded queue.
+- Unfinished repairs survive chunk unloads and restarts without smoothing old terrain again.
+- Recorded work leaves changed blocks and nearby player edits alone.
+
+## 0.1.3.2601022
+
+Improves gentle terraces, snowy slopes, ice, gravel and cave floors. Material settings let you choose which ground types are smoothed.
+
+Existing terrain, saved content and configuration choices are retained.
+
+## 0.1.0.2601022
+
+- Updated Terrain Smoother for Minecraft 26.1.2 on NeoForge.
+- Existing terrain stays as it was. Smoothing applies as new chunks generate.
+
+## 0.1.0.121112
+
+- Bring Terrain Smoother to Minecraft 1.21.11 on NeoForge.
+- Keep all three smoothing levels, including cave floors and optional Mineralogy support.
+
+## 0.1.0.121012
+
+- Updated for Minecraft 1.21.1 on NeoForge.
+- Sand slabs keep their colour, orientation and waterlogging when upgrading.
+
+## 0.1.0.120062 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.6 on NeoForge.
+- Use the matching Grass Slabs and Building Pieces versions.
+- Use Mineralogy's natural rock pieces when its NeoForge build is installed.
+
+## 0.1.0.120012 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.119041 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.19.4.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.118021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.18.2.
+- Include the lower caves and taller terrain in newly generated chunks.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.117011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.17.1.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.116051 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.16.5.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.115021 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.15.2.
+- Use the matching Grass Slabs and Building Pieces releases.
+
+## 0.1.0.114041
+
+- Added Minecraft 1.14.4 support, including cave floors and all three smoothing levels.
+- Kept existing sand slabs, colours, orientations and custom item data when upgrading from 1.12.2.
+- Moved settings to TOML while preserving choices from the old CFG file.
+- Added the native Mods Config screen and kept changes pending until Minecraft restarts.
+- Kept Mineralogy's slabs and Building Pieces' steps and corners working together.
+
+## 0.1.0.112021
+
+- Added ingredient-based recipe unlocks, including slab recombination.
+
+- Added Minecraft 1.12.2 support for new surface terrain and cave floors.
+- Made level 3 the default for new configurations. Existing choices are kept.
+- Used Building Pieces' built-in Mineralogy steps and corners at levels 2 and 3;
+  no separate Mineralogy add-on is needed.
+- Kept exposed grass beneath steps and corners, including snowy transitions.
+- Improved narrow ledges without recreating full-block jumps. Fitting steps and
+  corners can still smooth mixed uphill and downhill edges.
+- Let thin snow, grass and flowers give way to valid transitions in new terrain.
+  Deeper snow, trees, crops and existing saved chunks stay untouched.
+- Added the Mods Config screen, help text and separate Mineralogy test profiles.
+- Updated the dependency pins to released Grass Slabs 1.1.2.112021 and
+  Building Pieces 0.3.8.112021, including the Eclipse development setup.
+
 ## 0.1.0.110021
 
 - Added hardened clay transitions and smoothing for grass oasis patches added during decoration.
