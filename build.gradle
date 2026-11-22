@@ -224,6 +224,7 @@ tasks.withType(Javadoc).configureEach {
 
 tasks.withType(AbstractArchiveTask).configureEach {
     includeEmptyDirs = false
+    filteringCharset = 'UTF-8'
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
@@ -1130,3 +1131,5 @@ tasks.register('verifyPowderSnowResources', Exec) {
 }
 
 tasks.named('check') { dependsOn tasks.named('verifyPowderSnowResources') }
+
+apply from: 'gradle/archive-encoding.gradle'

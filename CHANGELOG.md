@@ -2,6 +2,8 @@
 
 ## 0.1.4.120011
 
+- Keep translated names and settings readable when building on Windows.
+
 - Use slabs on broad, gentle terraces while keeping smaller pieces on steeper slopes.
 - Smooth gravel, packed ice, snow blocks and powder snow with matching pieces.
 - Place snowy transitions immediately and remove unsupported snow left by decoration.
