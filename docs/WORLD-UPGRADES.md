@@ -62,3 +62,12 @@ with a report rather than replacing it with ordinary sand.
 
 This conversion does not smooth old terrain. Existing pieces remain in place,
 and the saved-chunk index excludes previously generated chunks from new smoothing.
+
+
+## Interrupted generation
+
+New chunks save any unfinished decoration repairs with their own chunk data.
+After an unload or restart, only those recorded placements may be checked.
+Changed blocks and supports are left alone, and player interaction retires
+pending work in the affected area. Turning smoothing off pauses unfinished
+work without making saved terrain eligible for a new smoothing pass.
