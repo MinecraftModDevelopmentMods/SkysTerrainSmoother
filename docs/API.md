@@ -1,27 +1,31 @@
 # Add-on API, version 1
 
 Use `zone.moddev.mc.skysterrainsmoother.api.TerrainSmoothingApi` during your
-mod's initialization or post-initialization. Declare ordering after
-`skysterrainsmoother`. Registration closes at load completion.
+mod's common/client setup or IMC callbacks. Declare ordering after
+`skysterrainsmoother`. Registration closes at load completion. Forge can run setup callbacks in
+parallel; the catalogue serializes registration and publishes immutable lookups.
+Biome and protection callbacks must also be safe to call from generation threads.
 
 Create an immutable `TerrainMaterial` with a namespaced logical identity, a
 set of exact full-block source states and a bottom slab state. Optionally
 supply arrays of four bottom steps and four bottom corners. Array order is
 north, east, south, west; corners use northwest, northeast, southeast,
 southwest. Steps occupy one quarter of a block's volume and corners one eighth.
-Every output must be half a block tall, non-tile, and match that footprint.
+Every output must be half a block tall, dry, non-tile, and fill that footprint.
+Sources and converted supports must be dry full blocks without tile entities.
 
 ```java
 TerrainSmoothingApi.registerMaterial(new TerrainMaterial(
     new ResourceLocation("example", "natural_rock"),
-    Collections.singleton(naturalRock.getDefaultState()),
+    Collections.singleton(naturalRock.defaultBlockState()),
     bottomSlab, null, null, false, null));
 ```
 
 `addShapes(materialId, steps, corners)` supplies missing forms on an existing
 mapping. It cannot replace that mapping's slab or existing finer forms. A
-Mineralogy add-on can therefore extend a built-in `mineralogy:<rock>` mapping
-without replacing its native slab. Do not assume the mapping exists when the
+material add-on can therefore extend an existing mapping without replacing
+its native slab. Mineralogy already gets its finer pieces from Building Pieces,
+without an add-on. Do not assume a Mineralogy mapping exists when the
 player has disabled Mineralogy support or its slab registration. Use
 `hasMaterial(materialId)` to check before contributing. The Mineralogy setting
 also applies to mappings supplied by add-ons for Mineralogy source blocks.
@@ -44,7 +48,9 @@ apply at each floor's actual position. Ores remain outside the source
 catalogue, but a late ore replacement beneath a generated piece is preserved.
 
 Grass-like material mappings should provide their full dirt support state in
-`supportAfterPlacement`. Register matching content orientations through the
+`supportAfterPlacement`. This conversion applies only when the output covers
+the whole footprint. Steps and corners retain their original support so exposed
+grass remains visible. Register matching content orientations through the
 Grass Slabs version 1 grass API if their lifecycle should participate
 in its shared spreading rules. Content mods still own placement, drops,
 rendering and migration.
@@ -55,3 +61,16 @@ A lookup can return no state where that material has no corresponding shape.
 
 Only the `api` package is an extension contract. Engine classes are internal
 implementation details and are not a supported API.
+
+
+## Material groups
+
+The extended `TerrainMaterial` constructor accepts a `MaterialGroup` after
+`supportAfterPlacement`. Use `SOIL`, `SAND_AND_GRAVEL`, `STONE`, `SNOW`, `ICE`
+or `OTHER` so the player's material switches apply to your mappings. The
+original constructor remains available: it classifies known vanilla and
+Mineralogy sources, grass mappings use `SOIL`, and unknown materials use
+`OTHER`. Supplying additional shapes preserves the original material's group.
+
+These switches are restrictive. An add-on cannot enable a group the player has
+turned off, and the Grass Slabs and Mineralogy switches still apply.

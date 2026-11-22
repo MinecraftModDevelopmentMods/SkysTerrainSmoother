@@ -1,53 +1,81 @@
 # Sky's Terrain Smoother
 
-Sky's Terrain Smoother softens new Overworld slopes using pieces from Sky's
-Grass Slabs and Sky's Building Pieces. It also provides ordinary and red sand
-slabs for beaches and desert slopes.
-
-This beta is for Minecraft 1.10.2 and Forge 12.18.3.2511. Install Terrain
-Smoother 0.1.0.110021, Grass Slabs 1.1.0.110021 and Building Pieces
-0.3.0.110021 together on the client and server. Mineralogy is optional.
+Sky's Terrain Smoother softens the block-high edges of new Overworld terrain,
+including cave floors. It uses matching slabs, steps and corners to make slopes
+easier to walk across, while keeping the original terrain underneath.
 
 ## Smoothing levels
 
-- Level 1 uses bottom slabs.
-- Level 2 also uses horizontal steps, each covering half a slab's footprint.
-- Level 3 also uses corners, each covering a quarter of a slab's footprint.
+Choose a level in **Mods > Sky's Terrain Smoother > Config**:
 
-All these pieces remain half a block tall. Where a material has no step or
-corner, a slab is used instead. Disconnected or three-quarter footprints also
-use a slab rather than a composite block.
+1. **Slabs** — half-block transitions.
+2. **Slabs and steps** — adds pieces covering half a slab's footprint.
+3. **Slabs, steps and corners** — also uses pieces covering a quarter of a slab's footprint.
 
-Only newly generated dry terrain is changed, including cave floors. Cave
-passages need three clear blocks above the floor before a piece is added, so
-two-block tunnels stay walkable. Ceilings, existing chunks, underwater terrain,
-structures and unsupported materials are left alone.
-Initial materials are grass, ordinary dirt, raw stone variants, sand, red sand,
-sandstone, red sandstone and hardened clay. Mineralogy's available natural rock
-slabs can be used too. Ores, gravel, wood and decorative stone are not smoothed.
-Sand slabs are horizontal only and fall when unsupported. Three matching sand
-blocks in a row make six slabs; two matching slabs side by side make one block.
-Sand uses slabs at all smoothing levels.
+Level 3 is the default. Broad, gentle terraces still use slabs for a wider
+tread; steeper hills use the smaller shapes where they fit. Cave passages keep
+their headroom, and missing steps or corners fall back to slabs where safe.
 
-Grass oasis patches and sand added during biome decoration receive matching
-pieces too. Hardened clay uses Building Pieces' existing slabs, steps and
-corners. If beach decoration changes the terrain to sand, the new cap uses
-matching sand instead of grass or stone. Ore veins can remain hidden beneath
-a piece when generation replaces its support with ore; neither the ore nor the piece is
-removed. Other unsupported replacements such as gravel remove the cap without
-restoring overwritten terrain. Existing saved pieces are not
-repaired or regenerated. The separate Biomes O Plenty terrain add-on adds
-matching BOP soil and grass pieces for all three levels.
+Only new, dry terrain is smoothed. Saved chunks, underwater floors, cave
+ceilings and protected structures stay unchanged. In an existing world, travel
+beyond the chunks you have already generated to see the effect.
 
-Terrain Smoother takes over generation from Grass Slabs while installed.
-Turning Terrain Smoother off disables both generation passes; removing it
-restores Grass Slabs' normal independent generation. Grass Slabs' grass
-generation setting still controls whether grass terrain is included.
+## Materials
 
-See [configuration](docs/CONFIGURATION.md), [world upgrades](docs/WORLD-UPGRADES.md),
+The built-in mappings cover grass, dirt, natural stone variants, sandstone,
+terracotta, sand, red sand, gravel, snow blocks, packed ice and powder snow.
+Mineralogy's natural rocks are supported without another add-on, using its
+native slabs and Building Pieces' matching steps and corners. Disabled or
+unavailable native slab forms are skipped.
+
+Snowy ground gets snowy transitions from the start. Sand and gravel slabs fall
+when unsupported. Powder-snow pieces keep their sinking and freezing behaviour,
+including the ability to walk on them in leather boots.
+
+Sand and gravel have horizontal slabs only. Three matching full blocks make
+six slabs; two matching slabs make a full block. A powder-snow bucket makes two
+slabs and returns the empty bucket. Powder-snow pieces can be cut into smaller
+forms and combined again; rebuilding a full bucket also needs an empty bucket.
+
+Ores, wood and decorative stone are not smoothing materials. Ores generated
+beneath an existing transition keep that transition in place.
+
+For BOP soils and stone, install the
+[Terrain Smoother Biomes O' Plenty add-on](https://github.com/MinecraftModDevelopmentMods/SkysTerrainSmoother-BiomesOPlenty-Addon)
+and its dependencies.
+
+## Installation and settings
+
+For **Minecraft 1.20.1**, use **Forge 47.4.10** and **Java 17**, with:
+
+- Sky's Grass Slabs **1.2.1.120011**.
+- Sky's Building Pieces **0.3.10.120011**.
+- Sky's Terrain Smoother **0.1.4.120011**.
+
+Install the main jars on both the client and server.
+
+The Config screen has separate pages for the smoothing level, material groups
+and Mineralogy support. For example, you can turn off stone smoothing while
+keeping soil, sand and gravel enabled. Save with **Done**, then restart
+Minecraft. A dedicated server uses its own configuration file.
+See [configuration](docs/CONFIGURATION.md).
+
+While installed, Terrain Smoother handles grass smoothing instead of Grass
+Slabs. Turning the master switch off stops both passes. Grass Slabs' own
+`worldgen.generateGrassSlabs` setting still decides whether grass is included.
+Removing Terrain Smoother restores Grass Slabs' standalone generation.
+
+## Existing worlds
+
+Back up worlds before changing their mods. Turning smoothing off does not
+remove pieces already placed, so keep the mods that provide them installed.
+An interrupted generation repair can finish after a restart, but only for the
+unchanged placements it recorded. It does not rescan old terrain or overwrite
+player edits. See [existing worlds](docs/WORLD-UPGRADES.md).
+
+Release history is in the [changelog](CHANGELOG.md). For development, see
 [building from source](docs/BUILDING.md) and the [add-on API](docs/API.md).
-Legacy recovery remains the responsibility of the content mods.
 
-[Release preparation](docs/RELEASING.md) covers the CI checks and publication safeguards.
+## Licence
 
-Licensed under LGPL-2.1-only.
+[LGPL-2.1-only](LICENSE). See [NOTICE](NOTICE) for credits.

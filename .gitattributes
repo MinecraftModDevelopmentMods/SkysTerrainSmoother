@@ -2,3 +2,10 @@
 *.jar binary
 *.png binary
 *.zip binary
+
+# Keep the native generated defaults byte-for-byte for log-control checks.
+src/bootstrapTest/defaultconfigs/config/forge-client.toml whitespace=-blank-at-eof
+src/bootstrapTest/defaultconfigs/defaultconfigs/forge-server.toml whitespace=-blank-at-eof
+
+# Keep the checksum-verified Mavenizer fixture byte-for-byte.
+ci-fixtures/tools/** -text
