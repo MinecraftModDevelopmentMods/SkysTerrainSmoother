@@ -22,7 +22,8 @@ class NamedForwardFixtureTest {
             "1.16.5,2586,079666DA120BFC8B0EDABE50633253712F5EE6EC7D80FD4C7F5DC37D8211E4FA",
             "1.17.1,2730,81650A520DF40A440112FE7CD334FC3ACDE6E4B7909C5CA7B0427DEABA20B7EF",
             "1.18.2,2975,F75AF93379CACBCD0D6A89E4FFBF2D4A0679DE8747F5D51F1AF60747FE4CC2C5",
-            "1.19.4,3337,FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74"
+            "1.19.4,3337,FD1F173DF4BE4983225E28215BEF4168BFECB1535B27386A3A1E39478ECF8A74",
+            "1.20.1-forge,3465,C66243CF9A35216E2CEC414737815E75E2130165AA32EE98B384DE8164156AFB"
     })
     void precedingVersionSaveUsesQualifiedJarsAndContainsWetSand(String version, int dataVersion,
             String sealedChecksum) throws Exception {
@@ -32,7 +33,10 @@ class NamedForwardFixtureTest {
 
         assertEquals(sealedChecksum, checksum);
         assertEquals(checksum, source.get("world_sha256").getAsString());
-        assertEquals(version, source.get("source_minecraft").getAsString());
+        assertEquals(version.replace("-forge", ""), source.get("source_minecraft").getAsString());
+        if (version.equals("1.20.1-forge")) {
+            assertEquals("forge-47.4.10", source.get("source_loader").getAsString());
+        }
         assertEquals(dataVersion, source.get("source_data_version").getAsInt());
         assertEquals(3413, source.get("source_saved_states").getAsInt());
         assertEquals(4, source.get("wet_sand_states").getAsInt());
@@ -40,7 +44,7 @@ class NamedForwardFixtureTest {
         assertEquals(source.get("manifest_sha256").getAsString(), digest(root.resolve("source-family-fixture.json")));
         assertEquals(source.get("native_states_sha256").getAsString(), digest(root.resolve("native-source-states.json")));
         assertEquals(8, json(root.resolve("source-family-fixture.json")).getAsJsonArray("native_sand_states").size());
-        if (version.equals("1.18.2") || version.equals("1.19.4")) {
+        if (version.equals("1.18.2") || version.equals("1.19.4") || version.equals("1.20.1-forge")) {
             Path biomeContract = root.resolve("native-source-biomes.json");
             assertEquals(source.get("native_biomes_sha256").getAsString(), digest(biomeContract));
             JsonObject biomes = json(biomeContract);
@@ -81,6 +85,10 @@ class NamedForwardFixtureTest {
                     "3A97C2D7E1A2E1D9C33D513BE08F9B2D3611AC914185DED8C8B9138D76EF5B82",
                     "A1055C3DD776D24619635D1F30700D6E2A51CBA19ECF2AEE6894E2DBBC6C6DB7",
                     "88EDD053B5A44391FE12FA9642EAABBB685DD3B17FAB845D36C7EE159AD595DA");
+            case "1.20.1-forge" -> Set.of(
+                    "04B87A04BB9744580C18C34EB9A806CB307F9275969CC88ECA914F5BDA78DF84",
+                    "9F61D47241B1AE536912C16539E4034825153430E028C7186A3505C0171A03AD",
+                    "C4ABB48E52DE06508D3610E5463F55AF1ADB496E22BFE5EAFE4515BB52209F44");
             default -> throw new AssertionError("No artifact lock for " + version);
         };
         assertEquals(expected, artifacts);

@@ -18,9 +18,14 @@ class RecipeAdvancementContractTest {
             String recipe = entry.get("recipe").getAsString();
             assertTrue(recipes.add(recipe), recipe);
             assertEquals("skysterrainsmoother", entry.get("owner").getAsString());
-            Path path = Paths.get("build/resources/main/data/skysterrainsmoother/advancements/recipes",
-                    recipe.split(":", 2)[1] + ".json");
-            JsonObject advancement = new JsonParser().parse(read(path)).getAsJsonObject();
+            String resource = "/data/skysterrainsmoother/advancements/recipes/"
+                    + recipe.split(":", 2)[1] + ".json";
+            JsonObject advancement;
+            try (java.io.InputStream input = getClass().getResourceAsStream(resource)) {
+                assertNotNull(input, "The processed recipe unlock is missing: " + recipe);
+                advancement = JsonParser.parseReader(new java.io.InputStreamReader(input,
+                        StandardCharsets.UTF_8)).getAsJsonObject();
+            }
             assertFalse(advancement.has("parent"),
                     "Large recipe catalogues must not share a recursive visibility parent: " + recipe);
             assertEquals(recipe, advancement.getAsJsonObject("rewards").getAsJsonArray("recipes").get(0).getAsString());

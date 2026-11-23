@@ -1,5 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.content;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,23 +24,32 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.server.level.ServerLevel;
 
-/** A horizontal sand half. Joining it creates ordinary sand, so there is no double state. */
+/** A horizontal half of falling terrain. Joining it creates the native full block. */
 public final class SandSlabBlock extends FallingBlock implements SimpleWaterloggedBlock {
     public static final EnumProperty<SlabType> TYPE = EnumProperty.create("type", SlabType.class,
             SlabType.TOP, SlabType.BOTTOM);
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     private static final VoxelShape LOWER_HALF = Block.box(0, 0, 0, 16, 8, 16);
     private static final VoxelShape UPPER_HALF = Block.box(0, 8, 0, 16, 16, 16);
-    private final boolean red;
+    private final Block fullBlock;
 
     public SandSlabBlock(boolean red) {
-        super(Block.Properties.copy(red ? Blocks.RED_SAND : Blocks.SAND).noOcclusion().isRedstoneConductor((state, world, position) -> false));
-        this.red = red;
+        this(red ? Blocks.RED_SAND : Blocks.SAND);
+    }
+
+    public SandSlabBlock(Block fullBlock) {
+        this(fullBlock, Block.Properties.copy(fullBlock)
+                .noOcclusion().isRedstoneConductor((state, world, position) -> false));
+    }
+
+    private SandSlabBlock(Block fullBlock, Properties properties) {
+        super(properties);
+        this.fullBlock = fullBlock;
         registerDefaultState(stateDefinition.any().setValue(TYPE, SlabType.BOTTOM).setValue(WATERLOGGED, false));
     }
 
     public BlockState fullState() {
-        return (red ? Blocks.RED_SAND : Blocks.SAND).defaultBlockState();
+        return fullBlock.defaultBlockState();
     }
 
     @Override

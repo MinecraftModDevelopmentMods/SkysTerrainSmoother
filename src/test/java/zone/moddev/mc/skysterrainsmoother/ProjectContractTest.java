@@ -15,9 +15,9 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.120011", metadata.getProperty("mod_version"));
+        assertEquals("0.1.4.120012", metadata.getProperty("mod_version"));
         assertEquals("1.20.1", metadata.getProperty("minecraft_version"));
-        assertEquals("47.4.10", metadata.getProperty("forge_version"));
+        assertEquals("47.1.106", metadata.getProperty("forge_version"));
         assertEquals("1.20.1", metadata.getProperty("mapping_version"));
         assertEquals("20230612.114412", metadata.getProperty("mcp_version"));
         assertEquals("17.0.1+12", metadata.getProperty("java_toolchain_version"));
@@ -60,7 +60,7 @@ class ProjectContractTest {
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
         Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipes");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
-            assertEquals(4, files.count());
+            assertEquals(12, files.count());
         }
         for (String sand : new String[] { "sand", "red_sand" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
@@ -89,7 +89,10 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(8, values.size());
+                assertEquals(json(languages.resolve("en_us.json")).keySet(), values.keySet());
+                for (String key : values.keySet()) {
+                    assertFalse(values.get(key).getAsString().isBlank(), path + " / " + key);
+                }
                 for (String sand : new String[] { "sand", "red_sand" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }

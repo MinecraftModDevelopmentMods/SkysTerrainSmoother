@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0.120011 (unreleased)
+## 0.1.4.120012
+
+- Use slabs along gentle terraces while retaining steps and corners on steeper terrain.
+- Smooth gravel, snow, packed ice and powder snow, with the appropriate material behaviour.
+- Add material switches and matching config pages.
+- Keep pending repairs across unloads and restarts without changing saved terrain or player edits.
+
+## 0.1.0.120012 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.1.
 - Use the matching Grass Slabs and Building Pieces versions.

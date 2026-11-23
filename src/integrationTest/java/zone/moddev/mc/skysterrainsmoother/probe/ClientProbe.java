@@ -32,6 +32,7 @@ public final class ClientProbe extends ProbeProxy {
                     && minecraft.getConnection() != null
                     && !minecraft.getConnection().getRecipeManager().getRecipes().isEmpty()) {
                 if (++settledWorldTicks < 20) return;
+                PowderSnowClientProbe.run(minecraft);
                 RecipePreviewModels.check(minecraft);
                 checkBiomeTints(minecraft);
                 zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_CLIENT_WORLD_PASS");
