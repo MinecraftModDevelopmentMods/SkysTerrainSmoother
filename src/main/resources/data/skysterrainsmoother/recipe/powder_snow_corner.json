@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XX"
+  ],
+  "key": {
+    "X": {
+      "item": "skysterrainsmoother:powder_snow_step"
+    }
+  },
+  "category": "building",
+  "group": "skys/result/skysterrainsmoother/powder_snow_corner",
+  "result": {
+    "id": "skysterrainsmoother:powder_snow_corner",
+    "count": 4
+  }
+}

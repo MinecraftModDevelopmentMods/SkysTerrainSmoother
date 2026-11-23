@@ -1,7 +1,7 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "building",
-  "group": "skysterrainsmoother/slabs",
+  "group": "skys/result/skysterrainsmoother/red_sand_slab",
   "pattern": [
     "SSS"
   ],
@@ -11,7 +11,7 @@
     }
   },
   "result": {
-    "id": "skysterrainsmoother:red_sand_slab",
-    "count": 6
+    "count": 6,
+    "id": "skysterrainsmoother:red_sand_slab"
   }
 }

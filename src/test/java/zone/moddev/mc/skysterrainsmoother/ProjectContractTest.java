@@ -15,7 +15,7 @@ class ProjectContractTest {
     void targetMetadataAndToolchainMatchTheNativeRuntime() throws Exception {
         Properties metadata = new Properties();
         metadata.load(new java.io.StringReader(text(Paths.get("gradle.properties"))));
-        assertEquals("0.1.0.121011", metadata.getProperty("mod_version"));
+        assertEquals("0.1.4.121011", metadata.getProperty("mod_version"));
         assertEquals("1.21.1", metadata.getProperty("minecraft_version"));
         assertEquals("52.1.0", metadata.getProperty("forge_version"));
         assertEquals("1.21.1", metadata.getProperty("mapping_version"));
@@ -61,7 +61,7 @@ class ProjectContractTest {
     void sandRecipesConserveVolumeAndKeepTheirPermanentIds() throws Exception {
         Path recipes = Paths.get("src/main/resources/data/skysterrainsmoother/recipe");
         try (java.util.stream.Stream<Path> files = Files.list(recipes)) {
-            assertEquals(4, files.count());
+            assertEquals(12, files.count());
         }
         for (String sand : new String[] { "sand", "red_sand" }) {
             JsonObject cut = json(recipes.resolve(sand + "_slab.json"));
@@ -90,7 +90,10 @@ class ProjectContractTest {
                 assertFalse(source.contains("\r"));
                 assertTrue(source.endsWith("\n"));
                 JsonObject values = json(path);
-                assertEquals(8, values.size());
+                assertEquals(json(languages.resolve("en_us.json")).keySet(), values.keySet());
+                for (String key : values.keySet()) {
+                    assertFalse(values.get(key).getAsString().isBlank(), path + " / " + key);
+                }
                 for (String sand : new String[] { "sand", "red_sand" }) {
                     assertFalse(values.get("block.skysterrainsmoother." + sand + "_slab").getAsString().trim().isEmpty());
                 }

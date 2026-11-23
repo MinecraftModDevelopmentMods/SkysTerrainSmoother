@@ -127,8 +127,14 @@ if (localGrassVersion.isPresent() &&
 def grassVersion = localGrassVersion.getOrElse(contentLock.getProperty('grass.version'))
 
 
-def grassSlabsDevelopmentJar = new File(grassSlabsDirectory,
-        "build/libs/SkysGrassSlabs-${grassVersion}.jar")
+def pinnedContentArtifact = { File directory, String name, boolean override ->
+    File sibling = new File(directory, 'build/' + name)
+    File retained = file('.gradle/qualification-dependencies/' + sibling.name)
+    !override && retained.isFile() ? retained : sibling
+}
+
+def grassSlabsDevelopmentJar = pinnedContentArtifact(grassSlabsDirectory,
+        "libs/SkysGrassSlabs-${grassVersion}.jar", localGrassVersion.isPresent())
 
 def localPiecesVersion = providers.gradleProperty('buildingPiecesCoreVersion')
 if (localPiecesVersion.isPresent() &&
@@ -136,8 +142,8 @@ if (localPiecesVersion.isPresent() &&
     throw new GradleException('A local core-version override needs an explicit core directory and is not allowed in CI.')
 }
 def piecesVersion = localPiecesVersion.getOrElse(contentLock.getProperty('pieces.version'))
-def buildingPiecesDevelopmentJar = new File(buildingPiecesDirectory,
-        "build/libs/SkysBuildingPieces-${piecesVersion}.jar")
+def buildingPiecesDevelopmentJar = pinnedContentArtifact(buildingPiecesDirectory,
+        "libs/SkysBuildingPieces-${piecesVersion}.jar", localPiecesVersion.isPresent())
 def verifyContentDependencies = tasks.register('verifyContentDependencies') {
     doLast {
         Map dependencies = [
@@ -170,7 +176,7 @@ def verifyContentDependencies = tasks.register('verifyContentDependencies') {
                         [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.sha256'],
                         [path: "build/libs/${selected.artifact}-${selected.version}.jar", key: '.development.sha256']
                 ].each { artifact ->
-                    File jar = new File(directory, artifact.path)
+                    File jar = pinnedContentArtifact(directory, artifact.path.substring("build/".length()), selected.override)
                     if (!jar.isFile()) {
                         throw new GradleException('Build the pinned content dependency first: ' + jar)
                     }
@@ -217,6 +223,7 @@ tasks.withType(Javadoc).configureEach {
 
 tasks.withType(AbstractArchiveTask).configureEach {
     includeEmptyDirs = false
+    filteringCharset = 'UTF-8'
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
@@ -339,6 +346,9 @@ def configureFromForgeRun = { JavaExec process, String runTaskName, boolean incl
             run.args(process.args)
             run.jvmArgs(process.jvmArgs)
             run.systemProperties(process.systemProperties)
+            if (!run.systemProperties.containsKey('log4j.configurationFile')) {
+                run.systemProperty('log4j.configurationFile', file('src/bootstrapTest/native-log4j2.xml').toURI())
+            }
             run.environment(process.environment)
             String modClasses = includeMain ? "${mod_id}%%${forgeRunModClassesDirectory}" : ''
             // Eclipse generation locks this map. Ordinary runs already have the merged output.
@@ -586,11 +596,11 @@ tasks.named('jar', Jar) {
 def releaseJar = tasks.named('jar', Jar)
 
 tasks.named('sourcesJar', Jar) {
-    from(['LICENSE', 'LICENSE.spdx', 'NOTICE', 'BUILDINGBRICKS-MIT.txt']) { into 'META-INF' }
+    from(['LICENSE', 'LICENSE.spdx', 'NOTICE']) { into 'META-INF' }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 tasks.named('javadocJar', Jar) {
-    from(['LICENSE', 'LICENSE.spdx', 'NOTICE', 'BUILDINGBRICKS-MIT.txt']) { into 'META-INF' }
+    from(['LICENSE', 'LICENSE.spdx', 'NOTICE']) { into 'META-INF' }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
@@ -1094,3 +1104,15 @@ tasks.register('integrationForwardTest') {
 }
 
 tasks.named('check') { dependsOn tasks.named('integrationForwardTest') }
+
+apply from: 'gradle/resource-outputs.gradle'
+
+tasks.register('verifyPowderSnowResources', Exec) {
+    group = 'verification'
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            'tools/test_powder_snow_resources.py'
+}
+
+tasks.named('check') { dependsOn tasks.named('verifyPowderSnowResources') }
+
+apply from: 'gradle/archive-encoding.gradle'

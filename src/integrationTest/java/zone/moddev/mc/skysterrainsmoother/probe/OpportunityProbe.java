@@ -180,4 +180,3 @@ final class OpportunityProbe {
     private OpportunityProbe() {
     }
 }
-
