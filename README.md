@@ -24,9 +24,9 @@ beyond the chunks you have already generated to see the effect.
 
 The built-in mappings cover grass, dirt, natural stone variants, sandstone,
 terracotta, sand, red sand, gravel, snow blocks, packed ice and powder snow.
-Mineralogy's natural rocks are supported without another add-on, using its
-native slabs and Building Pieces' matching steps and corners. Disabled or
-unavailable native slab forms are skipped.
+The matching Forge build also supports Mineralogy's natural rocks, using its
+native slabs and Building Pieces' steps and corners without another add-on.
+There is no matching Mineralogy release for this early NeoForge build.
 
 Snowy ground gets snowy transitions from the start. Sand and gravel slabs fall
 when unsupported. Powder-snow pieces keep their sinking and freezing behaviour,

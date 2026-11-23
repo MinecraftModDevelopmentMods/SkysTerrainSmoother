@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4.120012 (unreleased)
+## 0.1.4.120012
 
 - Use slabs along gentle terraces while retaining steps and corners on steeper terrain.
 - Smooth gravel, snow, packed ice and powder snow, with the appropriate material behaviour.
