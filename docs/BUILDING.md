@@ -11,7 +11,7 @@ Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `jar` tasks first.
 
 The source lock records Grass Slabs 1.2.0.112021 and Building Pieces
-0.3.10.112021.
+0.3.11.112021.
 
 The default layout uses sibling checkouts. For another layout, pass
 `-PgrassSlabsDirectory=<checkout>` and
