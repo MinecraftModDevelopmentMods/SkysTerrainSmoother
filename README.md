@@ -61,7 +61,7 @@ For BOP grass and soils, add the
 For **Minecraft 26.3**, use **NeoForge 26.3.0.99** and **Java 25**, with:
 
 - Sky's Grass Slabs **1.2.1.2603002**.
-- Sky's Building Pieces **0.3.10.2603002**.
+- Sky's Building Pieces **0.3.11.2603002**.
 - Sky's Terrain Smoother **0.1.4.2603002**.
 
 Install all three main jars on both the client and server.
