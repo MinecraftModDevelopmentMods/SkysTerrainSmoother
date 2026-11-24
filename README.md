@@ -49,7 +49,7 @@ and its dependencies.
 For **Minecraft 1.20.1**, use **Forge 47.4.10** and **Java 17**, with:
 
 - Sky's Grass Slabs **1.2.1.120011**.
-- Sky's Building Pieces **0.3.10.120011**.
+- Sky's Building Pieces **0.3.11.120011**.
 - Sky's Terrain Smoother **0.1.4.120011**.
 
 Install the main jars on both the client and server.
