@@ -22,10 +22,10 @@ pinned commits rather than moving branches.
 
 A local-only `buildingPiecesCoreVersion` override can test another core
 candidate. It requires an explicit core directory and is rejected in CI.
-For example, to use the local 0.3.7 candidate:
+For example, to select another local core build:
 
 ```text
-gradlew genEclipseRuns eclipse verifyEclipseProductionClasspath "-PbuildingPiecesDirectory=../../SkysBuildingPieces110/SkysBuildingPieces" "-PbuildingPiecesCoreVersion=0.3.7.110021"
+gradlew genEclipseRuns eclipse verifyEclipseProductionClasspath "-PbuildingPiecesDirectory=../../SkysBuildingPieces110/SkysBuildingPieces" "-PbuildingPiecesCoreVersion=<local version>"
 ```
 
 This saves the selected directory and version in Eclipse's ignored Buildship
