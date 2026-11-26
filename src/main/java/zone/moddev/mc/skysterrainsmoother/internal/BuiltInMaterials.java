@@ -48,6 +48,7 @@ public final class BuiltInMaterials {
                 ModBlocks.GRASS_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
                 ModBlocks.DIRT_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("dirt_podzol", Blocks.PODZOL.defaultBlockState(), false, null);
         vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
         vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
         vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);

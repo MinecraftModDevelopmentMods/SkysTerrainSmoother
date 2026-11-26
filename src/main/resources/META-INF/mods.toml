@@ -31,6 +31,6 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="skysbuildingpieces"
 mandatory=true
-versionRange="[0.3.10.121011,0.4)"
+versionRange="[0.3.12.121011,0.4)"
 ordering="AFTER"
 side="BOTH"

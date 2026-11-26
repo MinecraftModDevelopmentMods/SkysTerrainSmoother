@@ -2,7 +2,7 @@
 
 Sky's Terrain Smoother adds smaller transitions to new Overworld terrain,
 including cave floors. It uses slabs, steps and corners from Sky's Grass Slabs
-and Sky's Building Pieces, with matching materials for grass, dirt, stone,
+and Sky's Building Pieces, with matching materials for grass, dirt, podzol, stone,
 sandstone, sand, gravel, hardened clay, snow and packed ice.
 
 ## Smoothing levels
@@ -61,8 +61,8 @@ For BOP grass and soils, add the
 For **Minecraft 1.21.1**, use **Forge 52.1.0** and **Java 21**, with:
 
 - Sky's Grass Slabs **1.2.1.121011**.
-- Sky's Building Pieces **0.3.11.121011**.
-- Sky's Terrain Smoother **0.1.4.121011**.
+- Sky's Building Pieces **0.3.12.121011**.
+- Sky's Terrain Smoother **0.1.5.121011**.
 
 Install all three main jars on both the client and server.
 

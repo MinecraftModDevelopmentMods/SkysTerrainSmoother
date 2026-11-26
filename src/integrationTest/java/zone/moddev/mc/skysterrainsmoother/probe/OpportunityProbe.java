@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Direction;
@@ -29,11 +30,19 @@ final class OpportunityProbe {
         int checks = 0;
 
         for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
-                Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.SAND.defaultBlockState() }) {
+                Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.SAND.defaultBlockState(),
+                Blocks.PODZOL.defaultBlockState().setValue(SnowyDirtBlock.SNOWY, true) }) {
             if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }
             TerrainMaterial material = MaterialCatalogue.instance().source(source);
+            RuntimeProbe.require(material != null, "Missing terrain mapping for " + source);
+            if (source.is(Blocks.PODZOL)) {
+                for (int direction = 0; direction < 4; direction++) {
+                    RuntimeProbe.require(material.step(direction) != null && material.corner(direction) != null,
+                            "Podzol should use its own step and corner in every direction");
+                }
+            }
             for (int level = 1; level <= 3; level++) {
                 for (Direction uphill : Direction.Plane.HORIZONTAL) {
                     for (int cover = 1; cover <= 3; cover++) {
@@ -60,6 +69,10 @@ final class OpportunityProbe {
                                 "snow outside the chosen placement is not cleared");
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                                 "snow replacement remains idempotent");
+                        if (source.is(Blocks.PODZOL)) {
+                            RuntimeProbe.require(world.getBlockState(floor).is(Blocks.PODZOL),
+                                    "A podzol transition keeps the podzol underneath");
+                        }
                         checks += 3;
                     }
 

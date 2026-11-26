@@ -223,9 +223,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/SkysTerrainSmoother-0.1.4.121011.jar
-            build/libs/SkysTerrainSmoother-0.1.4.121011-sources.jar
-            build/libs/SkysTerrainSmoother-0.1.4.121011-javadoc.jar
+            build/libs/SkysTerrainSmoother-0.1.5.121011.jar
+            build/libs/SkysTerrainSmoother-0.1.5.121011-sources.jar
+            build/libs/SkysTerrainSmoother-0.1.5.121011-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.md
 

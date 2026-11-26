@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5.121011 (unreleased)
+
+- Use podzol slabs, steps and corners on newly generated podzol slopes.
+
 ## 0.1.4.121011 (unreleased)
 
 - Gentle terraces get full-width slabs where they fit, while narrow ledges keep their downhill edge.
