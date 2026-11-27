@@ -10,7 +10,7 @@ Build the exact Grass Slabs and Building Pieces source commits listed in
 `gradle/content-dependencies.properties` with their `assemble` tasks first. The build checks both their source commits
 and main/development jar checksums.
 
-The source lock records locally qualified Grass Slabs 1.2.1.121011 and Building Pieces
+The source lock records the published versions of Grass Slabs 1.2.1.121011 and Building Pieces
 0.3.13.121011.
 
 The default layout uses sibling checkouts. For another layout, pass
