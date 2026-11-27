@@ -130,5 +130,49 @@
         ]
       }
     ]
+  },
+  {
+    "recipe": "skysterrainsmootherbop:dirt/coarse_loamy/slab",
+    "owner": "skysterrainsmootherbop",
+    "ingredients": [
+      {
+        "items": [
+          "minecraft:coarse_dirt"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmootherbop:dirt/coarse_loamy/full_block",
+    "owner": "skysterrainsmootherbop",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmootherbop:coarse_dirt_slab"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmootherbop:dirt/coarse_loamy/step",
+    "owner": "skysterrainsmootherbop",
+    "ingredients": [
+      {
+        "items": [
+          "skysterrainsmootherbop:coarse_dirt_slab"
+        ]
+      }
+    ]
+  },
+  {
+    "recipe": "skysterrainsmootherbop:dirt/coarse_loamy/slab_from_steps",
+    "owner": "skysterrainsmootherbop",
+    "ingredients": [
+      {
+        "items": [
+          "skysbuildingpieces:dirt_coarse_horizontal_step"
+        ]
+      }
+    ]
   }
 ]

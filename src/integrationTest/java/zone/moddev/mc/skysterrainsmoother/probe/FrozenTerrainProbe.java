@@ -18,7 +18,7 @@ final class FrozenTerrainProbe {
         BlockPos floor = new BlockPos(5076, world.getMaxBuildHeight() - 10, 5076);
         var owner = world.getChunkAt(floor);
         int loaded = world.getChunkSource().getLoadedChunksCount();
-        for (Block source : new Block[] { Blocks.PACKED_ICE, Blocks.POWDER_SNOW }) {
+        for (Block source : new Block[] { Blocks.ICE, Blocks.PACKED_ICE, Blocks.BLUE_ICE, Blocks.POWDER_SNOW }) {
             var material = MaterialCatalogue.instance().source(source.defaultBlockState());
             RuntimeProbe.require(material != null, "Every frozen surface has a distinct material");
             for (int level = 1; level <= 3; level++) {
@@ -53,13 +53,21 @@ final class FrozenTerrainProbe {
                     SkysTerrainSmoother.engine.smooth(world, owner, level);
                     RuntimeProbe.require(world.getBlockState(floor.above()).equals(piece),
                             "Repeating a frozen generation pass is idempotent");
+                    if (source == Blocks.ICE) {
+                        ProbeWorld.clear(world, floor.above());
+                        world.setBlock(floor.below(), Blocks.WATER.defaultBlockState(), 2);
+                        SkysTerrainSmoother.engine.smooth(world, owner, level);
+                        RuntimeProbe.require(world.isEmptyBlock(floor.above()) && world.getBlockState(floor).is(Blocks.ICE)
+                                && world.getBlockState(floor.below()).is(Blocks.WATER), "Ice covering water is protected");
+                        checks++;
+                    }
                     checks += 5;
                 }
             }
         }
         RuntimeProbe.require(world.getChunkSource().getLoadedChunksCount() == loaded,
                 "Frozen terrain reads do not force neighbouring chunks");
-        SkysTerrainSmoother.logger.info("TERRAIN_FROZEN_SURFACES_PASS checks={} materials=2 levels=3 rotations=4", checks);
+        SkysTerrainSmoother.logger.info("TERRAIN_FROZEN_SURFACES_PASS checks={} materials=4 levels=3 rotations=4", checks);
         return checks;
     }
 }

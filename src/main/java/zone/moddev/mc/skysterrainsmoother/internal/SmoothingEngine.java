@@ -728,6 +728,11 @@ public final class SmoothingEngine {
 
     private BlockState transitionResult(LevelAccessor world, ChunkAccess owner, BlockPos support,
             TerrainMaterial material, int cardinal, int diagonal, int level, boolean cave) {
+        // A frozen water surface is not dry ice terrain.
+        if (owner.getBlockState(support).is(Blocks.ICE)
+                && !owner.getBlockState(support.below()).getFluidState().isEmpty()) {
+            return null;
+        }
         int mask = Footprint.mask(cardinal, diagonal, level);
         if (mask == 0) {
             return null;

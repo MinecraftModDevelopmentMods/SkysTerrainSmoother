@@ -114,8 +114,40 @@ final class OpportunityProbe {
                 }
             }
         }
+        checks += matchingSurfaces(world, owner, floor);
         checks += snowyTerrace(world);
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_OPPORTUNITIES_PASS checks=" + checks);
+        return checks;
+    }
+
+    private static int matchingSurfaces(ServerLevel world, LevelChunk owner, BlockPos floor) {
+        var catalogue = MaterialCatalogue.instance();
+        int checks = 0;
+        for (Block source : new Block[] { Blocks.COARSE_DIRT, Blocks.MYCELIUM, Blocks.MUD, Blocks.ROOTED_DIRT,
+                Blocks.CLAY, Blocks.DEEPSLATE, Blocks.TUFF, Blocks.CALCITE, Blocks.DRIPSTONE_BLOCK,
+                Blocks.WHITE_TERRACOTTA, Blocks.ORANGE_TERRACOTTA }) {
+            BlockState full = source.defaultBlockState();
+            TerrainMaterial material = catalogue.source(full);
+            RuntimeProbe.require(material != null && material.step(0) != null && material.corner(0) != null,
+                    "The natural material offers all three shapes: " + source);
+            if (source == Blocks.TUFF) {
+                RuntimeProbe.require(material.slab.is(Blocks.TUFF_SLAB), "Reuse the native tuff slab");
+            }
+            if (source == Blocks.COARSE_DIRT) {
+                RuntimeProbe.require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(material.slab.getBlock())
+                        .toString().equals("skysterrainsmootherbop:dirt_slab_00"), "Coarse dirt keeps its saved slab ID");
+            }
+            for (int level = 1; level <= 3; level++) {
+                prepare(world, floor, full);
+                world.setBlock(floor.north().above(), full, 2);
+                ProbeWorld.rebuildHeights(owner);
+                SkysTerrainSmoother.engine.smooth(world, owner, level);
+                RuntimeProbe.require(catalogue.piece(world.getBlockState(floor.above())) == material,
+                        "Natural terrain uses matching pieces at level " + level + ": " + source);
+                RuntimeProbe.require(world.getBlockState(floor).equals(full), "Keep the original soil or rock: " + source);
+                checks += 2;
+            }
+        }
         return checks;
     }
 

@@ -15,11 +15,11 @@ client's Config screen does not change a remote server.
 | `worldgen.enabled` | `true` | Enables combined smoothing in new Overworld chunks. |
 | `worldgen.smoothingLevel` | `3` | Slabs (1), slabs and steps (2), or slabs, steps and corners (3). |
 | `compat.enableMineralogy` | `true` | Includes available natural Mineralogy rock slabs when installed. |
-| `materials.soil` | `true` | Grass, dirt, podzol and other registered soils, including the BOP add-on's coarse dirt. |
+| `materials.soil` | `true` | Grass, coarse dirt, podzol, mycelium, rooted dirt, mud, clay and other registered soils. |
 | `materials.sandAndGravel` | `true` | Sand, red sand and gravel. |
 | `materials.stone` | `true` | Stone, sandstone, terracotta and registered Mineralogy and BOP rocks. |
 | `materials.snow` | `true` | Full snow blocks and powder snow. It does not disable snowy grass appearances. |
-| `materials.ice` | `true` | Registered ice terrain, including packed ice. |
+| `materials.ice` | `true` | Dry ice terrain, including packed ice and blue ice. |
 | `materials.other` | `true` | Add-on materials without another group. |
 
 To keep grass and sand transitions but leave rock terrain alone, set

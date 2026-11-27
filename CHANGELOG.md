@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6.121011 (unreleased)
+
+- Smooth coarse dirt, mycelium, more cave floors, coloured terracotta and dry ice terrain.
+
 ## 0.1.5.121011 (unreleased)
 
 - Use podzol slabs, steps and corners on newly generated podzol slopes.

@@ -88,14 +88,14 @@ public final class TerrainMaterial {
             return MaterialGroup.OTHER;
         }
         return switch (block.getPath()) {
-            case "grass_block", "dirt", "coarse_dirt", "rooted_dirt", "podzol", "mycelium", "mud" -> MaterialGroup.SOIL;
+            case "grass_block", "dirt", "coarse_dirt", "rooted_dirt", "podzol", "mycelium", "mud", "clay" -> MaterialGroup.SOIL;
             case "sand", "red_sand", "gravel" -> MaterialGroup.SAND_AND_GRAVEL;
             case "snow_block", "powder_snow" -> MaterialGroup.SNOW;
             case "ice", "packed_ice", "blue_ice", "frosted_ice" -> MaterialGroup.ICE;
             case "stone", "granite", "diorite", "andesite", "sandstone", "red_sandstone", "terracotta",
-                    "obsidian", "deepslate", "tuff", "calcite", "basalt", "smooth_basalt", "blackstone",
+                    "obsidian", "deepslate", "tuff", "calcite", "dripstone_block", "basalt", "smooth_basalt", "blackstone",
                     "netherrack", "end_stone", "cobblestone", "mossy_cobblestone" -> MaterialGroup.STONE;
-            default -> MaterialGroup.OTHER;
+            default -> block.getPath().endsWith("_terracotta") ? MaterialGroup.STONE : MaterialGroup.OTHER;
         };
     }
 

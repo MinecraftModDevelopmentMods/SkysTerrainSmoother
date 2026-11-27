@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "type=bottom,snowy=false": {
+      "model": "skysterrainsmootherbop:block/coarse_dirt_slab"
+    },
+    "type=bottom,snowy=true": {
+      "model": "skysterrainsmootherbop:block/coarse_dirt_slab_snow"
+    },
+    "type=top,snowy=false": {
+      "model": "skysterrainsmootherbop:block/coarse_dirt_slab_top"
+    },
+    "type=top,snowy=true": {
+      "model": "skysterrainsmootherbop:block/coarse_dirt_slab_top_snow"
+    },
+    "type=double,snowy=false": {
+      "model": "minecraft:block/coarse_dirt"
+    },
+    "type=double,snowy=true": {
+      "model": "minecraft:block/coarse_dirt"
+    }
+  }
+}
