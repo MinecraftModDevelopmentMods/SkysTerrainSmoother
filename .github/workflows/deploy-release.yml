@@ -354,7 +354,7 @@ jobs:
           dependency="$GITHUB_WORKSPACE/dependencies/grass"
           (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace \
             "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
-            "-PgrassSlabsDeobfJar=$dependency/build/libs-dev/SkysGrassSlabs-$grass-deobf.jar")
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
 
 
 
@@ -584,7 +584,7 @@ jobs:
           dependency="$GITHUB_WORKSPACE/dependencies/grass"
           (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace \
             "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
-            "-PgrassSlabsDeobfJar=$dependency/build/libs-dev/SkysGrassSlabs-$grass-deobf.jar")
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
 
 
 
