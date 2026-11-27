@@ -17,8 +17,10 @@ class RecipeAdvancementContractTest {
             JsonObject entry = element.getAsJsonObject();
             String recipe = entry.get("recipe").getAsString();
             assertTrue(recipes.add(recipe), recipe);
-            assertEquals("skysterrainsmoother", entry.get("owner").getAsString());
-            Path path = Paths.get("build/resources/main/data/skysterrainsmoother/advancements/recipes",
+            String owner = entry.get("owner").getAsString();
+            assertEquals(recipe.split(":", 2)[0], owner);
+            assertTrue(owner.equals("skysterrainsmoother") || recipe.startsWith("skysterrainsmootherbop:dirt/coarse_loamy/"));
+            Path path = Paths.get("build/resources/main/data", owner, "advancement/recipes",
                     recipe.split(":", 2)[1] + ".json");
             JsonObject advancement = new JsonParser().parse(read(path)).getAsJsonObject();
             assertFalse(advancement.has("parent"),
@@ -34,6 +36,8 @@ class RecipeAdvancementContractTest {
                 assertEquals("minecraft:inventory_changed", criterion.getValue().getAsJsonObject().get("trigger").getAsString());
             }
         }
+        String coarse = "skysterrainsmootherbop:dirt/coarse_loamy/";
+        assertTrue(recipes.containsAll(Set.of(coarse + "slab", coarse + "step", coarse + "full_block", coarse + "slab_from_steps")));
     }
 
     private static String read(Path path) throws Exception {

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "skys/result/skysterrainsmootherbop/coarse_dirt_slab",
+  "pattern": [
+    "XXX"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:coarse_dirt"
+    }
+  },
+  "result": {
+    "count": 6,
+    "id": "skysterrainsmootherbop:coarse_dirt_slab"
+  }
+}

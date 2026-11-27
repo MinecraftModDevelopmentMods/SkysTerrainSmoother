@@ -1,22 +1,28 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import zone.moddev.mc.skysbuildingpieces.api.BuildingPiecesApi;
 import zone.moddev.mc.skysgrassslabs.init.ModBlocks;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 import zone.moddev.mc.skysterrainsmoother.api.TerrainMaterial;
 import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
 import zone.moddev.mc.skysterrainsmoother.content.SandContent;
+import zone.moddev.mc.skysterrainsmoother.content.CoarseDirtSlab;
+import zone.moddev.mc.skysterrainsmoother.content.PowderSnowContent;
+import zone.moddev.mc.skysterrainsmoother.content.PowderSnowPieceBlock;
+import net.minecraft.world.level.block.state.properties.Half;
 
 /** Exact natural surfaces; ores and decorative variants are never inferred from tags. */
 public final class BuiltInMaterials {
@@ -35,16 +41,27 @@ public final class BuiltInMaterials {
     private BuiltInMaterials() {
     }
 
-    /** An add-on's parallel setup callback may arrive before this mod's own callback. */
+    /** Install the built-in mappings before the ordered add-on setup callbacks. */
     public static synchronized void ensureRegistered() {
         if (registered) {
             return;
         }
         TerrainSmootherConfig.activateSettingsForThisRun();
         vanilla("grass", Blocks.GRASS_BLOCK.defaultBlockState(), true,
-                ModBlocks.GRASS_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.GRASS_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
         vanilla("dirt", Blocks.DIRT.defaultBlockState(), false,
-                ModBlocks.DIRT_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+                ModBlocks.DIRT_SLAB.get().defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("dirt_podzol", Blocks.PODZOL.defaultBlockState(), false, null);
+        vanilla("dirt_coarse", Blocks.COARSE_DIRT.defaultBlockState(), false, CoarseDirtSlab.registeredBlock()
+                .defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM));
+        vanilla("dirt_mycelium", Blocks.MYCELIUM.defaultBlockState(), false, null);
+        vanilla("rooted_dirt", Blocks.ROOTED_DIRT.defaultBlockState(), false, null);
+        vanilla("mud", Blocks.MUD.defaultBlockState(), false, null);
+        vanilla("clay", Blocks.CLAY.defaultBlockState(), false, null);
+        vanilla("deepslate", Blocks.DEEPSLATE.defaultBlockState(), false, null);
+        vanilla("tuff", Blocks.TUFF.defaultBlockState(), false, null);
+        vanilla("calcite", Blocks.CALCITE.defaultBlockState(), false, null);
+        vanilla("dripstone_block", Blocks.DRIPSTONE_BLOCK.defaultBlockState(), false, null);
         vanilla("stone", Blocks.STONE.defaultBlockState(), false, null);
         vanilla("granite", Blocks.GRANITE.defaultBlockState(), false, null);
         vanilla("diorite", Blocks.DIORITE.defaultBlockState(), false, null);
@@ -52,13 +69,38 @@ public final class BuiltInMaterials {
         vanilla("sandstone", Blocks.SANDSTONE.defaultBlockState(), false, null);
         vanilla("red_sandstone", Blocks.RED_SANDSTONE.defaultBlockState(), false, null);
         vanilla("hardened_clay", Blocks.TERRACOTTA.defaultBlockState(), false, null);
+        for (DyeColor colour : DyeColor.values()) {
+            String name = colour.getName();
+            Block terracotta = BuiltInRegistries.BLOCK.get(ResourceLocation.withDefaultNamespace(name + "_terracotta"));
+            String pieceColour = colour == DyeColor.LIGHT_GRAY ? "silver" : name;
+            vanilla("stained_hardened_clay_" + pieceColour, terracotta.defaultBlockState(), false, null);
+        }
+        vanilla("snow", Blocks.SNOW_BLOCK.defaultBlockState(), false, null);
+        vanilla("packed_ice", Blocks.PACKED_ICE.defaultBlockState(), false, null);
+        vanilla("ice", Blocks.ICE.defaultBlockState(), false, null);
+        vanilla("blue_ice", Blocks.BLUE_ICE.defaultBlockState(), false, null);
+        BlockState[] powderSteps = new BlockState[4];
+        BlockState[] powderCorners = new BlockState[4];
+        for (int direction = 0; direction < DIRECTIONS.length; direction++) {
+            powderSteps[direction] = PowderSnowContent.state(PowderSnowPieceBlock.Kind.STEP,
+                    Half.BOTTOM, DIRECTIONS[direction]);
+            powderCorners[direction] = PowderSnowContent.state(PowderSnowPieceBlock.Kind.CORNER,
+                    Half.BOTTOM, DIRECTIONS[direction]);
+        }
+        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.withDefaultNamespace("powder_snow"),
+                Collections.singleton(Blocks.POWDER_SNOW.defaultBlockState()),
+                PowderSnowContent.state(PowderSnowPieceBlock.Kind.SLAB, Half.BOTTOM, Direction.NORTH),
+                powderSteps, powderCorners, false, null));
         for (int variant = 0; variant < 2; variant++) {
             Block sand = variant == 0 ? Blocks.SAND : Blocks.RED_SAND;
             MaterialCatalogue.instance().register(new TerrainMaterial(
-                    new ResourceLocation("minecraft", variant == 0 ? "sand" : "red_sand"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", variant == 0 ? "sand" : "red_sand"),
                     Collections.singleton(sand.defaultBlockState()),
                     SandContent.legacyState(variant * 2 + 1), null, null, false, null));
         }
+        MaterialCatalogue.instance().register(new TerrainMaterial(ResourceLocation.withDefaultNamespace("gravel"),
+                Collections.singleton(Blocks.GRAVEL.defaultBlockState()),
+                SandContent.gravelSlab.defaultBlockState(), null, null, false, null));
         registerMineralogy();
         registered = true;
     }
@@ -70,9 +112,9 @@ public final class BuiltInMaterials {
         int available = 0;
         int missing = 0;
         for (String rock : ROCKS) {
-            ResourceLocation fullId = new ResourceLocation("mineralogy", rock);
-            Block full = ForgeRegistries.BLOCKS.getValue(fullId);
-            Block slab = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("mineralogy", rock + "_slab"));
+            ResourceLocation fullId = ResourceLocation.fromNamespaceAndPath("mineralogy", rock);
+            Block full = BuiltInRegistries.BLOCK.get(fullId);
+            Block slab = BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("mineralogy", rock + "_slab"));
             if (full == null || full == Blocks.AIR || slab == null || slab == Blocks.AIR) {
                 missing++;
                 continue;
@@ -93,6 +135,9 @@ public final class BuiltInMaterials {
         if (slab == null) {
             slab = BuildingPiecesApi.bottomPiece(material, BuildingPiecesApi.TerrainShape.SLAB, Direction.NORTH);
         }
+        if (slab == null) {
+            throw new IllegalStateException("Missing Building Pieces slab for " + material);
+        }
         BlockState[] steps = new BlockState[4];
         BlockState[] corners = new BlockState[4];
         for (int direction = 0; direction < DIRECTIONS.length; direction++) {
@@ -101,8 +146,13 @@ public final class BuiltInMaterials {
             corners[direction] = BuildingPiecesApi.bottomPiece(material,
                     BuildingPiecesApi.TerrainShape.CORNER, DIRECTIONS[direction]);
         }
-        MaterialCatalogue.instance().register(new TerrainMaterial(new ResourceLocation(material),
-                Collections.singleton(source), slab, steps, corners, grass,
+        // Deepslate generates along each axis. All three states represent the same natural rock.
+        var sources = source.is(Blocks.DEEPSLATE) ? new LinkedHashSet<>(Blocks.DEEPSLATE.getStateDefinition().getPossibleStates())
+                : Collections.singleton(source);
+        ResourceLocation identifier = source.is(Blocks.COARSE_DIRT) ? ResourceLocation.withDefaultNamespace("coarse_dirt")
+                : ResourceLocation.parse(material);
+        MaterialCatalogue.instance().register(new TerrainMaterial(identifier,
+                sources, slab, steps, corners, grass,
                 grass ? Blocks.DIRT.defaultBlockState() : null));
     }
 

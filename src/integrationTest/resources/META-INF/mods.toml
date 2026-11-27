@@ -9,6 +9,6 @@ description="Build-only gameplay and upgrade checks."
 [[dependencies.terrainsmootherprobe]]
 modId="skysterrainsmoother"
 mandatory=true
-versionRange="[0.1.0.120011,)"
+versionRange="[0.1.0.120061,)"
 ordering="AFTER"
 side="BOTH"

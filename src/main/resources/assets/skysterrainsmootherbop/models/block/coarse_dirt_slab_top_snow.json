@@ -1,0 +1,7 @@
+{
+  "parent": "skysgrassslabs:block/dirt_slab_top_snow",
+  "textures": {
+    "particle": "minecraft:block/coarse_dirt",
+    "bottom": "minecraft:block/coarse_dirt"
+  }
+}

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.6.121011 (unreleased)
+
+- Smooth coarse dirt, mycelium, more cave floors, coloured terracotta and dry ice terrain.
+
+## 0.1.5.121011 (unreleased)
+
+- Use podzol slabs, steps and corners on newly generated podzol slopes.
+
+## 0.1.4.121011 (unreleased)
+
+- Gentle terraces get full-width slabs where they fit, while narrow ledges keep their downhill edge.
+- Snow, packed ice and powder snow get matching transitions. Gravel gets falling slabs.
+- New grass pieces pick up nearby snow immediately, including snow added later during generation.
+- Material settings and Config pages let you choose which terrain to smooth.
+- Unfinished repairs to new terrain survive unloading and restarts, while nearby player edits stay protected.
+- Recipe-book entries show distinct results without duplicate recipes.
+- Eclipse keeps its exact dependency jars when sibling builds change.
+
+## 0.1.0.121011 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.21.1 on Forge.
+- Use the matching Grass Slabs and Building Pieces versions.
+
+## 0.1.0.120061 (unreleased)
+
+- Bring surface and cave smoothing to Minecraft 1.20.6.
+- Use the matching Grass Slabs and Building Pieces versions.
+
 ## 0.1.0.120011 (unreleased)
 
 - Bring surface and cave smoothing to Minecraft 1.20.1.

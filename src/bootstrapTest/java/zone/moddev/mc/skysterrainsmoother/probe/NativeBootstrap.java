@@ -40,7 +40,7 @@ public final class NativeBootstrap {
     }
 
     private void setup(FMLCommonSetupEvent event) {
-        require(TerrainSmoothingApi.hasMaterial(new ResourceLocation("minecraft:stone")),
+        require(TerrainSmoothingApi.hasMaterial(ResourceLocation.parse("minecraft:stone")),
                 "Built-ins are available from a contributor's native setup callback");
         TerrainSmoothingApi.addBiomeRule((material, biome) -> true);
         setupComplete = true;

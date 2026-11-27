@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
@@ -23,7 +23,7 @@ public final class TerrainSmoothingFeature extends Feature<NoneFeatureConfigurat
     private static final String ID = "terrain_smoothing";
     private static final DeferredRegister<Feature<?>> FEATURES =
             DeferredRegister.create(ForgeRegistries.FEATURES, SkysTerrainSmoother.ID);
-    private static final DeferredRegister<Codec<? extends BiomeModifier>> BIOME_MODIFIERS =
+    private static final DeferredRegister<MapCodec<? extends BiomeModifier>> BIOME_MODIFIERS =
             DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, SkysTerrainSmoother.ID);
     private static final RegistryObject<TerrainSmoothingFeature> SMOOTHING =
             FEATURES.register(ID, TerrainSmoothingFeature::new);

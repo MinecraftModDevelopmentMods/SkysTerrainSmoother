@@ -1,6 +1,6 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.BiomeTags;
@@ -12,7 +12,7 @@ import net.minecraftforge.common.world.ModifiableBiomeInfo.BiomeInfo;
 
 /** Puts the shared smoothing pass ahead of vegetation placement. */
 final class TerrainSmoothingBiomeModifier implements BiomeModifier {
-    static final Codec<TerrainSmoothingBiomeModifier> CODEC = Codec.unit(new TerrainSmoothingBiomeModifier());
+    static final MapCodec<TerrainSmoothingBiomeModifier> CODEC = MapCodec.unit(new TerrainSmoothingBiomeModifier());
 
     private TerrainSmoothingBiomeModifier() {
     }
@@ -31,7 +31,7 @@ final class TerrainSmoothingBiomeModifier implements BiomeModifier {
     }
 
     @Override
-    public Codec<? extends BiomeModifier> codec() {
+    public MapCodec<? extends BiomeModifier> codec() {
         return CODEC;
     }
 }

@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Direction;
@@ -29,11 +30,19 @@ final class OpportunityProbe {
         int checks = 0;
 
         for (BlockState source : new BlockState[] { Blocks.STONE.defaultBlockState(),
-                Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.SAND.defaultBlockState() }) {
+                Blocks.GRASS_BLOCK.defaultBlockState(), Blocks.SAND.defaultBlockState(),
+                Blocks.PODZOL.defaultBlockState().setValue(SnowyDirtBlock.SNOWY, true) }) {
             if (source.getBlock() == Blocks.GRASS_BLOCK && !GrassSlabsApi.grassGenerationAllowed()) {
                 continue;
             }
             TerrainMaterial material = MaterialCatalogue.instance().source(source);
+            RuntimeProbe.require(material != null, "Missing terrain mapping for " + source);
+            if (source.is(Blocks.PODZOL)) {
+                for (int direction = 0; direction < 4; direction++) {
+                    RuntimeProbe.require(material.step(direction) != null && material.corner(direction) != null,
+                            "Podzol should use its own step and corner in every direction");
+                }
+            }
             for (int level = 1; level <= 3; level++) {
                 for (Direction uphill : Direction.Plane.HORIZONTAL) {
                     for (int cover = 1; cover <= 3; cover++) {
@@ -60,6 +69,10 @@ final class OpportunityProbe {
                                 "snow outside the chosen placement is not cleared");
                         RuntimeProbe.require(SkysTerrainSmoother.engine.smooth(world, owner, level) == 0,
                                 "snow replacement remains idempotent");
+                        if (source.is(Blocks.PODZOL)) {
+                            RuntimeProbe.require(world.getBlockState(floor).is(Blocks.PODZOL),
+                                    "A podzol transition keeps the podzol underneath");
+                        }
                         checks += 3;
                     }
 
@@ -101,8 +114,40 @@ final class OpportunityProbe {
                 }
             }
         }
+        checks += matchingSurfaces(world, owner, floor);
         checks += snowyTerrace(world);
         zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother.logger.info("TERRAIN_SMOOTHER_OPPORTUNITIES_PASS checks=" + checks);
+        return checks;
+    }
+
+    private static int matchingSurfaces(ServerLevel world, LevelChunk owner, BlockPos floor) {
+        var catalogue = MaterialCatalogue.instance();
+        int checks = 0;
+        for (Block source : new Block[] { Blocks.COARSE_DIRT, Blocks.MYCELIUM, Blocks.MUD, Blocks.ROOTED_DIRT,
+                Blocks.CLAY, Blocks.DEEPSLATE, Blocks.TUFF, Blocks.CALCITE, Blocks.DRIPSTONE_BLOCK,
+                Blocks.WHITE_TERRACOTTA, Blocks.ORANGE_TERRACOTTA }) {
+            BlockState full = source.defaultBlockState();
+            TerrainMaterial material = catalogue.source(full);
+            RuntimeProbe.require(material != null && material.step(0) != null && material.corner(0) != null,
+                    "The natural material offers all three shapes: " + source);
+            if (source == Blocks.TUFF) {
+                RuntimeProbe.require(material.slab.is(Blocks.TUFF_SLAB), "Reuse the native tuff slab");
+            }
+            if (source == Blocks.COARSE_DIRT) {
+                RuntimeProbe.require(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(material.slab.getBlock())
+                        .toString().equals("skysterrainsmootherbop:dirt_slab_00"), "Coarse dirt keeps its saved slab ID");
+            }
+            for (int level = 1; level <= 3; level++) {
+                prepare(world, floor, full);
+                world.setBlock(floor.north().above(), full, 2);
+                ProbeWorld.rebuildHeights(owner);
+                SkysTerrainSmoother.engine.smooth(world, owner, level);
+                RuntimeProbe.require(catalogue.piece(world.getBlockState(floor.above())) == material,
+                        "Natural terrain uses matching pieces at level " + level + ": " + source);
+                RuntimeProbe.require(world.getBlockState(floor).equals(full), "Keep the original soil or rock: " + source);
+                checks += 2;
+            }
+        }
         return checks;
     }
 
@@ -119,7 +164,7 @@ final class OpportunityProbe {
         BlockState[] palette = new BlockState[savedPalette.size()];
         for (int index = 0; index < palette.length; index++) {
             JsonObject entry = savedPalette.get(index).getAsJsonObject();
-            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.resources.ResourceLocation(entry.get("block").getAsString()));
+            Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(net.minecraft.resources.ResourceLocation.parse(entry.get("block").getAsString()));
             RuntimeProbe.require(block != null, "unknown block in the mountain regression fixture");
             RuntimeProbe.require(entry.get("meta").getAsInt() == 0, "Only default native states occur in this terrace fixture");
             palette[index] = block.defaultBlockState();
@@ -180,4 +225,3 @@ final class OpportunityProbe {
     private OpportunityProbe() {
     }
 }
-

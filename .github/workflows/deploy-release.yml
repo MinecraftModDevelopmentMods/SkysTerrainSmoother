@@ -273,6 +273,20 @@ jobs:
         with:
           ref: ${{ needs.preflight.outputs.release_sha }}
 
+      - name: Install ForgeGradle Mavenizer toolchain
+        if: needs.preflight.outputs.loader_name == 'forge' && needs.preflight.outputs.java_version != '25'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
+      - name: Install ForgeGradle legacy renamer toolchain
+        if: needs.preflight.outputs.loader_name == 'forge' && needs.preflight.outputs.java_version != '8' && needs.preflight.outputs.java_version != '25'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -293,6 +307,20 @@ jobs:
           echo "SBP_JAVA8_HOME=$JAVA_HOME_8_X64" >> "$GITHUB_ENV"
           echo "STS_JAVA8_HOME=$JAVA_HOME_8_X64" >> "$GITHUB_ENV"
 
+      - name: Configure ForgeGradle toolchains
+        if: needs.preflight.outputs.loader_name == 'forge'
+        shell: bash
+        run: |
+          set -euo pipefail
+          paths=()
+          for version in 8 17 21 25; do
+            variable="JAVA_HOME_${version}_X64"
+            if [[ -n "${!variable:-}" ]]; then paths+=("${!variable}"); fi
+          done
+          [[ -n "${JAVA_HOME_25_X64:-}" ]]
+          joined="$(IFS=,; echo "${paths[*]}")"
+          printf 'GRADLE_OPTS=%s -Dorg.gradle.java.installations.paths=%s -Dorg.gradle.java.installations.auto-detect=false -Dorg.gradle.java.installations.auto-download=false\n' "${GRADLE_OPTS:-}" "$joined" >> "$GITHUB_ENV"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
@@ -309,21 +337,26 @@ jobs:
       - name: Check out SkysGrassSlabs
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: SkyBlade1978/SkysGrassSlabs
+          repository: MinecraftModDevelopmentMods/SkysGrassSlabs
           ref: ${{ steps.content.outputs.grass }}
           path: dependencies/grass
       - name: Check out SkysBuildingPieces
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: SkyBlade1978/SkysBuildingPieces
+          repository: MinecraftModDevelopmentMods/SkysBuildingPieces
           ref: ${{ steps.content.outputs.pieces }}
           path: dependencies/pieces
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          grass="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
+          dependency="$GITHUB_WORKSPACE/dependencies/grass"
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace \
+            "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
+
+
 
       - name: Build, test, and audit once
         env:
@@ -335,7 +368,7 @@ jobs:
             # NeoGradle resolves model inputs during configuration under build/tmp.
             # Cleaning in the same invocation removes those inputs before setup runs.
             ./gradlew clean --no-daemon --stacktrace --max-workers=2
-            ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
+            ./gradlew check build javadoc -PgrassSlabsDirectory=dependencies/grass -PbuildingPiecesDirectory=dependencies/pieces verifyReleaseArtifacts writeReleaseChecksums \
               --no-daemon --stacktrace --max-workers=2
           else
             # Preserve the established Forge release lifecycle.
@@ -477,6 +510,20 @@ jobs:
         with:
           ref: ${{ needs.preflight.outputs.release_sha }}
 
+      - name: Install ForgeGradle Mavenizer toolchain
+        if: needs.preflight.outputs.loader_name == 'forge' && needs.preflight.outputs.java_version != '25'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
+      - name: Install ForgeGradle legacy renamer toolchain
+        if: needs.preflight.outputs.loader_name == 'forge' && needs.preflight.outputs.java_version != '8' && needs.preflight.outputs.java_version != '25'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
       - name: Install target Java toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -489,6 +536,20 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ needs.preflight.outputs.gradle_java_version }}
+
+      - name: Configure ForgeGradle toolchains
+        if: needs.preflight.outputs.loader_name == 'forge'
+        shell: bash
+        run: |
+          set -euo pipefail
+          paths=()
+          for version in 8 17 21 25; do
+            variable="JAVA_HOME_${version}_X64"
+            if [[ -n "${!variable:-}" ]]; then paths+=("${!variable}"); fi
+          done
+          [[ -n "${JAVA_HOME_25_X64:-}" ]]
+          joined="$(IFS=,; echo "${paths[*]}")"
+          printf 'GRADLE_OPTS=%s -Dorg.gradle.java.installations.paths=%s -Dorg.gradle.java.installations.auto-detect=false -Dorg.gradle.java.installations.auto-download=false\n' "${GRADLE_OPTS:-}" "$joined" >> "$GITHUB_ENV"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
@@ -506,21 +567,26 @@ jobs:
       - name: Check out SkysGrassSlabs
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: SkyBlade1978/SkysGrassSlabs
+          repository: MinecraftModDevelopmentMods/SkysGrassSlabs
           ref: ${{ steps.content.outputs.grass }}
           path: dependencies/grass
       - name: Check out SkysBuildingPieces
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: SkyBlade1978/SkysBuildingPieces
+          repository: MinecraftModDevelopmentMods/SkysBuildingPieces
           ref: ${{ steps.content.outputs.pieces }}
           path: dependencies/pieces
       - name: Build development dependencies
         run: |
           set -euo pipefail
-          chmod +x dependencies/*/gradlew
-          (cd dependencies/grass && ./gradlew assemble --no-daemon --stacktrace)
-          (cd dependencies/pieces && ./gradlew assemble --no-daemon --stacktrace)
+          (cd dependencies/grass && bash ./gradlew assemble --no-daemon --stacktrace)
+          grass="$(sed -n 's/^grass.version=//p' gradle/content-dependencies.properties)"
+          dependency="$GITHUB_WORKSPACE/dependencies/grass"
+          (cd dependencies/pieces && bash ./gradlew assemble --no-daemon --stacktrace \
+            "-PgrassSlabsMainJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar" \
+            "-PgrassSlabsDeobfJar=$dependency/build/libs/SkysGrassSlabs-$grass.jar")
+
+
 
       - name: Download immutable release artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -584,6 +650,7 @@ jobs:
           fi
 
       - name: Publish Sky's Terrain Smoother
+        id: curseforge
         uses: Kira-NT/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
         with:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -607,6 +674,15 @@ jobs:
             ${{ runner.temp }}/release-input/${{ needs.preflight.outputs.main_jar }}
             ${{ runner.temp }}/release-input/${{ needs.preflight.outputs.sources_jar }}
             ${{ runner.temp }}/release-input/${{ needs.preflight.outputs.javadoc_jar }}
+
+      - name: Record CurseForge publication
+        env:
+          CURSEFORGE_FILE_ID: ${{ steps.curseforge.outputs.curseforge-version }}
+          CURSEFORGE_URL: ${{ steps.curseforge.outputs.curseforge-url }}
+        run: |
+          set -euo pipefail
+          [[ "$CURSEFORGE_FILE_ID" =~ ^[0-9]+$ ]]
+          printf 'CurseForge file: %s\nDownload: %s\n' "$CURSEFORGE_FILE_ID" "$CURSEFORGE_URL"
 
   publish_github:
     name: Publish GitHub Release

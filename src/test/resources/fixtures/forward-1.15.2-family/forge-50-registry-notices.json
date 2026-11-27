@@ -1,0 +1,69 @@
+{
+  "source_world_sha256": "B812D07B20C34EE058D155EC8592FFE8AB36DB386FF04A3687BBE9419A81BA5F",
+  "target": "Forge 50.2.0",
+  "snapshot_entries": {
+    "minecraft:block": {
+      "minecraft:grass": 94
+    },
+    "minecraft:enchantment": {
+      "minecraft:sweeping": 17
+    },
+    "minecraft:entity_type": {
+      "minecraft:zombie_pigman": 56
+    },
+    "minecraft:item": {
+      "minecraft:grass": 76,
+      "minecraft:scute": 519,
+      "minecraft:zombie_pigman_spawn_egg": 753
+    },
+    "minecraft:memory_module_type": {
+      "minecraft:golem_last_seen_time": 24,
+      "minecraft:opened_doors": 16
+    },
+    "minecraft:point_of_interest_type": {
+      "minecraft:nitwit": 11,
+      "minecraft:unemployed": 0
+    },
+    "minecraft:potion": {
+      "minecraft:empty": 0
+    },
+    "minecraft:sound_event": {
+      "minecraft:entity.zombie_pigman.ambient": 784,
+      "minecraft:entity.zombie_pigman.angry": 785,
+      "minecraft:entity.zombie_pigman.death": 786,
+      "minecraft:entity.zombie_pigman.hurt": 787,
+      "minecraft:music.nether": 400
+    }
+  },
+  "inspected_nbt_records": 1353,
+  "inspected_nbt_values": 108556,
+  "raw_matches": {
+    "minecraft:grass|value|world/data/skysgrassslabs_legacy_registry.dat/Blocks/ids/[]/K": 1
+  },
+  "grass_positions": 0,
+  "unused_non_biome_ids": {
+    "minecraft:empty": 0,
+    "minecraft:entity.zombie_pigman.ambient": 0,
+    "minecraft:entity.zombie_pigman.angry": 0,
+    "minecraft:entity.zombie_pigman.death": 0,
+    "minecraft:entity.zombie_pigman.hurt": 0,
+    "minecraft:golem_last_seen_time": 0,
+    "minecraft:grass": 0,
+    "minecraft:music.nether": 0,
+    "minecraft:nitwit": 0,
+    "minecraft:opened_doors": 0,
+    "minecraft:scute": 0,
+    "minecraft:sweeping": 0,
+    "minecraft:unemployed": 0,
+    "minecraft:zombie_pigman": 0,
+    "minecraft:zombie_pigman_spawn_egg": 0
+  },
+  "retained_legacy_registry_aliases": {
+    "minecraft:grass": 1
+  },
+  "inspected_fallback_nbt_records": 1,
+  "native_biome_contract_sha256": "09D939D950DF7DBF86A119007FA873CD4D0CD16DC8F99ED9616875C4B2BEAD48",
+  "checked_biome_cells": 633856,
+  "native_renamed_cells": 0,
+  "noticed_biome_cells": 0
+}

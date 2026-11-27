@@ -14,8 +14,10 @@ def generateRecipeAdvancements = tasks.register('generateRecipeAdvancements') {
         Set<String> ids = new HashSet<>()
         entries.each { entry ->
             String recipe = entry.recipe
-            String owner = project.mod_id
-            if (entry.owner != owner || !ids.add(recipe) || entry.ingredients.isEmpty()) {
+            String owner = entry.owner
+            // The old coarse-dirt recipe and unlock IDs are part of saved recipe books.
+            boolean coarseDirt = owner == 'skysterrainsmootherbop' && recipe.startsWith(owner + ':dirt/coarse_loamy/')
+            if ((!coarseDirt && owner != project.mod_id) || !ids.add(recipe) || entry.ingredients.isEmpty()) {
                 throw new GradleException("Invalid recipe-book entry: ${recipe}")
             }
             String path = recipe.split(':', 2)[1]
@@ -31,7 +33,7 @@ def generateRecipeAdvancements = tasks.register('generateRecipeAdvancements') {
             // Independent unlocks avoid a long recipe visibility chain on login.
             Map advancement = [rewards: [recipes: [recipe]],
                                criteria: criteria, requirements: [requirements]]
-            File target = new File(output, "data/${owner}/advancements/recipes/${path}.json")
+            File target = new File(output, "data/${owner}/advancement/recipes/${path}.json")
             target.parentFile.mkdirs()
             target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(advancement)) + '\n', 'UTF-8')
         }

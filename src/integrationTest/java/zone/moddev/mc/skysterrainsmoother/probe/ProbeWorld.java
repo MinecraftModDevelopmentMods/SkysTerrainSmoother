@@ -10,8 +10,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.event.level.ChunkEvent;
 import zone.moddev.mc.skysterrainsmoother.SkysTerrainSmoother;
 
 /** Native events and controlled fixture writes, used only by the runtime checks. */
@@ -30,8 +30,20 @@ final class ProbeWorld {
     }
 
     static void repair(Level world, BlockPos origin) {
+        repair(world, origin, origin);
+    }
+
+    static void repair(Level world, BlockPos origin, BlockPos affectedOwner) {
         queue(world, origin.getX() >> 4, origin.getZ() >> 4);
-        MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent(LogicalSide.SERVER, TickEvent.Phase.END, world, () -> true));
+        // Geometry fixtures wait for their requested owner through the real
+        // bounded queue, rather than assuming every dirty owner runs in one tick.
+        int attempts = 0;
+        do {
+            MinecraftForge.EVENT_BUS.post(new TickEvent.LevelTickEvent.Post(LogicalSide.SERVER, world, () -> true));
+        } while (SkysTerrainSmoother.engine.repairQueued(affectedOwner.getX() >> 4, affectedOwner.getZ() >> 4)
+                && ++attempts < 4096);
+        RuntimeProbe.require(!SkysTerrainSmoother.engine.repairQueued(affectedOwner.getX() >> 4, affectedOwner.getZ() >> 4),
+                "the fixture owner completes its queued late repair");
     }
 
     static void light(Level world, LightLayer type, BlockPos position, int value) {
@@ -54,6 +66,19 @@ final class ProbeWorld {
     static void rebuildHeights(net.minecraft.world.level.chunk.ChunkAccess chunk) {
         net.minecraft.world.level.levelgen.Heightmap.primeHeightmaps(chunk,
                 java.util.EnumSet.allOf(net.minecraft.world.level.levelgen.Heightmap.Types.class));
+    }
+
+    static void coldBiome(Level world, int firstChunkX, int firstChunkZ, int width) {
+        var biome = world.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME)
+                .getHolderOrThrow(net.minecraft.world.level.biome.Biomes.SNOWY_PLAINS);
+        var serverWorld = (net.minecraft.server.level.ServerLevel) world;
+        var sampler = serverWorld.getChunkSource().randomState().sampler();
+        // Both traversal fixtures need the same climate, including the biome lookup's boundary halo.
+        for (int chunkZ = firstChunkZ - 1; chunkZ <= firstChunkZ + width; chunkZ++) {
+            for (int chunkX = firstChunkX - 1; chunkX <= firstChunkX + width; chunkX++) {
+                world.getChunk(chunkX, chunkZ).fillBiomesFromNoise((quartX, quartY, quartZ, climate) -> biome, sampler);
+            }
+        }
     }
 
     static boolean oreSupport(BlockState state) {

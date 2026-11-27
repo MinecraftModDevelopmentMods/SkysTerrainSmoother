@@ -30,7 +30,7 @@ final class FineGrassModelProbe {
                                 || !quad.getSprite().contents().name().toString().equals(sideTexture)) {
                             continue;
                         }
-                        int stride = com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK.getIntegerSize();
+                        int stride = com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK.getVertexSize() / Integer.BYTES;
                         int textureOffset = primaryTextureOffset();
                         double firstRow = Double.POSITIVE_INFINITY;
                         double lastRow = Double.NEGATIVE_INFINITY;
@@ -63,16 +63,7 @@ final class FineGrassModelProbe {
         com.mojang.blaze3d.vertex.VertexFormat format =
                 com.mojang.blaze3d.vertex.DefaultVertexFormat.BLOCK;
 
-        for (int index = 0; index < format.getElements().size(); index++) {
-            com.mojang.blaze3d.vertex.VertexFormatElement element = format.getElements().get(index);
-
-            if (element.getUsage() == com.mojang.blaze3d.vertex.VertexFormatElement.Usage.UV
-                    && element.getType() == com.mojang.blaze3d.vertex.VertexFormatElement.Type.FLOAT
-                    && element.getIndex() == 0) {
-                return format.getOffset(index) / 4;
-            }
-        }
-        throw new AssertionError("The native block format has no primary texture coordinates");
+        return format.getOffset(com.mojang.blaze3d.vertex.VertexFormatElement.UV0) / Integer.BYTES;
     }
 
     private static List<BakedQuad> allFaces(BakedModel model, BlockState state) {

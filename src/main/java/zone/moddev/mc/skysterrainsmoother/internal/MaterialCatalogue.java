@@ -1,5 +1,7 @@
 package zone.moddev.mc.skysterrainsmoother.internal;
 
+import zone.moddev.mc.skysterrainsmoother.config.TerrainSmootherConfig;
+
 import java.util.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.SnowyDirtBlock;
@@ -26,6 +28,7 @@ public final class MaterialCatalogue {
     private volatile List<TerrainSmoothingApi.BiomeRule> biomeRules = Collections.emptyList();
     private volatile List<TerrainSmoothingApi.AreaProtection> protections = Collections.emptyList();
     private volatile boolean frozen;
+    private volatile boolean registrationOpen;
 
     public synchronized void register(TerrainMaterial material) {
         requireOpen();
@@ -84,6 +87,15 @@ public final class MaterialCatalogue {
         frozen = true;
     }
 
+    public synchronized void openRegistration() {
+        requireOpen();
+        registrationOpen = true;
+    }
+
+    public boolean registrationOpen() {
+        return registrationOpen && !frozen;
+    }
+
     public boolean frozen() {
         return frozen;
     }
@@ -109,6 +121,9 @@ public final class MaterialCatalogue {
     }
 
     public boolean allows(TerrainMaterial material, Biome biome, int dimension, BlockPos target) {
+        if (!TerrainSmootherConfig.groupEnabled(material.group)) {
+            return false;
+        }
         for (TerrainSmoothingApi.BiomeRule rule : biomeRules) {
             if (!rule.allows(material.id, biome)) {
                 return false;
@@ -214,7 +229,7 @@ public final class MaterialCatalogue {
             throw new IllegalArgumentException("A terrain piece cannot be full or tile-backed");
         }
 
-        VoxelShape shape = state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO);
+        VoxelShape shape = TerrainGeometry.shape(state);
         if (shape.isEmpty()) {
             throw new IllegalArgumentException("A terrain piece needs solid collision geometry");
         }
@@ -247,8 +262,7 @@ public final class MaterialCatalogue {
     }
 
     private static boolean fullCollision(BlockState state) {
-        return !Shapes.joinIsNotEmpty(state.getCollisionShape(EmptyAccess.INSTANCE, BlockPos.ZERO),
-                Shapes.block(), BooleanOp.NOT_SAME);
+        return TerrainGeometry.full(state);
     }
 
     private static BlockState canonical(BlockState state) {
